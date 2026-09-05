@@ -1,39 +1,125 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import logo from "@repo/ui/assets/logo.svg";
+import { usePathname, useRouter } from "next/navigation";
+import { Logo } from "@repo/ui/logo";
 import authIllustration from "@repo/ui/assets/illustrations/auth/auth-illustration.svg";
+import tellUsAboutYourselfIllustration from "@repo/ui/assets/illustrations/auth/tell-us-about-yourself-illustration.svg";
+
+type AuthHeader =
+	| { kind: "switch"; prompt: string; label: string; href: string }
+	| { kind: "back" };
+
+const SIGN_IN_SWITCH: AuthHeader = {
+	kind: "switch",
+	prompt: "Already have an account?",
+	label: "Sign in",
+	href: "/auth/sign-in",
+};
 
 /**
- * Shared shell for every auth screen (sign in, sign up, and later verify /
- * personal details / forgot & reset password): the form on the left, a
- * brand illustration panel on the right on larger screens, collapsing to
- * just the form full-width on mobile.
+ * Per-route chrome for every /auth/* screen: the top-right header content —
+ * the "Already have an account?" switch link on most screens, a "Back"
+ * link once you're mid-flow on Verify (Figma has no switch link there,
+ * node 127:2709) — and which side illustration shows next to the form, or
+ * none for Verify's centered layout. Keyed by pathname so individual pages
+ * don't each render their own copy of this.
  */
-function AuthLayout({ children }: { children: React.ReactNode }) {
-	return (
-		<div className="flex min-h-full flex-1 flex-col lg:flex-row">
-			<div className="flex flex-1 flex-col px-6 py-8 sm:px-10 lg:justify-center lg:px-16 xl:px-24">
-				<Link href="/" className="mb-10 inline-flex w-fit lg:hidden">
-					<Image src={logo} alt="Peakline" className="h-7 w-auto" priority />
-				</Link>
-				<div className="mx-auto w-full max-w-sm">{children}</div>
-			</div>
+const AUTH_ROUTES: Record<
+	string,
+	{ header?: AuthHeader; illustration: typeof authIllustration | null }
+> = {
+	"/auth/sign-up": { header: SIGN_IN_SWITCH, illustration: authIllustration },
+	"/auth/sign-in": {
+		header: {
+			kind: "switch",
+			prompt: "Don't have an account?",
+			label: "Sign up",
+			href: "/auth/sign-up",
+		},
+		illustration: authIllustration,
+	},
+	"/auth/sign-up/account-type": {
+		header: SIGN_IN_SWITCH,
+		illustration: authIllustration,
+	},
+	"/auth/sign-up/merchant-setup": {
+		header: SIGN_IN_SWITCH,
+		illustration: authIllustration,
+	},
+	"/auth/sign-up/personal-details": {
+		header: SIGN_IN_SWITCH,
+		illustration: tellUsAboutYourselfIllustration,
+	},
+	"/auth/sign-up/personal-details/id-verification": {
+		header: SIGN_IN_SWITCH,
+		illustration: tellUsAboutYourselfIllustration,
+	},
+	"/auth/sign-up/personal-details/review": {
+		header: SIGN_IN_SWITCH,
+		illustration: tellUsAboutYourselfIllustration,
+	},
+	"/auth/sign-up/verify-otp": {
+		header: { kind: "back" },
+		illustration: null,
+	},
+	"/auth/sign-up/set-pin": {
+		illustration: authIllustration,
+	},
+	"/auth/sign-up/success": {
+		illustration: null,
+	},
+};
 
-			<div className="hidden lg:flex lg:w-[42%] lg:flex-col lg:justify-between lg:bg-primary-50 lg:px-12 lg:py-12 xl:px-16">
-				<Link href="/" className="inline-flex w-fit">
-					<Image src={logo} alt="Peakline" className="h-7 w-auto" priority />
-				</Link>
-				<div className="flex flex-1 items-center justify-center py-10">
-					<Image
-						src={authIllustration}
-						alt=""
-						className="h-auto w-full max-w-sm"
-						priority
-					/>
+function AuthLayout({ children }: { children: React.ReactNode }) {
+	const pathname = usePathname();
+	const router = useRouter();
+	const route = AUTH_ROUTES[pathname];
+	const header = route?.header;
+	const illustration = route ? route.illustration : authIllustration;
+
+	return (
+		<div className="min-h-screen pt-8 sm:pt-10 pb-20">
+			<div className="mx-auto max-w-300 px-4 sm:px-6 lg:px-8">
+				<div className="flex items-center justify-between gap-4 md:pb-10">
+					<Logo size="lg" className="shrink-0" />
+					{header?.kind === "switch" && (
+						<p className="min-w-0 text-right text-b3 text-muted-foreground">
+							<span className="max-md:hidden">{header.prompt} </span>
+							<Link
+								href={header.href}
+								className="font-medium text-primary hover:underline"
+							>
+								{header.label}
+							</Link>
+						</p>
+					)}
+					{header?.kind === "back" && (
+						<button
+							type="button"
+							onClick={() => router.back()}
+							className="text-b3 text-muted-foreground hover:text-foreground"
+						>
+							Back
+						</button>
+					)}
 				</div>
-				<p className="text-h5 max-w-sm text-primary-900">
-					One wallet for simple digital payments.
-				</p>
+
+				{illustration ? (
+					<div className="flex justify-between gap-10">
+						<div className="flex-1">
+							<div className="mt-10 sm:mt-15 max-w-120 max-lg:mx-auto">
+								{children}
+							</div>
+						</div>
+						<div className="hidden lg:block">
+							<Image src={illustration} alt="" className="max-w-350" />
+						</div>
+					</div>
+				) : (
+					<div className="mx-auto mt-10 max-w-120 sm:mt-15">{children}</div>
+				)}
 			</div>
 		</div>
 	);

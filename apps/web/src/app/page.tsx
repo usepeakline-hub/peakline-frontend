@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import logo from "@repo/ui/assets/logo.svg";
+import { Logo } from "@repo/ui/logo";
 import { Button } from "@repo/ui/button";
 import { toast } from "@repo/ui/sonner";
 import {
@@ -49,12 +48,7 @@ export default function Home() {
 	return (
 		<div className="custom-container flex flex-col gap-16 py-16">
 			<header className="flex flex-col gap-2">
-				<Image
-					src={logo}
-					alt="Peakline"
-					className="h-8 w-auto"
-					priority
-				/>
+				<Logo size="lg" />
 				<Badge>Design tokens preview</Badge>
 				<h1 className="text-h1 text-foreground">Peakline</h1>
 				<p className="text-b1 text-muted-foreground max-w-xl">
