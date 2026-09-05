@@ -8,6 +8,7 @@ import type {
 	PersonalDetailsValues,
 	IdVerificationValues,
 	SetPinValues,
+	TwoFactorMethodValues,
 } from "@/lib/validations/authValidations";
 
 // TODO: replace with real calls into the auth API once it exists.
@@ -69,6 +70,22 @@ function useSetupWallet() {
 	});
 }
 
+function useSubmitTwoFactorMethod() {
+	return useMutation({
+		mutationFn: (values: TwoFactorMethodValues) => fakeRequest(values),
+	});
+}
+
+/** Every login's final step — verifying the 2FA code, whichever method was
+ * chosen. Distinct from `useVerifyOtp` (Sign Up's email verification) since
+ * this can be an authenticator code instead of a mailed one. */
+function useVerifyLogin() {
+	return useMutation({
+		mutationFn: (values: VerifyOtpValues & { email: string }) =>
+			fakeRequest(values),
+	});
+}
+
 export {
 	useSignIn,
 	useSignUp,
@@ -77,4 +94,6 @@ export {
 	useVerifyOtp,
 	useCompleteSignUp,
 	useSetupWallet,
+	useSubmitTwoFactorMethod,
+	useVerifyLogin,
 };

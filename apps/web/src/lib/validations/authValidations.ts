@@ -19,6 +19,14 @@ export const signInSchema = z.object({
 });
 export type SignInValues = z.infer<typeof signInSchema>;
 
+/** Every login goes through 2FA — Sign In -> pick a method -> Verify. */
+export const twoFactorMethodSchema = z.object({
+	method: z.enum(["email", "authenticator"], {
+		message: "Choose a verification method",
+	}),
+});
+export type TwoFactorMethodValues = z.infer<typeof twoFactorMethodSchema>;
+
 /**
  * One rule per requirement (rather than one combined regex) so a live
  * checklist UI can point at exactly which ones are unmet — see
