@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check } from "lucide-react";
 import { Button } from "@repo/ui/button";
@@ -44,7 +44,7 @@ function SignUpForm() {
 		defaultValues: { email: "", phone: "", password: "", agreeToTerms: false },
 	});
 	const signUp = useSignUp();
-	const password = form.watch("password");
+	const password = useWatch({ control: form.control, name: "password" });
 
 	function onSubmit(values: SignUpValues) {
 		signUp.mutate(values, {
@@ -142,7 +142,10 @@ function SignUpForm() {
 												)}
 											>
 												{met ? (
-													<Check className="size-3.5 shrink-0" aria-hidden="true" />
+													<Check
+														className="size-3.5 shrink-0"
+														aria-hidden="true"
+													/>
 												) : (
 													<span
 														className="size-3.5 shrink-0 rounded-full border border-current"
