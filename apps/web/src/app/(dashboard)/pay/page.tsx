@@ -28,7 +28,9 @@ export default function PayPage() {
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			<MobileStepHeader title="Pay" onBack={() => router.back()} />
+			{/* No back arrow — primary bottom-tab destination (the elevated
+			    center action), same as /wallet. */}
+			<MobileStepHeader title="Pay" />
 			{/* The mock's own subtitle here was copy-pasted from Receive ("...to
 			    receive payments") — written fresh for what this page actually
 			    does. */}

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@repo/ui/button";
+import { OtpInput } from "@repo/ui/otp-input";
 import { MerchantAvatar } from "@/features/pay/components/MerchantAvatar";
-import { PinPad } from "@/features/pay/components/PinPad";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
 import type { PayFlowValues } from "@/features/pay/store/payFlowStore";
 
@@ -15,13 +15,15 @@ interface ConfirmPaymentStepProps {
 }
 
 /**
- * The mock's confirm step shows a numeric keypad right below a fixed
+ * The mock's confirm step shows a numeric entry right below a fixed
  * "You are sending" summary — read as the transaction PIN from onboarding
  * (`SetPinForm`) finally getting used, not amount entry: the summary
- * amount is fixed text, not an editable field, and a keypad for re-typing
- * an already-chosen amount wouldn't make sense. No backend to actually
- * validate a PIN against yet, so any 6 digits proceeds — same spirit as
- * every other `fakeRequest` in the app.
+ * amount is fixed text, not an editable field, and re-typing an
+ * already-chosen amount wouldn't make sense. Uses the same `OtpInput` as
+ * `SetPinForm` — real inputs, so the device's own numeric keyboard shows
+ * up, rather than an on-screen keypad standing in for it. No backend to
+ * actually validate a PIN against yet, so any 6 digits proceeds — same
+ * spirit as every other `fakeRequest` in the app.
  */
 function ConfirmPaymentStep({ values, onContinue }: ConfirmPaymentStepProps) {
 	const [pin, setPin] = useState("");
@@ -54,7 +56,7 @@ function ConfirmPaymentStep({ values, onContinue }: ConfirmPaymentStepProps) {
 				</div>
 			</div>
 
-			<PinPad value={pin} onChange={setPin} length={PIN_LENGTH} />
+			<OtpInput value={pin} onChange={setPin} length={PIN_LENGTH} />
 
 			<Button
 				type="button"

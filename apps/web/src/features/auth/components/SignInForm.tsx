@@ -7,8 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { PasswordInput } from "@repo/ui/password-input";
-import { GoogleIcon } from "@repo/ui/google-icon";
-import { toast } from "@repo/ui/sonner";
 import {
 	Form,
 	FormField,
@@ -45,11 +43,6 @@ function SignInForm() {
 				router.push("/auth/sign-in/two-factor");
 			},
 		});
-	}
-
-	function handleGoogleContinue() {
-		// TODO: wire up once Google OAuth exists on the backend.
-		toast.info("Continue with Google is coming soon");
 	}
 
 	return (
@@ -125,20 +118,6 @@ function SignInForm() {
 					</Button>
 				</form>
 			</Form>
-
-			<div className="flex flex-col items-center gap-5">
-				<p className="text-b1 text-muted-foreground">Or continue with</p>
-				<Button
-					type="button"
-					variant="outline"
-					size="large"
-					className="w-full sm:w-4/5"
-					onClick={handleGoogleContinue}
-				>
-					<GoogleIcon />
-					Google
-				</Button>
-			</div>
 		</div>
 	);
 }

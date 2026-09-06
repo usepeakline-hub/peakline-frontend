@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
@@ -12,12 +11,12 @@ import { useLogout } from "@/features/auth/hooks";
 // merged into one Account page/nav item, per the actual usage: nothing
 // settings-specific existed yet beyond what already lives here.
 export default function AccountPage() {
-	const router = useRouter();
 	const logout = useLogout();
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			<MobileStepHeader title="Account" onBack={() => router.back()} />
+			{/* No back arrow — primary bottom-tab destination, same as /wallet. */}
+			<MobileStepHeader title="Account" />
 			<PageHeader title="Account" subtitle="Manage your account and settings" />
 
 			<PersonalInformationCard />

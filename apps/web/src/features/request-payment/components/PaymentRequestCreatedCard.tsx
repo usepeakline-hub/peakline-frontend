@@ -1,0 +1,119 @@
+"use client";
+
+import { MessageCircle, Mail, Link as LinkIcon, MoreHorizontal, Copy } from "lucide-react";
+import QRCode from "react-qr-code";
+import { toast } from "@repo/ui/sonner";
+import { cn } from "@repo/ui/lib/utils";
+
+interface PaymentRequestCreatedCardProps {
+	link: string;
+}
+
+interface ShareOption {
+	label: string;
+	icon: typeof MessageCircle;
+	iconClassName?: string;
+	onClick: (link: string) => void;
+}
+
+async function copyLink(link: string) {
+	try {
+		await navigator.clipboard.writeText(link);
+		toast.success("Link copied");
+	} catch {
+		toast.error("Couldn't copy");
+	}
+}
+
+const SHARE_OPTIONS: ShareOption[] = [
+	{
+		label: "Whatsapp",
+		icon: MessageCircle,
+		iconClassName: "text-success",
+		onClick: (link) =>
+			window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, "_blank", "noopener"),
+	},
+	{
+		label: "Email",
+		icon: Mail,
+		onClick: (link) => {
+			window.location.href = `mailto:?subject=${encodeURIComponent(
+				"Payment request",
+			)}&body=${encodeURIComponent(link)}`;
+		},
+	},
+	{
+		label: "Copy Link",
+		icon: LinkIcon,
+		onClick: copyLink,
+	},
+	{
+		label: "More",
+		icon: MoreHorizontal,
+		onClick: async (link) => {
+			if (navigator.share) {
+				try {
+					await navigator.share({ url: link, title: "Payment request" });
+				} catch {
+					// User cancelled the share sheet — not an error.
+				}
+			} else {
+				copyLink(link);
+			}
+		},
+	},
+];
+
+/** Revealed once `RequestPaymentForm` creates a request. "Copy Link" and
+ * "More" work with the real clipboard/Web Share API; WhatsApp/Email open
+ * their real share URLs — genuinely functional, not stubs, since all four
+ * are just browser-native mechanisms with no backend involved. */
+function PaymentRequestCreatedCard({ link }: PaymentRequestCreatedCardProps) {
+	return (
+		<div className="flex flex-col gap-5 rounded-2xl border border-border bg-background p-6 sm:p-8">
+			<h2 className="text-b2 font-semibold text-foreground sm:text-b1">
+				Payment Request Created
+			</h2>
+
+			<div className="flex items-center justify-between gap-4 rounded-lg border border-input bg-muted px-3.5 py-2.5">
+				<span className="truncate text-b3 text-foreground sm:text-b2">{link}</span>
+				<button
+					type="button"
+					onClick={() => copyLink(link)}
+					aria-label="Copy request link"
+					className="shrink-0 text-muted-foreground hover:text-foreground"
+				>
+					<Copy className="size-5" aria-hidden="true" />
+				</button>
+			</div>
+
+			<div className="flex flex-col gap-3">
+				<span className="text-c1 text-muted-foreground sm:text-b3">Share via</span>
+				<div className="grid grid-cols-4 gap-3">
+					{SHARE_OPTIONS.map(({ label, icon: Icon, iconClassName, onClick }) => (
+						<button
+							key={label}
+							type="button"
+							onClick={() => onClick(link)}
+							className="flex flex-col items-center gap-2"
+						>
+							<span className="flex size-14 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted">
+								<Icon className={cn("size-5", iconClassName)} aria-hidden="true" />
+							</span>
+							<span className="text-c2 text-muted-foreground">{label}</span>
+						</button>
+					))}
+				</div>
+			</div>
+
+			<div className="flex flex-col gap-3">
+				<span className="text-c1 text-muted-foreground sm:text-b3">QR Code</span>
+				<div className="w-fit rounded-xl bg-white p-3">
+					<QRCode value={link} size={140} />
+				</div>
+			</div>
+		</div>
+	);
+}
+
+export { PaymentRequestCreatedCard };

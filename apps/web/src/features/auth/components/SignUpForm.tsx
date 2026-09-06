@@ -8,7 +8,6 @@ import { Input } from "@repo/ui/input";
 import { PasswordInput } from "@repo/ui/password-input";
 import { PhoneInput } from "@repo/ui/phone-input";
 import { Checkbox } from "@repo/ui/checkbox";
-import { GoogleIcon } from "@repo/ui/google-icon";
 import {
 	Form,
 	FormField,
@@ -53,11 +52,6 @@ function SignUpForm() {
 				router.push("/auth/sign-up/account-type");
 			},
 		});
-	}
-
-	function handleGoogleContinue() {
-		// TODO: wire up once Google OAuth exists on the backend.
-		toast.info("Continue with Google is coming soon");
 	}
 
 	return (
@@ -173,20 +167,6 @@ function SignUpForm() {
 					</Button>
 				</form>
 			</Form>
-
-			<div className="flex flex-col items-center gap-5">
-				<p className="text-b1 text-muted-foreground">Or continue with</p>
-				<Button
-					type="button"
-					variant="outline"
-					size="large"
-					className="w-full sm:w-4/5"
-					onClick={handleGoogleContinue}
-				>
-					<GoogleIcon />
-					Continue with Google
-				</Button>
-			</div>
 		</div>
 	);
 }

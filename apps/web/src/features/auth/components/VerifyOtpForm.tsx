@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { toast } from "@repo/ui/sonner";
 import { useVerifyOtp } from "@/features/auth/hooks";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { VerifyCodeForm } from "@/features/auth/components/VerifyCodeForm";
@@ -29,10 +28,6 @@ function VerifyOtpForm() {
 					{ ...values, email },
 					{ onSuccess: () => router.push("/auth/sign-up/personal-details") },
 				)
-			}
-			onUseAnotherMethod={() =>
-				// TODO: offer SMS-to-phone as an alternative once that channel exists.
-				toast.info("Other verification methods are coming soon")
 			}
 		/>
 	);
