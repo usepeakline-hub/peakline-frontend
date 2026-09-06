@@ -26,10 +26,15 @@ function isActive(pathname: string, href: string) {
 /**
  * Mobile-only primary nav (hidden at `lg` and up, where `Sidebar` takes
  * over) — a curated 5 destinations rather than the sidebar's full 9, with
- * "Pay" as an elevated center scan/pay action, per the mobile mock. The
- * other sidebar items (Send, Receive, Request Payment, Settings) are
- * reachable from the dashboard's own Quick Actions instead of living here.
+ * "Pay" as an elevated center scan/pay action, per the mobile mock.
+ * "Transactions" is a hub, not a plain history page: `/transactions`
+ * itself leads with a Send/Receive/Request chooser (see `TransferActions`)
+ * before the actual history list, so those three don't need their own tab
+ * slots — reachable from there or the dashboard's Quick Actions either way.
+ * "Settings" (sidebar-only) and Logout live inside Profile instead — the
+ * bottom nav has no room, and neither is frequent enough to deserve a slot.
  *
+
  * Each tab is an equal-width `flex-1` column, not `justify-around` — with
  * that, "Transactions" (the longest label) claims more than its fair share
  * of intrinsic width and skews every gap around it, so the elevated Pay

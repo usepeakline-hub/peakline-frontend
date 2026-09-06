@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@repo/ui/logo";
 import { cn } from "@repo/ui/lib/utils";
+import { useLogout } from "@/features/auth/hooks";
 
 const NAV_ITEMS = [
 	{ label: "Dashboard", href: "/", icon: LayoutGrid },
@@ -53,6 +54,7 @@ function isActive(pathname: string, href: string) {
  */
 function Sidebar() {
 	const pathname = usePathname();
+	const logout = useLogout();
 
 	return (
 		<aside className="fixed inset-y-0 left-0 z-30 hidden h-screen w-65 shrink-0 flex-col gap-8 border-r border-border bg-background px-4 py-6 lg:flex">
@@ -82,6 +84,7 @@ function Sidebar() {
 
 			<button
 				type="button"
+				onClick={logout}
 				className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-b3 font-medium text-destructive transition-colors hover:bg-danger-100"
 			>
 				<LogOut className="size-4.5 shrink-0" aria-hidden="true" />

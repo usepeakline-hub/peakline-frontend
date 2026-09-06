@@ -1,4 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "@repo/ui/sonner";
 import type {
 	SignInValues,
 	SignUpValues,
@@ -101,6 +103,24 @@ function useResetPassword() {
 	});
 }
 
+/**
+ * Shared by the desktop Sidebar and the mobile Profile page (the two places
+ * Logout lives — deliberately not in the primary bottom nav, see
+ * `BottomTabBar`'s own note). No real session to tear down yet, so this
+ * just clears cached query data (so a future sign-in doesn't flash stale
+ * data from this session) and sends the user back to Sign In.
+ */
+function useLogout() {
+	const router = useRouter();
+	const queryClient = useQueryClient();
+
+	return function logout() {
+		queryClient.clear();
+		toast.success("You've been logged out");
+		router.push("/auth/sign-in");
+	};
+}
+
 export {
 	useSignIn,
 	useSignUp,
@@ -113,4 +133,5 @@ export {
 	useVerifyLogin,
 	useForgotPassword,
 	useResetPassword,
+	useLogout,
 };

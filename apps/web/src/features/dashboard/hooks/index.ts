@@ -57,6 +57,14 @@ interface Transaction {
 	amount: number;
 	currency: string;
 	status: "pending" | "processing" | "completed" | "failed" | "cancelled";
+	/** Detail-page-only fields — the abbreviated dashboard list never shows
+	 * these, but every entry still carries them so a row can link straight
+	 * to `/transactions/[id]` from anywhere. `counterparty*` is omitted for
+	 * `scan_pay` (paying a merchant terminal isn't "to" a person). */
+	date: string;
+	txId: string;
+	counterpartyName?: string;
+	counterpartyPhone?: string;
 }
 
 function useRecentTransactions() {
@@ -70,33 +78,47 @@ function useRecentTransactions() {
 						kind: "received",
 						title: "Received from John Doe",
 						timestamp: "Today, 10:26 AM",
+						date: "6 September, 2026",
+						txId: "BJFWHUF9824BPFNJEUH8PI98EBOQ",
 						amount: 1000,
 						currency: "USDC",
 						status: "completed",
+						counterpartyName: "John Doe",
+						counterpartyPhone: "+233 24 123 4567",
 					},
 					{
 						id: "2",
 						kind: "sent",
 						title: "Payment to John Doe",
 						timestamp: "Today, 10:26 AM",
+						date: "6 September, 2026",
+						txId: "GKTMNQP4471XZWDCVA6RS3JLYHFE",
 						amount: -500,
 						currency: "USDC",
 						status: "completed",
+						counterpartyName: "John Doe",
+						counterpartyPhone: "+233 24 123 4567",
 					},
 					{
 						id: "3",
 						kind: "received",
 						title: "Received from John Doe",
 						timestamp: "Today, 10:26 AM",
+						date: "6 September, 2026",
+						txId: "TVXBHE2358OQKASD9FGH1MNZLPWC",
 						amount: 1000,
 						currency: "USDC",
 						status: "completed",
+						counterpartyName: "John Doe",
+						counterpartyPhone: "+233 24 123 4567",
 					},
 					{
 						id: "4",
 						kind: "scan_pay",
 						title: "Scan & Pay",
 						timestamp: "Yesterday, 10:26 AM",
+						date: "5 September, 2026",
+						txId: "RQZLKD7793WEUAF2NCJT5HBOMXYV",
 						amount: -500,
 						currency: "USDC",
 						status: "completed",
