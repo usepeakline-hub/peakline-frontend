@@ -73,104 +73,110 @@ function PersonalInformationCard() {
 			<form
 				noValidate
 				onSubmit={form.handleSubmit(handleSave)}
-				className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6"
+				className="flex flex-col gap-6 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6"
 			>
-				<div className="flex flex-col items-center gap-3">
-					<UserAvatar name={DEFAULT_VALUES.fullName} className="size-20 text-h5" />
-					<Button type="button" size="small" onClick={handleChangeProfile}>
-						Change Profile
-					</Button>
-				</div>
+				{/* Desktop-only, matching the mock — the mobile version has no
+				    section heading, just the avatar straight into the fields. */}
+				<h2 className="hidden text-s1 text-foreground lg:block">Personal Information</h2>
 
-				<div className="flex flex-1 flex-col gap-4">
-					<FormField
-						control={form.control}
-						name="username"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Username</FormLabel>
-								<FormControl>
-									<Input readOnly={!isEditing} {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="fullName"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Full Name</FormLabel>
-								<FormControl>
-									<Input readOnly={!isEditing} {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="email"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Email</FormLabel>
-								<FormControl>
-									<Input type="email" readOnly={!isEditing} {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="phone"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Phone Number</FormLabel>
-								<FormControl>
-									<Input readOnly={!isEditing} {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+				<div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+					<div className="flex flex-col items-center gap-3">
+						<UserAvatar name={DEFAULT_VALUES.fullName} className="size-20 text-h5" />
+						<Button type="button" size="small" onClick={handleChangeProfile}>
+							Change Profile
+						</Button>
+					</div>
 
-					<div className="flex gap-3 pt-2">
-						{isEditing ? (
-							<>
-								<Button
-									type="button"
-									variant="outline"
-									className="flex-1"
-									onClick={handleCancel}
-								>
-									Cancel
-								</Button>
-								<Button type="submit" className="flex-1" loading={updateProfile.isPending}>
-									Save
-								</Button>
-							</>
-						) : (
-							<>
-								<Button
-									type="button"
-									variant="outline"
-									className="flex-1"
-									onClick={() => setIsEditing(true)}
-								>
-									Edit
-								</Button>
-								<Button
-									type="button"
-									variant="destructive"
-									className="flex-1"
-									onClick={handleDelete}
-								>
-									Delete
-								</Button>
-							</>
-						)}
+					<div className="flex flex-1 flex-col gap-4">
+						<FormField
+							control={form.control}
+							name="username"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Username</FormLabel>
+									<FormControl>
+										<Input readOnly={!isEditing} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="fullName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Full Name</FormLabel>
+									<FormControl>
+										<Input readOnly={!isEditing} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="email"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Email</FormLabel>
+									<FormControl>
+										<Input type="email" readOnly={!isEditing} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="phone"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Phone Number</FormLabel>
+									<FormControl>
+										<Input readOnly={!isEditing} {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<div className="flex gap-3 pt-2">
+							{isEditing ? (
+								<>
+									<Button
+										type="button"
+										variant="outline"
+										className="flex-1"
+										onClick={handleCancel}
+									>
+										Cancel
+									</Button>
+									<Button type="submit" className="flex-1" loading={updateProfile.isPending}>
+										Save
+									</Button>
+								</>
+							) : (
+								<>
+									<Button
+										type="button"
+										variant="outline"
+										className="flex-1"
+										onClick={() => setIsEditing(true)}
+									>
+										Edit
+									</Button>
+									<Button
+										type="button"
+										variant="destructive"
+										className="flex-1"
+										onClick={handleDelete}
+									>
+										Delete
+									</Button>
+								</>
+							)}
+						</div>
 					</div>
 				</div>
 			</form>

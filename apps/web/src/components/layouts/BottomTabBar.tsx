@@ -15,7 +15,7 @@ const TABS = [
 		icon: ArrowLeftRight,
 		elevated: false,
 	},
-	{ label: "Profile", href: "/profile", icon: User, elevated: false },
+	{ label: "Account", href: "/account", icon: User, elevated: false },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -31,8 +31,9 @@ function isActive(pathname: string, href: string) {
  * itself leads with a Send/Receive/Request chooser (see `TransferActions`)
  * before the actual history list, so those three don't need their own tab
  * slots — reachable from there or the dashboard's Quick Actions either way.
- * "Settings" (sidebar-only) and Logout live inside Profile instead — the
- * bottom nav has no room, and neither is frequent enough to deserve a slot.
+ * Profile and Settings are merged into one "Account" tab — Logout lives
+ * there too; the bottom nav has no room for either as its own slot, and
+ * neither is frequent enough to deserve one.
  *
 
  * Each tab is an equal-width `flex-1` column, not `justify-around` — with

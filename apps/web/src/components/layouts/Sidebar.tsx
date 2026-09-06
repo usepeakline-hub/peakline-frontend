@@ -11,13 +11,15 @@ import {
 	HandCoins,
 	ArrowLeftRight,
 	User,
-	Settings,
 	LogOut,
 } from "lucide-react";
 import { Logo } from "@repo/ui/logo";
 import { cn } from "@repo/ui/lib/utils";
 import { useLogout } from "@/features/auth/hooks";
 
+// Profile and Settings used to be separate nav items/pages — merged into
+// one "Account" destination, so there's one place for identity + account
+// management instead of two half-empty ones.
 const NAV_ITEMS = [
 	{ label: "Dashboard", href: "/", icon: LayoutGrid },
 	{ label: "Wallet", href: "/wallet", icon: Wallet },
@@ -26,8 +28,7 @@ const NAV_ITEMS = [
 	{ label: "Pay", href: "/pay", icon: ScanLine },
 	{ label: "Request Payment", href: "/request-payment", icon: HandCoins },
 	{ label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
-	{ label: "Profile", href: "/profile", icon: User },
-	{ label: "Settings", href: "/settings", icon: Settings },
+	{ label: "Account", href: "/account", icon: User },
 ] as const;
 
 /** True for the item's own route, and (except the root Dashboard item) any

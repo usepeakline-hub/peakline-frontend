@@ -35,8 +35,8 @@ function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
 			>
 				<Bell className="size-4.5" aria-hidden="true" />
 				{notificationCount > 0 && (
-					<span className="absolute -top-1 -right-1 flex size-4.5 items-center justify-center rounded-full bg-destructive text-c3 text-destructive-foreground">
-						{notificationCount > 9 ? "9+" : notificationCount}
+					<span className="absolute -top-1 -right-1 flex size-4.5 items-center justify-center rounded-full bg-primary-500 text-c3 text-primary-foreground">
+						{notificationCount > 99 ? "99+" : notificationCount}
 					</span>
 				)}
 			</button>

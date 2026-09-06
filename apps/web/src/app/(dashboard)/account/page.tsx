@@ -8,14 +8,17 @@ import { PersonalInformationCard } from "@/features/profile/components/PersonalI
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
 import { useLogout } from "@/features/auth/hooks";
 
-export default function ProfilePage() {
+// Profile and Settings used to be two separate (half-empty) destinations —
+// merged into one Account page/nav item, per the actual usage: nothing
+// settings-specific existed yet beyond what already lives here.
+export default function AccountPage() {
 	const router = useRouter();
 	const logout = useLogout();
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			<MobileStepHeader title="Profile" onBack={() => router.back()} />
-			<PageHeader title="Profile" subtitle="Manage your account information" />
+			<MobileStepHeader title="Account" onBack={() => router.back()} />
+			<PageHeader title="Account" subtitle="Manage your account and settings" />
 
 			<PersonalInformationCard />
 			<WalletAddressCard />
@@ -23,7 +26,7 @@ export default function ProfilePage() {
 			{/* Not part of the provided mock — desktop already has Logout in the
 			    Sidebar, but mobile has no equivalent nav chrome, so this stays as
 			    a low-emphasis fallback rather than dropping mobile logout
-			    entirely. Easy to remove if it's meant to live in Settings instead. */}
+			    entirely. */}
 			<button
 				type="button"
 				onClick={logout}

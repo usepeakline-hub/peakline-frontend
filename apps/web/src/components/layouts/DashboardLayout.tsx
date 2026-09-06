@@ -24,7 +24,11 @@ interface DashboardLayoutProps {
 function DashboardLayout({
 	children,
 	userName = "John Doe",
-	notificationCount = 0,
+	// TODO: source from a real notifications feed once one exists — every
+	// provided mock shows the bell badge active, so this defaults to a
+	// nonzero fake count rather than 0 (which would hide it, contradicting
+	// every screenshot).
+	notificationCount = 10,
 }: DashboardLayoutProps) {
 	return (
 		<div className="flex min-h-screen bg-background lg:bg-muted">
