@@ -46,6 +46,7 @@ function FundWalletDialog({ children }: { children: React.ReactNode }) {
 
 	function handleGoToDashboard() {
 		handleOpenChange(false);
+		router.push("/");
 	}
 
 	function handleViewTransactions() {

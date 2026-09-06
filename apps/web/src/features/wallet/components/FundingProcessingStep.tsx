@@ -14,7 +14,15 @@ interface FundingProcessingStepProps {
 /** Step 3 — fires the actual (fake) funding request on mount and reports
  * back once it settles. No back button and no close button on the dialog
  * for this step (see FundWalletDialog) — a transaction in flight shouldn't
- * be dismissable. */
+ * be dismissable.
+ *
+ * `min-h-full` centers the loader within whatever height the mobile page's
+ * own container resolves to (the dashboard's `main` stretches via `flex-1`
+ * to fill the viewport) — a fixed `vh` fraction used here previously under-
+ * or overshot depending on how tall the surrounding chrome actually was.
+ * Inside the desktop dialog this has no effect (its container's height is
+ * auto/content-sized, so percentage heights resolve to nothing there per
+ * spec) — exactly what's wanted, since the dialog was never the problem. */
 function FundingProcessingStep({ values, onSettled }: FundingProcessingStepProps) {
 	const processFunding = useProcessFunding();
 	// Guards against React 18/19 StrictMode's double-invoked effects firing
@@ -34,7 +42,7 @@ function FundingProcessingStep({ values, onSettled }: FundingProcessingStepProps
 	}, []);
 
 	return (
-		<div className="flex flex-col items-center gap-6 py-6 text-center sm:py-10">
+		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-6 text-center sm:py-10">
 			<Loader2
 				className="size-12 animate-spin text-primary-500 sm:size-14"
 				aria-hidden="true"

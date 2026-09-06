@@ -16,13 +16,11 @@ export default function FundingProcessingPage() {
 	if (!values) return null;
 
 	return (
-		<div className="flex flex-col gap-6">
-			<FundingProcessingStep
-				values={values}
-				onSettled={(result) =>
-					router.replace(`/wallet/fund/${result === "success" ? "success" : "failed"}`)
-				}
-			/>
-		</div>
+		<FundingProcessingStep
+			values={values}
+			onSettled={(result) =>
+				router.replace(`/wallet/fund/${result === "success" ? "success" : "failed"}`)
+			}
+		/>
 	);
 }

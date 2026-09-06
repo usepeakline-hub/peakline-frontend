@@ -377,10 +377,22 @@
 		@apply font-sans;
 		scroll-behavior: smooth;
 		overflow-x: hidden;
-		/* Reserve the scrollbar's gutter permanently, so opening a Dialog
-		   (which locks body scroll, hiding the scrollbar) never shifts the
-		   page's content — the space was already there either way. */
-		scrollbar-gutter: stable;
+	}
+
+	/* Reserve the scrollbar's gutter permanently at desktop widths, so opening
+	   a Dialog (which locks body scroll, hiding the scrollbar) never shifts
+	   the page's content — the space was already there either way. Scoped to
+	   `lg` and up: classic (non-overlay) scrollbars only ever show at desktop
+	   widths anyway, and reserving the gutter at mobile widths too was
+	   stealing ~15px asymmetrically from the viewport — most visible as the
+	   fixed BottomTabBar's elevated center action landing off-center. Real
+	   mobile browsers use overlay scrollbars that don't take layout space, so
+	   this was only ever visible when testing mobile widths inside a desktop
+	   browser — but that's exactly how this got caught. */
+	@media (min-width: 1024px) {
+		html {
+			scrollbar-gutter: stable;
+		}
 	}
 }
 

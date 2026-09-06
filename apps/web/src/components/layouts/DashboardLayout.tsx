@@ -16,6 +16,10 @@ interface DashboardLayoutProps {
  * greeting row instead, see `GreetingHeader`) with `BottomTabBar` for nav;
  * `lg` and up brings in the `Sidebar`, a muted page background, and the
  * topbar + content both floating as rounded cards.
+ *
+ * `Sidebar` is `fixed` (see its own comment for why), so it no longer
+ * claims space in this flex row — `lg:ml-65` on the content column reserves
+ * the same width by hand instead.
  */
 function DashboardLayout({
 	children,
@@ -25,7 +29,7 @@ function DashboardLayout({
 	return (
 		<div className="flex min-h-screen bg-background lg:bg-muted">
 			<Sidebar />
-			<div className="flex min-w-0 flex-1 flex-col gap-4 p-4 pb-24 lg:p-6">
+			<div className="flex min-w-0 flex-1 flex-col gap-4 p-4 pb-24 lg:ml-65 lg:p-6">
 				<Topbar
 					userName={userName}
 					notificationCount={notificationCount}

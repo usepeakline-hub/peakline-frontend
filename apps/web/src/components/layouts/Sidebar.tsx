@@ -37,13 +37,25 @@ function isActive(pathname: string, href: string) {
 	return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Desktop-only primary nav — below `lg` this is replaced entirely by
- * `BottomTabBar`, not collapsed into a drawer, per the mobile mock. */
+/**
+ * Desktop-only primary nav — below `lg` this is replaced entirely by
+ * `BottomTabBar`, not collapsed into a drawer, per the mobile mock.
+ *
+ * `fixed`, not `sticky`, and deliberately so: a Radix Dialog (Fund Wallet)
+ * locks scroll by setting `overflow: hidden` on `<body>`, which makes body
+ * a new scroll container sitting between `html` (the page's real scrolling
+ * element) and this sidebar — that breaks a `sticky` sidebar's positioning
+ * math entirely, so opening the modal while scrolled down made it jump to
+ * track the scroll offset instead of staying pinned. `fixed` anchors to the
+ * viewport directly and doesn't care what any ancestor's overflow is.
+ * `DashboardLayout` reserves this width on the content column with
+ * `lg:ml-65` since a fixed element no longer occupies flex layout space.
+ */
 function Sidebar() {
 	const pathname = usePathname();
 
 	return (
-		<aside className="sticky top-0 hidden h-screen w-65 shrink-0 flex-col gap-8 border-r border-border bg-background px-4 py-6 lg:flex">
+		<aside className="fixed inset-y-0 left-0 z-30 hidden h-screen w-65 shrink-0 flex-col gap-8 border-r border-border bg-background px-4 py-6 lg:flex">
 			<Logo size="lg" className="px-2" />
 
 			<nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
