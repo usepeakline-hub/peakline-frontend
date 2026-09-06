@@ -1,40 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { toast } from "@repo/ui/sonner";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { usePersonalInfoFlowStore } from "@/lib/stores/personalInfoFlowStore";
-
-const STELLAR_ADDRESS_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-/** A Stellar-shaped public key (G + 55 base32 chars) — cosmetic only, no
- * real Stellar account exists yet behind it. */
-function generateStellarAddress() {
-	let address = "G";
-	for (let i = 0; i < 55; i++) {
-		address +=
-			STELLAR_ADDRESS_CHARS[
-				Math.floor(Math.random() * STELLAR_ADDRESS_CHARS.length)
-			];
-	}
-	return address;
-}
-
-function maskAddress(address: string) {
-	return `${address.slice(0, 5)}${"*".repeat(8)}${address.slice(-5)}`;
-}
+import { FAKE_WALLET_ADDRESS, maskWalletAddress } from "@/lib/wallet";
 
 /** End of Sign Up — wallet's created, PIN's set (Figma node 127:4186).
  * Clears the flow stores on arrival since nothing after this point needs
  * them. */
 function SuccessForm() {
+	const router = useRouter();
 	const resetSignUpFlow = useSignUpFlowStore((state) => state.reset);
 	const resetPersonalInfoFlow = usePersonalInfoFlowStore(
 		(state) => state.reset,
 	);
-	const [walletAddress] = useState(generateStellarAddress);
 
 	useEffect(() => {
 		resetSignUpFlow();
@@ -45,21 +28,11 @@ function SuccessForm() {
 
 	async function handleCopyAddress() {
 		try {
-			await navigator.clipboard.writeText(walletAddress);
+			await navigator.clipboard.writeText(FAKE_WALLET_ADDRESS);
 			toast.success("Wallet address copied");
 		} catch {
 			toast.error("Couldn't copy the address");
 		}
-	}
-
-	function handleGoToDashboard() {
-		// TODO: route into apps/dashboard once it's scaffolded.
-		toast.info("The dashboard isn't built yet");
-	}
-
-	function handleExploreWallet() {
-		// TODO: route into apps/dashboard's wallet view once it's scaffolded.
-		toast.info("The dashboard isn't built yet");
 	}
 
 	return (
@@ -88,7 +61,7 @@ function SuccessForm() {
 				</span>
 				<div className="flex items-center justify-between gap-4">
 					<span className="truncate text-b2 text-foreground">
-						{maskAddress(walletAddress)}
+						{maskWalletAddress(FAKE_WALLET_ADDRESS)}
 					</span>
 					<button
 						type="button"
@@ -106,13 +79,13 @@ function SuccessForm() {
 					type="button"
 					size="large"
 					className="w-full"
-					onClick={handleGoToDashboard}
+					onClick={() => router.push("/")}
 				>
 					Go to Dashboard
 				</Button>
 				<button
 					type="button"
-					onClick={handleExploreWallet}
+					onClick={() => router.push("/wallet")}
 					className="text-b3 font-medium text-primary hover:underline"
 				>
 					Explore your wallet

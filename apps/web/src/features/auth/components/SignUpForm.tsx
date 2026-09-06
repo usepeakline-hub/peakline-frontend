@@ -3,14 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { PasswordInput } from "@repo/ui/password-input";
 import { PhoneInput } from "@repo/ui/phone-input";
 import { Checkbox } from "@repo/ui/checkbox";
 import { GoogleIcon } from "@repo/ui/google-icon";
-import { cn } from "@repo/ui/lib/utils";
 import {
 	Form,
 	FormField,
@@ -22,11 +20,11 @@ import {
 import { toast } from "@repo/ui/sonner";
 import {
 	signUpSchema,
-	PASSWORD_RULES,
 	type SignUpValues,
 } from "@/lib/validations/authValidations";
 import { useSignUp } from "@/features/auth/hooks";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
+import { PasswordRequirementsChecklist } from "@/features/auth/components/PasswordRequirementsChecklist";
 
 /**
  * Account-creation step only (matches the brief's "Sign Up" step in
@@ -130,33 +128,7 @@ function SignUpForm() {
 										{...field}
 									/>
 								</FormControl>
-								<ul className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
-									{PASSWORD_RULES.map((rule) => {
-										const met = rule.test(password);
-										return (
-											<li
-												key={rule.key}
-												className={cn(
-													"flex items-center gap-1.5 text-c1",
-													met ? "text-success" : "text-muted-foreground",
-												)}
-											>
-												{met ? (
-													<Check
-														className="size-3.5 shrink-0"
-														aria-hidden="true"
-													/>
-												) : (
-													<span
-														className="size-3.5 shrink-0 rounded-full border border-current"
-														aria-hidden="true"
-													/>
-												)}
-												{rule.label}
-											</li>
-										);
-									})}
-								</ul>
+								<PasswordRequirementsChecklist password={password} />
 								<FormMessage />
 							</FormItem>
 						)}

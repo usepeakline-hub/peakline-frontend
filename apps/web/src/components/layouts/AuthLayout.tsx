@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@repo/ui/logo";
-import authIllustration from "@repo/ui/assets/illustrations/auth/auth-illustration.svg";
+import authIllustration from "@repo/ui/assets/illustrations/auth/auth-illustration.webp";
 import tellUsAboutYourselfIllustration from "@repo/ui/assets/illustrations/auth/tell-us-about-yourself-illustration.svg";
 
 type AuthHeader =
@@ -80,6 +80,14 @@ const AUTH_ROUTES: Record<
 		header: { kind: "back" },
 		illustration: null,
 	},
+	"/auth/forgot-password": {
+		header: { kind: "back" },
+		illustration: authIllustration,
+	},
+	"/auth/reset-password": {
+		header: { kind: "back" },
+		illustration: authIllustration,
+	},
 };
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -123,8 +131,13 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 								{children}
 							</div>
 						</div>
-						<div className="hidden lg:block">
-							<Image src={illustration} alt="" className="max-w-350" />
+						<div className="hidden shrink-0 lg:block lg:w-80 xl:w-96">
+							<Image
+								src={illustration}
+								alt=""
+								sizes="(min-width: 1280px) 24rem, 20rem"
+								className="h-auto w-full"
+							/>
 						</div>
 					</div>
 				) : (

@@ -9,6 +9,8 @@ import type {
 	IdVerificationValues,
 	SetPinValues,
 	TwoFactorMethodValues,
+	ForgotPasswordValues,
+	ResetPasswordValues,
 } from "@/lib/validations/authValidations";
 
 // TODO: replace with real calls into the auth API once it exists.
@@ -86,6 +88,19 @@ function useVerifyLogin() {
 	});
 }
 
+function useForgotPassword() {
+	return useMutation({
+		mutationFn: (values: ForgotPasswordValues) => fakeRequest(values),
+	});
+}
+
+function useResetPassword() {
+	return useMutation({
+		mutationFn: (values: ResetPasswordValues & { token: string | null }) =>
+			fakeRequest(values),
+	});
+}
+
 export {
 	useSignIn,
 	useSignUp,
@@ -96,4 +111,6 @@ export {
 	useSetupWallet,
 	useSubmitTwoFactorMethod,
 	useVerifyLogin,
+	useForgotPassword,
+	useResetPassword,
 };
