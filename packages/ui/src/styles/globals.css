@@ -111,6 +111,9 @@
 	/* indeterminate linear progress (LoadingBar) */
 	--animate-loading-bar: loading-bar 1.4s ease-in-out infinite;
 
+	/* sweeping highlight (Skeleton) */
+	--animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
 	/* brand ramps exposed as utilities: bg-primary-500, text-secondary-700, etc */
 	--color-primary-100: var(--primary-100);
 	--color-primary-200: var(--primary-200);
@@ -333,6 +336,15 @@
 	--radius: 0.75rem;
 }
 
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
 @keyframes loading-bar {
 	0% {
 		left: -40%;
@@ -365,6 +377,10 @@
 		@apply font-sans;
 		scroll-behavior: smooth;
 		overflow-x: hidden;
+		/* Reserve the scrollbar's gutter permanently, so opening a Dialog
+		   (which locks body scroll, hiding the scrollbar) never shifts the
+		   page's content — the space was already there either way. */
+		scrollbar-gutter: stable;
 	}
 }
 
