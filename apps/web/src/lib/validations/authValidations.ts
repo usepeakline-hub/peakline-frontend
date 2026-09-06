@@ -1,13 +1,19 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js/min";
 
 /**
- * Ghana mobile numbers are 9 digits after the +233 country code, and start
- * with 2 or 5 (MTN/Vodafone/AirtelTigo/Glo all fall under those two leading
- * digits). `PhoneInput` (@repo/ui) already normalizes what it hands back —
- * digits only, no leading trunk 0, capped at 9 — so this just confirms the
- * shape landed correctly rather than reparsing free text.
+ * Any country, not just Ghana — `PhoneInput` (@repo/ui) lets the user pick
+ * any country's calling code, so validation has to actually know each
+ * country's number format rather than assume Ghana's fixed 9-digit shape.
+ * `isValidPhoneNumber` parses the "+<calling code> <digits>" string
+ * `PhoneInput` hands back and validates it against that country's real
+ * numbering rules.
  */
-export const GHANA_PHONE_REGEX = /^\+233 [25]\d{8}$/;
+export const phoneSchema = z
+	.string()
+	.trim()
+	.min(1, "Enter your phone number")
+	.refine((value) => isValidPhoneNumber(value), "Enter a valid phone number");
 
 export const signInSchema = z.object({
 	email: z
@@ -46,11 +52,7 @@ export const signUpSchema = z.object({
 		.trim()
 		.min(1, "Enter your email address")
 		.email("Enter a valid email address"),
-	phone: z
-		.string()
-		.trim()
-		.min(1, "Enter your phone number")
-		.regex(GHANA_PHONE_REGEX, "Enter a valid Ghana phone number"),
+	phone: phoneSchema,
 	password: z
 		.string()
 		.min(1, "Enter a password")
@@ -100,11 +102,7 @@ export type AccountTypeValues = z.infer<typeof accountTypeSchema>;
 export const merchantSetupSchema = z.object({
 	businessName: z.string().trim().min(1, "Enter your business name"),
 	businessCategory: z.string().trim().min(1, "Enter your business category"),
-	phone: z
-		.string()
-		.trim()
-		.min(1, "Enter your phone number")
-		.regex(GHANA_PHONE_REGEX, "Enter a valid Ghana phone number"),
+	phone: phoneSchema,
 	businessLocation: z.string().trim().min(1, "Enter your business location"),
 });
 export type MerchantSetupValues = z.infer<typeof merchantSetupSchema>;

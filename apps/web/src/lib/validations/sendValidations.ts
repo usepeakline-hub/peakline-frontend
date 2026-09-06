@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js/min";
 
 export const TRANSFER_METHODS = [
 	{ value: "phone", label: "Phone Number" },
@@ -27,8 +28,7 @@ export const sendMoneySchema = z
 	})
 	.superRefine((data, ctx) => {
 		if (data.method === "phone") {
-			const digits = data.recipient.replace(/\D/g, "");
-			if (digits.length < 9) {
+			if (!isValidPhoneNumber(data.recipient)) {
 				ctx.addIssue({
 					code: "custom",
 					path: ["recipient"],
