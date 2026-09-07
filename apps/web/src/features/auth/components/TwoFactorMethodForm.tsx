@@ -31,8 +31,10 @@ const METHODS = [
 ] as const;
 
 /**
- * Every login goes through 2FA — this is the method picker in between Sign
- * In and Verify (Figma node 150:3004, confirmed via screenshot). The card
+ * The method picker in between Sign In and Verify (Figma node 150:3004,
+ * confirmed via screenshot) — reached either because the account already
+ * has 2FA enabled, or because they chose "Continue" on the optional
+ * setup prompt (`TwoFactorSetupPromptForm`) shown when it isn't. The card
  * descriptions there are leftover copy-paste from the Account Type sheet
  * ("Send, receive and pay with your Peakline wallet." on the *email* card) —
  * written sensible ones instead rather than reproducing that mismatch.

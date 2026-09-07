@@ -26,19 +26,30 @@ import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { PasswordRequirementsChecklist } from "@/features/auth/components/PasswordRequirementsChecklist";
 
 /**
- * Account-creation step only (matches the brief's "Sign Up" step in
- * Landing → Sign Up → Account Type → ... → Wallet Created). Name and other
- * profile fields belong to the later Personal Details step, not here — the
- * Figma sheet for this screen (node 127:3234) also has a Full Name field,
- * but that's a design/flow inconsistency, not a change to make here.
+ * Account-creation step — name, email, phone, and password all collected
+ * up front (per the mock; an earlier pass here left name fields for the
+ * later Personal Details step, but the mock makes clear they belong on
+ * this screen instead). Routes to email verification next, then Account
+ * Type: Sign Up -> Verify -> Account Type -> ... -> Wallet Created.
  */
 function SignUpForm() {
 	const router = useRouter();
+	const setFirstName = useSignUpFlowStore((state) => state.setFirstName);
+	const setLastName = useSignUpFlowStore((state) => state.setLastName);
+	const setOtherName = useSignUpFlowStore((state) => state.setOtherName);
 	const setEmail = useSignUpFlowStore((state) => state.setEmail);
 	const setPhone = useSignUpFlowStore((state) => state.setPhone);
 	const form = useForm<SignUpValues>({
 		resolver: zodResolver(signUpSchema),
-		defaultValues: { email: "", phone: "", password: "", agreeToTerms: false },
+		defaultValues: {
+			firstName: "",
+			lastName: "",
+			otherName: "",
+			email: "",
+			phone: "",
+			password: "",
+			agreeToTerms: false,
+		},
 	});
 	const signUp = useSignUp();
 	const password = useWatch({ control: form.control, name: "password" });
@@ -46,10 +57,13 @@ function SignUpForm() {
 	function onSubmit(values: SignUpValues) {
 		signUp.mutate(values, {
 			onSuccess: () => {
+				setFirstName(values.firstName);
+				setLastName(values.lastName);
+				setOtherName(values.otherName ?? "");
 				setEmail(values.email);
 				setPhone(values.phone);
 				toast.success("Account created");
-				router.push("/auth/sign-up/account-type");
+				router.push("/auth/sign-up/verify-otp");
 			},
 		});
 	}
@@ -71,12 +85,68 @@ function SignUpForm() {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="flex flex-col gap-5"
 				>
+					<div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+						<FormField
+							control={form.control}
+							name="firstName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>First Name</FormLabel>
+									<FormControl>
+										<Input
+											autoComplete="given-name"
+											placeholder="Enter first name"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="lastName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Last Name</FormLabel>
+									<FormControl>
+										<Input
+											autoComplete="family-name"
+											placeholder="Enter last name"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="otherName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Other Name</FormLabel>
+									<FormControl>
+										<Input
+											autoComplete="additional-name"
+											placeholder="Enter other name"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+					</div>
+
 					<FormField
 						control={form.control}
 						name="email"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Email address</FormLabel>
+								<FormLabel>Email Address</FormLabel>
 								<FormControl>
 									<Input
 										type="email"
@@ -95,13 +165,14 @@ function SignUpForm() {
 						name="phone"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Phone number</FormLabel>
+								<FormLabel>Phone Number</FormLabel>
 								<FormControl>
 									<PhoneInput
 										name={field.name}
 										value={field.value}
 										onChange={field.onChange}
 										onBlur={field.onBlur}
+										placeholder="Enter your phone number"
 									/>
 								</FormControl>
 								<FormMessage />

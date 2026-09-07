@@ -8,53 +8,54 @@ interface StepperProps {
 }
 
 /**
- * Horizontal progress stepper — the "Step Symbol" component set from the
- * Personal Details sheet (numbered circles joined by trail lines). Only the
- * current step's label is shown so it stays legible in the narrow auth-form
- * column; the others are just numbered.
+ * Horizontal progress stepper — numbered circles joined by short, fixed-
+ * width trail segments (not a full-width stretch), every step's label
+ * always visible underneath its own circle rather than only the current
+ * one. An earlier version only showed the current step's label — the
+ * actual onboarding mocks show every label at once, muted for steps not
+ * yet reached.
  */
 function Stepper({ steps, currentStep, className }: StepperProps) {
 	return (
-		<ol className={cn("flex items-center", className)}>
+		<div className={cn("flex items-start", className)}>
 			{steps.map((label, index) => {
 				const step = index + 1;
 				const reached = step <= currentStep;
 				return (
-					<li
-						key={label}
-						className={cn(
-							"flex items-center",
-							step < steps.length && "flex-1",
-						)}
-					>
-						<span
-							className={cn(
-								"flex size-8 shrink-0 items-center justify-center rounded-full text-c2 text-foreground",
-								reached
-									? "bg-primary-500 text-primary-foreground"
-									: "border border-neutral-200 text-neutral-300",
-							)}
-						>
-							{step}
-						</span>
-						{step === currentStep && (
-							<span className="ml-2 whitespace-nowrap text-b4 text-primary-500">
-								{label}
-							</span>
-						)}
-						{step < steps.length && (
-							<span
+					<div key={label} className="flex items-start">
+						{index > 0 && (
+							<div
 								aria-hidden="true"
 								className={cn(
-									"mx-2 h-px flex-1",
-									step < currentStep ? "bg-primary-500" : "bg-border",
+									"mt-4 h-px w-12 shrink-0 sm:w-20",
+									reached ? "bg-primary-500" : "bg-border",
 								)}
 							/>
 						)}
-					</li>
+						<div className="flex flex-col items-center gap-2">
+							<span
+								className={cn(
+									"flex size-8 shrink-0 items-center justify-center rounded-full text-c2 font-semibold",
+									reached
+										? "bg-primary-500 text-primary-foreground"
+										: "border border-border bg-background text-muted-foreground",
+								)}
+							>
+								{step}
+							</span>
+							<span
+								className={cn(
+									"text-c2 whitespace-nowrap sm:text-b4",
+									reached ? "font-medium text-primary-600" : "text-muted-foreground",
+								)}
+							>
+								{label}
+							</span>
+						</div>
+					</div>
 				);
 			})}
-		</ol>
+		</div>
 	);
 }
 

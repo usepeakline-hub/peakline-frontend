@@ -1,9 +1,6 @@
-import { cn } from "@repo/ui/lib/utils";
+import { Stepper } from "@repo/ui/stepper";
 
-const STEPS = [
-	{ number: 1, label: "Transfer Details" },
-	{ number: 2, label: "Review" },
-] as const;
+const STEPS = ["Transfer Details", "Review"];
 
 /**
  * Persistent title + stepper for both Send steps. Unlike the wallet-domain
@@ -19,42 +16,7 @@ function SendStepHeader({ step }: { step: 1 | 2 }) {
 				<p className="text-b4 text-muted-foreground sm:text-b3">Send money</p>
 			</div>
 
-			<div className="flex items-start">
-				{STEPS.map(({ number, label }, i) => (
-					<div key={number} className="flex items-start">
-						{i > 0 && (
-							<div
-								className={cn(
-									"mt-4 h-px w-12 shrink-0 sm:w-20",
-									step >= number ? "bg-primary-500" : "bg-border",
-								)}
-							/>
-						)}
-						<div className="flex flex-col items-center gap-2">
-							<span
-								className={cn(
-									"flex size-8 shrink-0 items-center justify-center rounded-full text-b4 font-semibold",
-									step >= number
-										? "bg-primary-500 text-primary-foreground"
-										: "border border-border bg-background text-muted-foreground",
-								)}
-							>
-								{number}
-							</span>
-							<span
-								className={cn(
-									"text-c2 whitespace-nowrap sm:text-b4",
-									step >= number
-										? "font-medium text-primary-600"
-										: "text-muted-foreground",
-								)}
-							>
-								{label}
-							</span>
-						</div>
-					</div>
-				))}
-			</div>
+			<Stepper steps={STEPS} currentStep={step} />
 		</div>
 	);
 }

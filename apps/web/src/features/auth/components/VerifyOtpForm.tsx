@@ -6,11 +6,11 @@ import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { VerifyCodeForm } from "@/features/auth/components/VerifyCodeForm";
 
 /**
- * Common to both Sign Up branches — reached from Account Type directly
- * (personal) or from Merchant Setup (merchant). Verifies the email address
- * from Sign Up, not the phone number (Figma node 127:2709, "Verify your
- * email" — the phone collected earlier is for contact/SMS elsewhere, not
- * this code).
+ * Right after Sign Up, before Account Type: Sign Up -> Verify -> Account
+ * Type -> [Merchant Setup, merchant only] -> Personal Details -> Wallet
+ * Created. Verifies the email address from Sign Up, not the phone number
+ * (Figma node 127:2709, "Verify your email" — the phone collected earlier
+ * is for contact/SMS elsewhere, not this code).
  */
 function VerifyOtpForm() {
 	const router = useRouter();
@@ -26,7 +26,7 @@ function VerifyOtpForm() {
 			onSubmit={(values) =>
 				verifyOtp.mutate(
 					{ ...values, email },
-					{ onSuccess: () => router.push("/auth/sign-up/personal-details") },
+					{ onSuccess: () => router.push("/auth/sign-up/account-type") },
 				)
 			}
 		/>

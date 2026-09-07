@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { PhoneInput } from "@repo/ui/phone-input";
+import { Stepper } from "@repo/ui/stepper";
 import {
 	Form,
 	FormField,
@@ -14,49 +16,61 @@ import {
 	FormControl,
 	FormMessage,
 } from "@repo/ui/form";
-import { toast } from "@repo/ui/sonner";
 import {
 	merchantSetupSchema,
 	type MerchantSetupValues,
 } from "@/lib/validations/authValidations";
-import { useSubmitMerchantSetup } from "@/features/auth/hooks";
+import { usePersonalInfoFlowStore } from "@/lib/stores/personalInfoFlowStore";
+import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
+import { getOnboardingSteps } from "@/features/auth/onboardingSteps";
 
 /**
- * Merchant branch of Sign Up — only reached when Account Type is "merchant"
- * (Sign Up -> Account Type -> Merchant Setup -> Verify -> Personal Details
- * -> Wallet Created); Personal accounts skip this step entirely.
+ * Step 2 of 3 — merchant accounts only (Individual skips straight from
+ * Personal Information to Review). Stored locally like Personal
+ * Information is, not submitted on its own — the whole onboarding payload
+ * goes to the backend together on Review's final confirm.
  */
-function MerchantSetupForm() {
+function BusinessInformationForm() {
 	const router = useRouter();
+	const accountType = useSignUpFlowStore((state) => state.accountType);
+	const personalDetails = usePersonalInfoFlowStore((state) => state.personalDetails);
+	const stored = usePersonalInfoFlowStore((state) => state.businessInfo);
+	const setBusinessInfo = usePersonalInfoFlowStore((state) => state.setBusinessInfo);
 	const form = useForm<MerchantSetupValues>({
 		resolver: zodResolver(merchantSetupSchema),
-		defaultValues: {
+		defaultValues: stored ?? {
 			businessName: "",
 			businessCategory: "",
 			phone: "",
 			businessLocation: "",
 		},
 	});
-	const submitMerchantSetup = useSubmitMerchantSetup();
+
+	// Reached without Personal Information filled in this session — send
+	// back rather than let Review show a blank summary.
+	useEffect(() => {
+		if (!personalDetails) {
+			router.replace("/auth/sign-up/personal-details");
+		}
+	}, [personalDetails, router]);
+
+	if (!personalDetails) return null;
 
 	function onSubmit(values: MerchantSetupValues) {
-		submitMerchantSetup.mutate(values, {
-			onSuccess: () => {
-				toast.success("Check your email for a verification code");
-				router.push("/auth/sign-up/verify-otp");
-			},
-		});
+		setBusinessInfo(values);
+		router.push("/auth/sign-up/personal-details/review");
 	}
 
 	return (
 		<div className="flex flex-col gap-8">
+			<Stepper steps={getOnboardingSteps(accountType)} currentStep={2} />
+
 			<div className="flex flex-col gap-2">
 				<h1 className="text-h4 sm:text-h3 text-foreground">
-					Set up your merchant account
+					Your Business Information
 				</h1>
-				<p className="text-sm sm:text-b1 text-muted-foreground sm:w-3/4">
-					Join Peakline and start accepting payments and managing your
-					business transactions securely.
+				<p className="text-sm sm:text-b1 text-muted-foreground">
+					This helps us secure your account and comply with regulations.
 				</p>
 			</div>
 
@@ -71,9 +85,9 @@ function MerchantSetupForm() {
 						name="businessName"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Business name</FormLabel>
+								<FormLabel>Business Name</FormLabel>
 								<FormControl>
-									<Input placeholder="Enter your business name" {...field} />
+									<Input placeholder="Enter business name" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -85,7 +99,7 @@ function MerchantSetupForm() {
 						name="businessCategory"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Business category</FormLabel>
+								<FormLabel>Business Category</FormLabel>
 								<FormControl>
 									<Input
 										placeholder="e.g. Retail, Restaurant, Salon"
@@ -102,13 +116,14 @@ function MerchantSetupForm() {
 						name="phone"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Contact information</FormLabel>
+								<FormLabel>Phone Number</FormLabel>
 								<FormControl>
 									<PhoneInput
 										name={field.name}
 										value={field.value}
 										onChange={field.onChange}
 										onBlur={field.onBlur}
+										placeholder="Enter your phone number"
 									/>
 								</FormControl>
 								<FormMessage />
@@ -121,7 +136,7 @@ function MerchantSetupForm() {
 						name="businessLocation"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Business location</FormLabel>
+								<FormLabel>Business Location</FormLabel>
 								<FormControl>
 									<Input
 										placeholder="Enter your business location"
@@ -133,18 +148,24 @@ function MerchantSetupForm() {
 						)}
 					/>
 
-					<Button
-						type="submit"
-						size="large"
-						className="w-full"
-						loading={submitMerchantSetup.isPending}
-					>
-						Set up Account
-					</Button>
+					<div className="flex gap-3">
+						<Button
+							type="button"
+							variant="outline"
+							size="large"
+							className="flex-1"
+							onClick={() => router.push("/auth/sign-up/personal-details")}
+						>
+							Back
+						</Button>
+						<Button type="submit" size="large" className="flex-1">
+							Next
+						</Button>
+					</div>
 				</form>
 			</Form>
 		</div>
 	);
 }
 
-export { MerchantSetupForm };
+export { BusinessInformationForm };

@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@repo/ui/button";
 import { Stepper } from "@repo/ui/stepper";
 import { toast } from "@repo/ui/sonner";
-import { DOCUMENT_TYPES } from "@/lib/validations/authValidations";
 import { useCompleteSignUp } from "@/features/auth/hooks";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { usePersonalInfoFlowStore } from "@/lib/stores/personalInfoFlowStore";
-import { PERSONAL_INFO_STEPS } from "@/features/auth/components/PersonalDetailsForm";
+import { getOnboardingSteps } from "@/features/auth/onboardingSteps";
 
 function SummarySection({
 	title,
@@ -48,38 +47,41 @@ function SummarySection({
 }
 
 /**
- * Step 3 (Review) — a read-only cross-check of everything collected across
- * Sign Up, Personal Information and ID Verification before the account is
- * actually created. Confirming here is what "logs the user in" per the
- * brief; PIN setup (and the wallet it triggers) comes right after.
+ * Last onboarding step — a read-only cross-check of everything collected
+ * across Sign Up, Personal Information, and (merchant only) Business
+ * Information before the account is actually created. Confirming here is
+ * what "logs the user in" per the brief; PIN setup (and the wallet it
+ * triggers) comes right after. No more ID Verification section — that step
+ * was dropped from onboarding entirely.
  */
 function ReviewForm() {
 	const router = useRouter();
+	const accountType = useSignUpFlowStore((state) => state.accountType);
+	const firstName = useSignUpFlowStore((state) => state.firstName);
+	const lastName = useSignUpFlowStore((state) => state.lastName);
+	const otherName = useSignUpFlowStore((state) => state.otherName);
 	const email = useSignUpFlowStore((state) => state.email);
 	const phone = useSignUpFlowStore((state) => state.phone);
-	const personalDetails = usePersonalInfoFlowStore(
-		(state) => state.personalDetails,
-	);
-	const idVerification = usePersonalInfoFlowStore(
-		(state) => state.idVerification,
-	);
+	const personalDetails = usePersonalInfoFlowStore((state) => state.personalDetails);
+	const businessInfo = usePersonalInfoFlowStore((state) => state.businessInfo);
 	const completeSignUp = useCompleteSignUp();
+	const isMerchant = accountType === "merchant";
+	const steps = getOnboardingSteps(accountType);
+	const backHref = isMerchant
+		? "/auth/sign-up/personal-details/business-information"
+		: "/auth/sign-up/personal-details";
 
 	useEffect(() => {
-		if (!personalDetails || !idVerification) {
-			router.replace("/auth/sign-up/personal-details");
+		if (!personalDetails || (isMerchant && !businessInfo)) {
+			router.replace(backHref);
 		}
-	}, [personalDetails, idVerification, router]);
+	}, [personalDetails, businessInfo, isMerchant, backHref, router]);
 
-	if (!personalDetails || !idVerification) return null;
-
-	const documentLabel =
-		DOCUMENT_TYPES.find((type) => type.value === idVerification.documentType)
-			?.label ?? idVerification.documentType;
+	if (!personalDetails || (isMerchant && !businessInfo)) return null;
 
 	function handleConfirm() {
 		completeSignUp.mutate(
-			{ ...personalDetails!, ...idVerification! },
+			{ ...personalDetails!, ...(businessInfo ?? {}) },
 			{
 				onSuccess: () => {
 					toast.success("Account verified");
@@ -91,31 +93,27 @@ function ReviewForm() {
 
 	return (
 		<div className="flex flex-col gap-8">
-			<Stepper steps={PERSONAL_INFO_STEPS} currentStep={3} />
+			<Stepper steps={steps} currentStep={steps.length} />
 
 			<div className="flex flex-col gap-2">
 				<h1 className="text-h4 sm:text-h3 text-foreground">
-					Review your details
+					Review Your Details
 				</h1>
 				<p className="text-sm sm:text-b1 text-muted-foreground">
-					Take a moment to make sure everything below is correct.
+					Please confirm all your information is correct.
 				</p>
 			</div>
 
 			<div className="flex flex-col gap-4">
 				<SummarySection
-					title="Account"
-					editHref="/auth/sign-up"
-					rows={[
-						{ label: "Email", value: email },
-						{ label: "Phone", value: phone },
-					]}
-				/>
-
-				<SummarySection
 					title="Personal information"
 					editHref="/auth/sign-up/personal-details"
 					rows={[
+						{ label: "First Name", value: firstName },
+						{ label: "Last Name", value: lastName },
+						{ label: "Other Name", value: otherName },
+						{ label: "Email", value: email },
+						{ label: "Phone", value: phone },
 						{ label: "Date of birth", value: personalDetails.dateOfBirth },
 						{ label: "Nationality", value: personalDetails.nationality },
 						{
@@ -126,33 +124,40 @@ function ReviewForm() {
 					]}
 				/>
 
-				<SummarySection
-					title="ID verification"
-					editHref="/auth/sign-up/personal-details/id-verification"
-					rows={[
-						{ label: "Document type", value: documentLabel },
-						{
-							label: "Document number",
-							value: idVerification.documentNumber,
-						},
-						{ label: "Front", value: idVerification.documentFront?.name },
-						{
-							label: "Back",
-							value: idVerification.documentBack?.name ?? "Not required",
-						},
-					]}
-				/>
+				{isMerchant && businessInfo && (
+					<SummarySection
+						title="Business information"
+						editHref="/auth/sign-up/personal-details/business-information"
+						rows={[
+							{ label: "Business name", value: businessInfo.businessName },
+							{ label: "Business category", value: businessInfo.businessCategory },
+							{ label: "Phone", value: businessInfo.phone },
+							{ label: "Business location", value: businessInfo.businessLocation },
+						]}
+					/>
+				)}
 			</div>
 
-			<Button
-				type="button"
-				size="large"
-				className="w-full"
-				loading={completeSignUp.isPending}
-				onClick={handleConfirm}
-			>
-				Confirm and continue
-			</Button>
+			<div className="flex gap-3">
+				<Button
+					type="button"
+					variant="outline"
+					size="large"
+					className="flex-1"
+					onClick={() => router.push(backHref)}
+				>
+					Back
+				</Button>
+				<Button
+					type="button"
+					size="large"
+					className="flex-1"
+					loading={completeSignUp.isPending}
+					onClick={handleConfirm}
+				>
+					Confirm & Continue
+				</Button>
+			</div>
 		</div>
 	);
 }

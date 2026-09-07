@@ -4,6 +4,8 @@ import { LogOut } from "lucide-react";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { PersonalInformationCard } from "@/features/profile/components/PersonalInformationCard";
+import { TwoFactorAuthCard } from "@/features/profile/components/TwoFactorAuthCard";
+import { InstallAppCard } from "@/features/profile/components/InstallAppCard";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
 import { useLogout } from "@/features/auth/hooks";
 
@@ -20,6 +22,8 @@ export default function AccountPage() {
 			<PageHeader title="Account" subtitle="Manage your account and settings" />
 
 			<PersonalInformationCard />
+			<TwoFactorAuthCard />
+			<InstallAppCard />
 			<WalletAddressCard />
 
 			{/* Not part of the provided mock — desktop already has Logout in the

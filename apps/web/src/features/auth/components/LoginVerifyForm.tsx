@@ -2,22 +2,22 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@repo/ui/sonner";
 import { useVerifyLogin } from "@/features/auth/hooks";
 import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
+import { useAccountSettingsStore } from "@/lib/stores/accountSettingsStore";
 import { VerifyCodeForm } from "@/features/auth/components/VerifyCodeForm";
 
 /**
- * Final step of every login, once a 2FA method has been chosen (Figma node
- * 127:2709 — the same "Verify" frame Sign Up uses, hence the shared
- * `VerifyCodeForm`). Neither `dashboard` nor `merchant` is scaffolded yet,
- * so success here is a stub.
+ * Final step of 2FA (Figma node 127:2709 — the same "Verify" frame Sign Up
+ * uses, hence the shared `VerifyCodeForm`) — only reached via the optional
+ * setup prompt's "Continue" now that 2FA isn't a mandatory per-login gate;
+ * a successful verify here is what actually turns 2FA on.
  */
 function LoginVerifyForm() {
 	const router = useRouter();
 	const email = useLoginFlowStore((state) => state.email);
 	const method = useLoginFlowStore((state) => state.twoFactorMethod);
-	const resetLoginFlow = useLoginFlowStore((state) => state.reset);
+	const setHas2FA = useAccountSettingsStore((state) => state.setHas2FA);
 	const verifyLogin = useVerifyLogin();
 
 	// Reached without a chosen 2FA method in this session — send them back.
@@ -29,10 +29,13 @@ function LoginVerifyForm() {
 
 	if (!email || !method) return null;
 
+	// Deliberately doesn't reset `loginFlowStore` here — see the identical
+	// note in `TwoFactorSetupPromptForm`'s handleSkip: clearing it while
+	// this component's own guard above is still mounted re-fires that guard
+	// and races the navigation below.
 	function handleGoToDashboard() {
-		resetLoginFlow();
-		// TODO: route into apps/dashboard once it's scaffolded.
-		toast.info("The dashboard isn't built yet");
+		setHas2FA(true);
+		router.push("/");
 	}
 
 	return (

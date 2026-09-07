@@ -4,11 +4,18 @@ import type { AccountTypeValues } from "@/lib/validations/authValidations";
 
 /**
  * Transient state carried across the multi-step sign-up flow (Sign Up ->
- * Account Type -> [Merchant Setup, merchant only] -> Verify -> Personal
+ * Verify -> Account Type -> [Merchant Setup, merchant only] -> Personal
  * Details -> Wallet Created). Session-scoped (not localStorage) — this
  * shouldn't outlive the browser tab, and shouldn't leak into a URL either.
  */
 interface SignUpFlowState {
+	firstName: string;
+	setFirstName: (firstName: string) => void;
+	lastName: string;
+	setLastName: (lastName: string) => void;
+	/** Optional — a middle name/alias, not every account has one. */
+	otherName: string;
+	setOtherName: (otherName: string) => void;
 	/** Set at Sign Up — Verify checks the code against this. */
 	email: string;
 	setEmail: (email: string) => void;
@@ -25,13 +32,27 @@ interface SignUpFlowState {
 const useSignUpFlowStore = create<SignUpFlowState>()(
 	persist(
 		(set) => ({
+			firstName: "",
+			setFirstName: (firstName) => set({ firstName }),
+			lastName: "",
+			setLastName: (lastName) => set({ lastName }),
+			otherName: "",
+			setOtherName: (otherName) => set({ otherName }),
 			email: "",
 			setEmail: (email) => set({ email }),
 			phone: "",
 			setPhone: (phone) => set({ phone }),
 			accountType: null,
 			setAccountType: (accountType) => set({ accountType }),
-			reset: () => set({ email: "", phone: "", accountType: null }),
+			reset: () =>
+				set({
+					firstName: "",
+					lastName: "",
+					otherName: "",
+					email: "",
+					phone: "",
+					accountType: null,
+				}),
 		}),
 		{
 			name: "peakline-sign-up-flow",

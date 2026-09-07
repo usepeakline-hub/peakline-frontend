@@ -8,7 +8,6 @@ import type {
 	MerchantSetupValues,
 	VerifyOtpValues,
 	PersonalDetailsValues,
-	IdVerificationValues,
 	SetPinValues,
 	TwoFactorMethodValues,
 	ForgotPasswordValues,
@@ -39,12 +38,6 @@ function useSubmitAccountType() {
 	});
 }
 
-function useSubmitMerchantSetup() {
-	return useMutation({
-		mutationFn: (values: MerchantSetupValues) => fakeRequest(values),
-	});
-}
-
 function useVerifyOtp() {
 	return useMutation({
 		mutationFn: (values: VerifyOtpValues & { email: string }) =>
@@ -53,15 +46,15 @@ function useVerifyOtp() {
 }
 
 /**
- * Review's final submit — Personal Information and ID Verification are only
- * collected locally (`usePersonalInfoFlowStore`) until this point, where the
- * whole sign-up (account + profile + KYC doc) is meant to actually go to the
- * backend and the user is considered logged in.
+ * Review's final submit — Personal Information (and Business Information,
+ * for merchant accounts) are only collected locally
+ * (`usePersonalInfoFlowStore`) until this point, where the whole sign-up is
+ * meant to actually go to the backend and the user is considered logged in.
  */
 function useCompleteSignUp() {
 	return useMutation({
 		mutationFn: (
-			values: PersonalDetailsValues & IdVerificationValues,
+			values: PersonalDetailsValues & Partial<MerchantSetupValues>,
 		) => fakeRequest(values),
 	});
 }
@@ -125,7 +118,6 @@ export {
 	useSignIn,
 	useSignUp,
 	useSubmitAccountType,
-	useSubmitMerchantSetup,
 	useVerifyOtp,
 	useCompleteSignUp,
 	useSetupWallet,

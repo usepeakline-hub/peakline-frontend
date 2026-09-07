@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Store, User } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Form, FormField, FormItem, FormControl, FormMessage } from "@repo/ui/form";
-import { toast } from "@repo/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	accountTypeSchema,
@@ -19,7 +18,7 @@ const ACCOUNT_TYPES = [
 	{
 		value: "personal",
 		icon: User,
-		title: "Personal",
+		title: "Individual",
 		description: "Send, receive and pay with your Peakline wallet.",
 	},
 	{
@@ -31,9 +30,11 @@ const ACCOUNT_TYPES = [
 ] as const;
 
 /**
- * Second step of Sign Up. Merchant branches to its own setup step first;
- * Personal skips straight to Verify:
- *   Sign Up -> Account Type -> [Merchant Setup, merchant only] -> Verify
+ * Third step of Sign Up, right after email verification. Merchant branches
+ * to its own setup step first; Personal skips straight to Personal Details —
+ * both have already verified their email by this point, so neither goes
+ * back through Verify again:
+ *   Sign Up -> Verify -> Account Type -> [Merchant Setup, merchant only]
  *   -> Personal Details -> Wallet Created.
  * Neither `dashboard` nor `merchant` is scaffolded yet, so for now this only
  * records the choice in `signUpFlowStore`.
@@ -51,12 +52,9 @@ function AccountTypeForm() {
 		submitAccountType.mutate(values, {
 			onSuccess: () => {
 				setAccountType(values.accountType);
-				if (values.accountType === "merchant") {
-					router.push("/auth/sign-up/merchant-setup");
-					return;
-				}
-				toast.success("Check your email for a verification code");
-				router.push("/auth/sign-up/verify-otp");
+				// Both branches start at Personal Information now — Business
+				// Information (merchant only) comes after it, not before.
+				router.push("/auth/sign-up/personal-details");
 			},
 		});
 	}

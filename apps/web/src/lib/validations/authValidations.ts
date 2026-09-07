@@ -47,6 +47,9 @@ export const PASSWORD_RULES = [
 ] as const;
 
 export const signUpSchema = z.object({
+	firstName: z.string().trim().min(1, "Enter your first name"),
+	lastName: z.string().trim().min(1, "Enter your last name"),
+	otherName: z.string().trim().optional(),
 	email: z
 		.string()
 		.trim()
@@ -99,6 +102,12 @@ export const accountTypeSchema = z.object({
 });
 export type AccountTypeValues = z.infer<typeof accountTypeSchema>;
 
+/**
+ * Business Information — the merchant-only middle step of onboarding
+ * (Personal Information -> Business Information -> Review), reusing this
+ * schema/name since the fields haven't changed, just where they're
+ * collected (mid-flow now, not a standalone step right after Account Type).
+ */
 export const merchantSetupSchema = z.object({
 	businessName: z.string().trim().min(1, "Enter your business name"),
 	businessCategory: z.string().trim().min(1, "Enter your business category"),
@@ -113,14 +122,13 @@ export const verifyOtpSchema = z.object({
 export type VerifyOtpValues = z.infer<typeof verifyOtpSchema>;
 
 /**
- * Step 1 (Personal Information) of the post-verification profile flow —
- * Personal Information -> ID Verification -> Review. No name field here on
- * purpose: neither this step nor Sign Up asks for one in the current Figma,
- * so it's presumably meant to come off the ID document in step 2.
+ * Step 1 (Personal Information) of the post-verification onboarding flow —
+ * Personal Information -> [Business Information, merchant only] -> Review.
+ * No name field here — that's collected up front on Sign Up instead.
  */
 export const personalDetailsSchema = z.object({
 	dateOfBirth: z.string().min(1, "Enter your date of birth"),
-	nationality: z.string().trim().min(1, "Enter your nationality"),
+	nationality: z.string().trim().min(1, "Select your nationality"),
 	residentialAddress: z
 		.string()
 		.trim()
@@ -128,48 +136,6 @@ export const personalDetailsSchema = z.object({
 	city: z.string().trim().min(1, "Enter your city"),
 });
 export type PersonalDetailsValues = z.infer<typeof personalDetailsSchema>;
-
-export const DOCUMENT_TYPES = [
-	{ value: "ghana_card", label: "Ghana Card" },
-	{ value: "passport", label: "Passport" },
-	{ value: "voters_id", label: "Voter's ID" },
-	{ value: "drivers_license", label: "Driver's License" },
-] as const;
-
-/** Passport is a single data page; the other three are two-sided cards. */
-const TWO_SIDED_DOCUMENT_TYPES = new Set(["ghana_card", "voters_id", "drivers_license"]);
-
-/**
- * Step 2 (ID Verification) of the post-verification profile flow. Files
- * can't survive a JSON-serialized sessionStorage round trip, so this (and
- * `personalDetailsSchema`) is held in the in-memory-only
- * `usePersonalInfoFlowStore`, not the session-persisted `signUpFlowStore`.
- */
-export const idVerificationSchema = z
-	.object({
-		documentType: z.enum(
-			DOCUMENT_TYPES.map((type) => type.value) as [string, ...string[]],
-			{ message: "Select a document type" },
-		),
-		documentNumber: z.string().trim().min(1, "Enter your document number"),
-		documentFront: z.custom<File>((value) => value instanceof File, {
-			message: "Upload the front of your document",
-		}),
-		documentBack: z.custom<File>((value) => value instanceof File).optional(),
-	})
-	.superRefine((data, ctx) => {
-		if (
-			TWO_SIDED_DOCUMENT_TYPES.has(data.documentType) &&
-			!(data.documentBack instanceof File)
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["documentBack"],
-				message: "Upload the back of your document",
-			});
-		}
-	});
-export type IdVerificationValues = z.infer<typeof idVerificationSchema>;
 
 export const setPinSchema = z
 	.object({

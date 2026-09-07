@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
-import { getCountries, getCountryCallingCode, type CountryCode } from "libphonenumber-js/min";
+import {
+	getCountries,
+	getCountryCallingCode,
+	type CountryCode,
+} from "libphonenumber-js/min";
 
 import { cn } from "./lib/utils";
 import { COUNTRY_NAMES } from "./lib/country-names";
@@ -40,10 +44,14 @@ const COUNTRIES = getCountries()
 	// produce the exact same class of mismatch the names themselves had.
 	.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
-const COUNTRY_BY_CODE = new Map(COUNTRIES.map((country) => [country.iso2, country]));
+const COUNTRY_BY_CODE = new Map(
+	COUNTRIES.map((country) => [country.iso2, country]),
+);
 
-interface PhoneInputProps
-	extends Omit<React.ComponentProps<"input">, "value" | "onChange" | "type"> {
+interface PhoneInputProps extends Omit<
+	React.ComponentProps<"input">,
+	"value" | "onChange" | "type"
+> {
 	/** Full phone value, e.g. "+233 24 123 4567" — combined country code +
 	 * national number, same shape regardless of which country is selected. */
 	value: string;
@@ -76,7 +84,10 @@ function PhoneInput({
 		let best: CountryCode | null = null;
 		for (const country of COUNTRIES) {
 			if (digits.startsWith(country.callingCode)) {
-				if (!best || country.callingCode.length > getCountryCallingCode(best).length) {
+				if (
+					!best ||
+					country.callingCode.length > getCountryCallingCode(best).length
+				) {
 					best = country.iso2;
 				}
 			}
@@ -84,8 +95,11 @@ function PhoneInput({
 		return best ?? DEFAULT_COUNTRY;
 	}, []);
 
-	const [country, setCountry] = React.useState<CountryCode>(() => inferCountry(value));
-	const selected = COUNTRY_BY_CODE.get(country) ?? COUNTRY_BY_CODE.get(DEFAULT_COUNTRY)!;
+	const [country, setCountry] = React.useState<CountryCode>(() =>
+		inferCountry(value),
+	);
+	const selected =
+		COUNTRY_BY_CODE.get(country) ?? COUNTRY_BY_CODE.get(DEFAULT_COUNTRY)!;
 
 	const national = value.startsWith(`+${selected.callingCode}`)
 		? value.slice(selected.callingCode.length + 1).trim()
@@ -103,12 +117,22 @@ function PhoneInput({
 		// national "024..." typed with its trunk prefix, which the country
 		// code already replaces), capped at 14 digits — E.164's max total
 		// length (15) minus at least 1 digit of calling code.
-		const digits = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 14);
+		const digits = e.target.value
+			.replace(/\D/g, "")
+			.replace(/^0+/, "")
+			.slice(0, 14);
 		onChange(digits ? `+${selected.callingCode} ${digits}` : "");
 	}
 
 	return (
 		<div className={cn("flex gap-2", className)}>
+			{/* The real `<select>` stays fully functional — native dropdown,
+			    keyboard/typeahead search matching each option's own (name-first)
+			    text — but its own rendered value is transparent. A decorative
+			    flag+code label overlays it for the closed control, matching the
+			    mock's compact trigger; a plain select can't show short text
+			    closed and long, searchable text open at the same time since its
+			    closed state always mirrors the selected option's own text. */}
 			<div className="relative shrink-0">
 				<select
 					aria-label="Country code"
@@ -116,17 +140,27 @@ function PhoneInput({
 					onChange={handleCountryChange}
 					disabled={disabled}
 					className={cn(
-						"h-11 max-w-40 appearance-none truncate rounded-lg border border-input bg-background py-2 pr-8 pl-3 text-b1 text-foreground shadow-xs transition-colors outline-none",
+						"h-11 w-28 cursor-pointer appearance-none rounded-lg border border-input bg-background pr-8 pl-3 text-transparent shadow-xs transition-colors outline-none",
 						"focus-visible:border-primary",
-						"disabled:cursor-not-allowed disabled:opacity-100 disabled:border-neutral-100 disabled:bg-neutral-100 disabled:text-neutral-400",
+						"disabled:cursor-not-allowed disabled:opacity-100 disabled:border-neutral-100 disabled:bg-neutral-100",
 					)}
 				>
 					{COUNTRIES.map((c) => (
-						<option key={c.iso2} value={c.iso2}>
+						<option className="text-black" key={c.iso2} value={c.iso2}>
 							{c.name} +{c.callingCode} {c.flag}
 						</option>
 					))}
 				</select>
+				<div
+					aria-hidden="true"
+					className={cn(
+						"pointer-events-none absolute inset-y-0 left-3 flex items-center gap-1.5 text-b1 text-foreground",
+						disabled && "opacity-50",
+					)}
+				>
+					<span>{selected.flag}</span>
+					<span>+{selected.callingCode}</span>
+				</div>
 				<ChevronDown
 					className="pointer-events-none absolute inset-y-0 right-2.5 my-auto size-4 text-muted-foreground"
 					aria-hidden="true"

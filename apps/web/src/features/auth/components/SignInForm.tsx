@@ -21,15 +21,23 @@ import {
 } from "@/lib/validations/authValidations";
 import { useSignIn } from "@/features/auth/hooks";
 import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
+import { useAccountSettingsStore } from "@/lib/stores/accountSettingsStore";
 
 /**
- * Figma node 127:4272, confirmed via screenshot. Every login goes through
- * 2FA per the brief — a successful sign-in moves to the method picker, not
- * straight to the app (Sign In -> 2FA method -> Verify -> Dashboard).
+ * Figma node 127:4272, confirmed via screenshot. 2FA is optional, not
+ * mandatory on every login: once an account has gone through it, further
+ * logins skip straight to the dashboard — it's a one-time account
+ * verification badge in this demo, not a per-login gate. An account that
+ * hasn't gone through it yet gets a one-time, skippable prompt instead
+ * (see `TwoFactorSetupPromptForm`):
+ *   Sign In -> Dashboard, if 2FA is already done, or
+ *   Sign In -> Set-up prompt -> Dashboard (Skip) or the 2FA method-picker
+ *   + verify sequence (Continue), if not.
  */
 function SignInForm() {
 	const router = useRouter();
 	const setEmail = useLoginFlowStore((state) => state.setEmail);
+	const has2FA = useAccountSettingsStore((state) => state.has2FA);
 	const form = useForm<SignInValues>({
 		resolver: zodResolver(signInSchema),
 		defaultValues: { email: "", password: "" },
@@ -40,7 +48,7 @@ function SignInForm() {
 		signIn.mutate(values, {
 			onSuccess: () => {
 				setEmail(values.email);
-				router.push("/auth/sign-in/two-factor");
+				router.push(has2FA ? "/" : "/auth/sign-in/two-factor-prompt");
 			},
 		});
 	}

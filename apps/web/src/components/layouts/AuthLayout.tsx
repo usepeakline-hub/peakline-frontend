@@ -45,15 +45,11 @@ const AUTH_ROUTES: Record<
 		header: SIGN_IN_SWITCH,
 		illustration: authIllustration,
 	},
-	"/auth/sign-up/merchant-setup": {
-		header: SIGN_IN_SWITCH,
-		illustration: authIllustration,
-	},
 	"/auth/sign-up/personal-details": {
 		header: SIGN_IN_SWITCH,
 		illustration: tellUsAboutYourselfIllustration,
 	},
-	"/auth/sign-up/personal-details/id-verification": {
+	"/auth/sign-up/personal-details/business-information": {
 		header: SIGN_IN_SWITCH,
 		illustration: tellUsAboutYourselfIllustration,
 	},
@@ -71,6 +67,9 @@ const AUTH_ROUTES: Record<
 	"/auth/sign-up/success": {
 		header: { kind: "back" },
 		illustration: null,
+	},
+	"/auth/sign-in/two-factor-prompt": {
+		illustration: authIllustration,
 	},
 	"/auth/sign-in/two-factor": {
 		header: SIGN_IN_SWITCH,
@@ -98,9 +97,9 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 	const illustration = route ? route.illustration : authIllustration;
 
 	return (
-		<div className="min-h-screen pt-8 sm:pt-10 pb-20">
-			<div className="mx-auto max-w-300 px-4 sm:px-6 lg:px-8">
-				<div className="flex items-center justify-between gap-4 md:pb-10">
+		<div className="flex min-h-screen flex-col px-4 pt-8 pb-10 sm:px-6 sm:pt-10 lg:px-8">
+			<div className="mx-auto w-full max-w-300 shrink-0 min-[1600px]:max-w-350">
+				<div className="flex items-center justify-between gap-4">
 					<Logo size="lg" className="shrink-0" />
 					{header?.kind === "switch" && (
 						<p className="min-w-0 text-right text-b3 text-muted-foreground">
@@ -123,25 +122,34 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 						</button>
 					)}
 				</div>
+			</div>
 
+			{/* Everything below the header fills and centers within whatever
+			    vertical space is left — on a short viewport it just sits under
+			    the header as before, but on a very tall/large one (the 2xl+
+			    case) it no longer reads as a small block pinned to the top with
+			    empty space stranded beneath it. */}
+			<div className="mx-auto flex w-full max-w-300 flex-1 items-center py-10 min-[1600px]:max-w-350">
 				{illustration ? (
-					<div className="flex justify-between gap-10">
-						<div className="flex-1">
-							<div className="mt-10 sm:mt-15 max-w-120 max-lg:mx-auto">
+					<div className="flex w-full items-center justify-between gap-10 2xl:gap-16">
+						<div className="min-w-0 flex-1">
+							<div className="max-w-120 max-lg:mx-auto 2xl:max-w-140">
 								{children}
 							</div>
 						</div>
-						<div className="hidden shrink-0 lg:block lg:w-80 xl:w-96">
+						<div className="hidden shrink-0 lg:block lg:w-80 xl:w-96 2xl:w-120">
 							<Image
 								src={illustration}
 								alt=""
-								sizes="(min-width: 1280px) 24rem, 20rem"
+								sizes="(min-width: 1536px) 30rem, (min-width: 1280px) 24rem, 20rem"
 								className="h-auto w-full"
 							/>
 						</div>
 					</div>
 				) : (
-					<div className="mx-auto mt-10 max-w-120 sm:mt-15">{children}</div>
+					<div className="mx-auto w-full max-w-120 2xl:max-w-140">
+						{children}
+					</div>
 				)}
 			</div>
 		</div>

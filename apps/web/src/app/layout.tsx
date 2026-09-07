@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "@repo/ui/sonner";
 import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
@@ -47,6 +47,14 @@ export const metadata: Metadata = {
 		description: SITE_DESCRIPTION,
 		// twitter-image.tsx supplies the image.
 	},
+};
+
+// Peakline is installable as a PWA — see the manifest linked above (with
+// its own theme_color/background_color/icons) plus this, which is what
+// actually colors the OS/browser chrome (status bar, task switcher) around
+// the page itself.
+export const viewport: Viewport = {
+	themeColor: "#066649",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
