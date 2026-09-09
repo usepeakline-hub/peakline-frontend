@@ -25,7 +25,7 @@ const SIGN_IN_SWITCH: AuthHeader = {
  * not context-aware), a "Back" link only where the actual Figma (127:2709)
  * shows one instead — and which side illustration shows next to the form, or
  * none for Verify's centered layout. Keyed by pathname so individual pages
- * don't each render their own copy of this.
+ * don't each render their own copy of this........
  */
 const AUTH_ROUTES: Record<
 	string,
