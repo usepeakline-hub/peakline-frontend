@@ -34,6 +34,11 @@ interface PaymentsFiltersProps {
  * `<input type="date">` rather than the mock's custom-styled calendar
  * trigger — a full popover date picker is a lot of one-off UI for a single
  * filter bar; the platform picker does the same job.
+ *
+ * Mobile only shows Search + the status filter (right-aligned beneath it),
+ * per the updated mock's own mobile screenshot — the date range and CSV
+ * export stay `lg`-only rather than cluttering a small screen with filters
+ * that mock never shows there; both remain fully functional at `lg`.
  */
 function PaymentsFilters({
 	search,
@@ -62,42 +67,44 @@ function PaymentsFilters({
 				/>
 			</div>
 
-			<div className="flex items-center gap-2">
+			<div className="hidden items-center gap-2 lg:flex">
 				<span className="text-b3 text-muted-foreground">From</span>
 				<Input
 					type="date"
 					value={from}
 					onChange={(e) => onFromChange(e.target.value)}
 					aria-label="From date"
-					className="flex-1 lg:w-40 lg:flex-none"
+					className="lg:w-40"
 				/>
 			</div>
 
-			<div className="flex items-center gap-2">
+			<div className="hidden items-center gap-2 lg:flex">
 				<span className="text-b3 text-muted-foreground">To</span>
 				<Input
 					type="date"
 					value={to}
 					onChange={(e) => onToChange(e.target.value)}
 					aria-label="To date"
-					className="flex-1 lg:w-40 lg:flex-none"
+					className="lg:w-40"
 				/>
 			</div>
 
-			<Select
-				value={status}
-				onChange={(e) => onStatusChange(e.target.value as Transaction["status"] | "all")}
-				aria-label="Filter by status"
-				className="lg:w-44"
-			>
-				{STATUS_OPTIONS.map((option) => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</Select>
+			<div className="flex justify-end lg:contents">
+				<Select
+					value={status}
+					onChange={(e) => onStatusChange(e.target.value as Transaction["status"] | "all")}
+					aria-label="Filter by status"
+					className="w-40 lg:w-44"
+				>
+					{STATUS_OPTIONS.map((option) => (
+						<option key={option.value} value={option.value}>
+							{option.label}
+						</option>
+					))}
+				</Select>
+			</div>
 
-			<Button type="button" variant="outline" onClick={onExport}>
+			<Button type="button" variant="outline" onClick={onExport} className="hidden lg:flex">
 				<Download className="size-4" aria-hidden="true" />
 				Export CSV
 			</Button>

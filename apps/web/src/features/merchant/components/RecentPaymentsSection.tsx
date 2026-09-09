@@ -2,15 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { StatusBadge } from "@repo/ui/badge";
-import { Select } from "@repo/ui/select";
 import { Skeleton } from "@repo/ui/skeleton";
-import { cn } from "@repo/ui/lib/utils";
+import { Pagination } from "@/components/Pagination";
 import { useRecentPayments } from "@/features/merchant/hooks";
 import { PAYMENT_METHOD_LABEL, formatTransactionAmount } from "@/lib/transactions";
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function RecentPaymentsSkeleton() {
 	return (
@@ -131,62 +127,15 @@ function RecentPaymentsSection() {
 						))}
 					</div>
 
-					<div className="flex flex-col items-center justify-between gap-3 text-c1 text-muted-foreground sm:flex-row sm:text-b3">
-						<div className="flex items-center gap-2">
-							<span className="hidden sm:inline">Showing</span>
-							<Select
-								value={String(pageSize)}
-								onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-								aria-label="Rows per page"
-								className="hidden h-9 w-20 pr-8 sm:flex"
-							>
-								{PAGE_SIZE_OPTIONS.map((size) => (
-									<option key={size} value={size}>
-										{size}
-									</option>
-								))}
-							</Select>
-							<span className="sm:hidden">Showing {data.items.length}</span>
-							<span>of {data.total} entries</span>
-						</div>
-
-						<div className="flex items-center gap-1">
-							<button
-								type="button"
-								onClick={() => setPage((p) => Math.max(1, p - 1))}
-								disabled={page === 1}
-								aria-label="Previous page"
-								className="flex size-8 items-center justify-center rounded-lg border border-border text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-							>
-								<ChevronLeft className="size-4" aria-hidden="true" />
-							</button>
-							{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-								<button
-									key={p}
-									type="button"
-									onClick={() => setPage(p)}
-									aria-current={p === page ? "page" : undefined}
-									className={cn(
-										"flex size-8 items-center justify-center rounded-lg text-b3 font-medium",
-										p === page
-											? "bg-primary-500 text-primary-foreground"
-											: "text-foreground hover:bg-muted",
-									)}
-								>
-									{p}
-								</button>
-							))}
-							<button
-								type="button"
-								onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-								disabled={page === totalPages}
-								aria-label="Next page"
-								className="flex size-8 items-center justify-center rounded-lg border border-border text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-							>
-								<ChevronRight className="size-4" aria-hidden="true" />
-							</button>
-						</div>
-					</div>
+					<Pagination
+						page={page}
+						totalPages={totalPages}
+						pageSize={pageSize}
+						onPageChange={setPage}
+						onPageSizeChange={handlePageSizeChange}
+						itemsShown={data.items.length}
+						total={data.total}
+					/>
 				</>
 			)}
 		</div>

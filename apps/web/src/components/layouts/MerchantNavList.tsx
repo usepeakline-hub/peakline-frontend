@@ -21,7 +21,7 @@ import { cn } from "@repo/ui/lib/utils";
 // `href: null` marks a mock-only item with no screen built yet
 // ("Customers") — rendered disabled rather than pointed at some unrelated
 // existing page.
-const MERCHANT_NAV_ITEMS = [
+export const MERCHANT_NAV_ITEMS = [
 	{ label: "Overview", href: "/", icon: LayoutGrid },
 	{ label: "Wallet", href: "/wallet", icon: Wallet },
 	{ label: "Payments", href: "/payments", icon: Receipt },
