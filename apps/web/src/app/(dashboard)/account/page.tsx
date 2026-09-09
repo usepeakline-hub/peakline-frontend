@@ -8,17 +8,24 @@ import { TwoFactorAuthCard } from "@/features/profile/components/TwoFactorAuthCa
 import { InstallAppCard } from "@/features/profile/components/InstallAppCard";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
 import { useLogout } from "@/features/auth/hooks";
+import { useAuthStore } from "@/lib/stores/authStore";
 
 // Profile and Settings used to be two separate (half-empty) destinations —
 // merged into one Account page/nav item, per the actual usage: nothing
 // settings-specific existed yet beyond what already lives here.
 export default function AccountPage() {
 	const logout = useLogout();
+	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			{/* No back arrow — primary bottom-tab destination, same as /wallet. */}
-			<MobileStepHeader title="Account" />
+			{/* No `MobileStepHeader` for merchant — `MerchantMobileTopBar` already
+			    shows "Account" as a back+title+hamburger bar for this exact
+			    route; rendering both stacked "Account"/"Account" bars was a real
+			    duplicate-header bug. Individual still needs its own (no back
+			    arrow there either — primary bottom-tab destination, same as
+			    /wallet — and no equivalent top bar exists for that account type). */}
+			{!isMerchant && <MobileStepHeader title="Account" />}
 			<PageHeader title="Account" subtitle="Manage your account and settings" />
 
 			<PersonalInformationCard />

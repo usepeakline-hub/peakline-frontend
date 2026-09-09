@@ -18,13 +18,19 @@ import { useAuthStore } from "@/lib/stores/authStore";
  * (Send/Receive/Pay/Request) under one repeated placeholder icon, which
  * reads as an unfinished mock rather than an intentional simplification, so
  * this keeps the existing per-action icons instead of flattening them.
+ *
+ * No `MobileStepHeader` for merchant — `MerchantMobileTopBar` already shows
+ * "Wallet" as a back+title+hamburger bar for this exact route; rendering
+ * both stacked "Wallet"/"My Wallet" bars was a real duplicate-header bug.
+ * Individual still needs its own (no equivalent top bar exists for that
+ * account type).
  */
 function WalletOverview() {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			<MobileStepHeader title="My Wallet" />
+			{!isMerchant && <MobileStepHeader title="My Wallet" />}
 			{isMerchant && (
 				<PageHeader title="My Wallet" subtitle="Your USDC wallet overview" />
 			)}
