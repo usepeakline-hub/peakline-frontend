@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
+import { toast } from "@repo/ui/sonner";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { usePendingBalance } from "@/features/wallet/hooks";
 import { FundWalletDialog } from "@/features/wallet/components/FundWalletDialog";
 import { formatUsdc } from "@/lib/currency";
+import { useAuthStore } from "@/lib/stores/authStore";
 
 function WalletBalanceCardSkeleton() {
 	return (
@@ -35,12 +37,15 @@ function WalletBalanceCardSkeleton() {
  * cards. The dashboard's own `BalanceCard` stays a standalone component
  * (no pending section there), so this composes the same balance query
  * directly instead of trying to force one component to cover both shapes.
+ * Shared by both account types — the only difference is the second action
+ * button (Send vs. Withdraw), per the merchant Wallet mock.
  */
 function WalletBalanceCard() {
 	const { data: available } = useWalletBalance();
 	const { data: pending } = usePendingBalance();
 	const [availableVisible, setAvailableVisible] = useState(true);
 	const [pendingVisible, setPendingVisible] = useState(true);
+	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	if (!available || !pending) return <WalletBalanceCardSkeleton />;
 
@@ -91,13 +96,27 @@ function WalletBalanceCard() {
 							Add Money
 						</Button>
 					</FundWalletDialog>
-					<Button
-						asChild
-						variant="ghost"
-						className="bg-background text-foreground hover:bg-neutral-100"
-					>
-						<Link href="/send">Send</Link>
-					</Button>
+					{isMerchant ? (
+						// No withdrawal flow exists yet (no mock for one either) —
+						// a real, clickable button that says so beats either a
+						// dead link or a visually "broken" disabled primary CTA.
+						<Button
+							type="button"
+							variant="ghost"
+							className="bg-background text-foreground hover:bg-neutral-100"
+							onClick={() => toast.info("Withdrawals are coming soon")}
+						>
+							Withdraw
+						</Button>
+					) : (
+						<Button
+							asChild
+							variant="ghost"
+							className="bg-background text-foreground hover:bg-neutral-100"
+						>
+							<Link href="/send">Send</Link>
+						</Button>
+					)}
 				</div>
 			</div>
 

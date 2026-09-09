@@ -7,17 +7,21 @@ import { Button } from "@repo/ui/button";
 import { toast } from "@repo/ui/sonner";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { usePersonalInfoFlowStore } from "@/lib/stores/personalInfoFlowStore";
+import { useAuthStore } from "@/lib/stores/authStore";
 import { FAKE_WALLET_ADDRESS, maskWalletAddress } from "@/lib/wallet";
 
 /** End of Sign Up — wallet's created, PIN's set (Figma node 127:4186).
  * Clears the flow stores on arrival since nothing after this point needs
- * them. */
+ * them. The address shown is the real one `useSetupWallet` just stored —
+ * `FAKE_WALLET_ADDRESS` only stands in if this is somehow reached directly
+ * without going through that step (shouldn't happen in the real flow). */
 function SuccessForm() {
 	const router = useRouter();
 	const resetSignUpFlow = useSignUpFlowStore((state) => state.reset);
 	const resetPersonalInfoFlow = usePersonalInfoFlowStore(
 		(state) => state.reset,
 	);
+	const walletAddress = useAuthStore((state) => state.walletAddress) ?? FAKE_WALLET_ADDRESS;
 
 	useEffect(() => {
 		resetSignUpFlow();
@@ -28,7 +32,7 @@ function SuccessForm() {
 
 	async function handleCopyAddress() {
 		try {
-			await navigator.clipboard.writeText(FAKE_WALLET_ADDRESS);
+			await navigator.clipboard.writeText(walletAddress);
 			toast.success("Wallet address copied");
 		} catch {
 			toast.error("Couldn't copy the address");
@@ -61,7 +65,7 @@ function SuccessForm() {
 				</span>
 				<div className="flex items-center justify-between gap-4">
 					<span className="truncate text-b2 text-foreground">
-						{maskWalletAddress(FAKE_WALLET_ADDRESS)}
+						{maskWalletAddress(walletAddress)}
 					</span>
 					<button
 						type="button"

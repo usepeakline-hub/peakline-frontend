@@ -3,19 +3,19 @@
 import { Check, Clock, RefreshCw, X, Ban, Copy } from "lucide-react";
 import { toast } from "@repo/ui/sonner";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
-import { STATUS_LABEL } from "@/lib/transactions";
+import { STATUS_LABEL, PAYMENT_METHOD_LABEL } from "@/lib/transactions";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
 import type { Transaction } from "@/features/dashboard/hooks";
 
 const STATUS_BANNER: Record<
 	Transaction["status"],
-	{ icon: typeof Check; className: string; heading: string }
+	{ icon: typeof Check; className: string; headingSuffix: string }
 > = {
-	completed: { icon: Check, className: "bg-success text-success-foreground", heading: "Transfer Successful!" },
-	pending: { icon: Clock, className: "bg-warning text-warning-foreground", heading: "Transfer Pending" },
-	processing: { icon: RefreshCw, className: "bg-info text-info-foreground", heading: "Transfer Processing" },
-	failed: { icon: X, className: "bg-destructive text-destructive-foreground", heading: "Transfer Failed" },
-	cancelled: { icon: Ban, className: "bg-neutral-700 text-white", heading: "Transfer Cancelled" },
+	completed: { icon: Check, className: "bg-success text-success-foreground", headingSuffix: "Successful!" },
+	pending: { icon: Clock, className: "bg-warning text-warning-foreground", headingSuffix: "Pending" },
+	processing: { icon: RefreshCw, className: "bg-info text-info-foreground", headingSuffix: "Processing" },
+	failed: { icon: X, className: "bg-destructive text-destructive-foreground", headingSuffix: "Failed" },
+	cancelled: { icon: Ban, className: "bg-neutral-700 text-white", headingSuffix: "Cancelled" },
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -27,17 +27,32 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 	);
 }
 
+interface TransactionDetailProps {
+	transaction: Transaction;
+	/** "Transfer" for this feature's own usage; "Payment" for the merchant
+	 * Payments detail page, which reuses this whole layout rather than
+	 * duplicating it — same receipt shape either way. */
+	noun?: string;
+	/** "To" for a transfer (money leaving, to someone); "From" for a
+	 * merchant payment (money coming in, from a customer). */
+	counterpartyLabel?: string;
+}
+
 /**
- * The receipt-style page a `TransactionRow` links to. Status-aware rather
- * than a fixed "Transfer Successful!" — the mock's own two examples were
- * both completed transfers, but this page also has to render pending/
- * processing/failed/cancelled entries sensibly, so banner color, icon, and
- * heading all follow the fixed status→token mapping from CLAUDE.md
- * (Pending→warning, Processing→info, Completed→success, Failed→
- * destructive, Cancelled→neutral).
+ * The receipt-style page a `TransactionRow` (or a merchant `PaymentsTable`
+ * row) links to. Status-aware rather than a fixed "Transfer Successful!" —
+ * the mock's own two examples were both completed transfers, but this page
+ * also has to render pending/processing/failed/cancelled entries sensibly,
+ * so banner color, icon, and heading all follow the fixed status→token
+ * mapping from CLAUDE.md (Pending→warning, Processing→info, Completed→
+ * success, Failed→destructive, Cancelled→neutral).
  */
-function TransactionDetail({ transaction }: { transaction: Transaction }) {
-	const { icon: Icon, className, heading } = STATUS_BANNER[transaction.status];
+function TransactionDetail({
+	transaction,
+	noun = "Transfer",
+	counterpartyLabel = "To",
+}: TransactionDetailProps) {
+	const { icon: Icon, className, headingSuffix } = STATUS_BANNER[transaction.status];
 	const amount = Math.abs(transaction.amount);
 
 	async function handleCopyTxId() {
@@ -57,7 +72,9 @@ function TransactionDetail({ transaction }: { transaction: Transaction }) {
 			</div>
 
 			<div className="flex flex-col items-center gap-1 text-center">
-				<h2 className="text-s1 text-foreground sm:text-h5">{heading}</h2>
+				<h2 className="text-s1 text-foreground sm:text-h5">
+					{noun} {headingSuffix}
+				</h2>
 			</div>
 
 			<div className="flex flex-col gap-1 rounded-xl border border-secondary-300 bg-secondary-100 p-4 sm:p-5">
@@ -71,7 +88,9 @@ function TransactionDetail({ transaction }: { transaction: Transaction }) {
 
 			{transaction.counterpartyName && (
 				<div className="flex flex-col gap-2">
-					<span className="text-c1 text-muted-foreground sm:text-b3">To</span>
+					<span className="text-c1 text-muted-foreground sm:text-b3">
+						{counterpartyLabel}
+					</span>
 					<div className="flex items-center gap-3">
 						<UserAvatar
 							name={transaction.counterpartyName}
@@ -95,6 +114,12 @@ function TransactionDetail({ transaction }: { transaction: Transaction }) {
 				<DetailRow label="Date" value={transaction.date} />
 				<DetailRow label="Network" value="Stellar" />
 				<DetailRow label="Est. Fee" value="0.00 USDC" />
+				{transaction.paymentMethod && (
+					<DetailRow
+						label="Payment Method"
+						value={PAYMENT_METHOD_LABEL[transaction.paymentMethod]}
+					/>
+				)}
 				<div className="flex items-center justify-between gap-4 py-3 text-c1 sm:text-b3">
 					<span className="text-muted-foreground">Transaction ID</span>
 					<button

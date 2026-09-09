@@ -5,8 +5,11 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
+import { toast } from "@repo/ui/sonner";
+import { cn } from "@repo/ui/lib/utils";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { FundWalletDialog } from "@/features/wallet/components/FundWalletDialog";
+import { useAuthStore } from "@/lib/stores/authStore";
 
 function formatAmount(amount: number) {
 	return amount.toLocaleString(undefined, {
@@ -29,14 +32,29 @@ function BalanceCardSkeleton() {
 	);
 }
 
-function BalanceCard() {
+/**
+ * The individual dashboard's own balance display — also reused, mobile-only,
+ * for merchant Overview's new "Available Balance" card (the updated mock
+ * replaced merchant's 3 stat cards with this on mobile specifically; desktop
+ * keeps the stat cards and never renders this). Second action button
+ * branches Send (individual) vs. Withdraw (merchant) — same pattern
+ * `WalletBalanceCard` already established, and the same "no real withdrawal
+ * flow yet" toast it uses.
+ */
+function BalanceCard({ className }: { className?: string }) {
 	const { data } = useWalletBalance();
 	const [visible, setVisible] = useState(true);
+	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	if (!data) return <BalanceCardSkeleton />;
 
 	return (
-		<div className="flex w-full flex-col gap-6 rounded-2xl bg-linear-to-br from-primary-500 to-primary-800 p-6 text-primary-foreground sm:p-8">
+		<div
+			className={cn(
+				"flex w-full flex-col gap-6 rounded-2xl bg-linear-to-br from-primary-500 to-primary-800 p-6 text-primary-foreground sm:p-8",
+				className,
+			)}
+		>
 			<div className="flex items-start justify-between gap-4">
 				<div className="flex flex-col gap-2">
 					<span className="text-c1 text-primary-100 sm:text-b3">
@@ -86,13 +104,24 @@ function BalanceCard() {
 						Add Money
 					</Button>
 				</FundWalletDialog>
-				<Button
-					asChild
-					variant="ghost"
-					className="bg-background text-foreground hover:bg-neutral-100"
-				>
-					<Link href="/send">Send</Link>
-				</Button>
+				{isMerchant ? (
+					<Button
+						type="button"
+						variant="ghost"
+						className="bg-background text-foreground hover:bg-neutral-100"
+						onClick={() => toast.info("Withdrawals are coming soon")}
+					>
+						Withdraw
+					</Button>
+				) : (
+					<Button
+						asChild
+						variant="ghost"
+						className="bg-background text-foreground hover:bg-neutral-100"
+					>
+						<Link href="/send">Send</Link>
+					</Button>
+				)}
 			</div>
 		</div>
 	);

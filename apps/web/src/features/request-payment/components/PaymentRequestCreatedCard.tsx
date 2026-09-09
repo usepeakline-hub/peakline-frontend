@@ -1,73 +1,18 @@
 "use client";
 
-import { MessageCircle, Mail, Link as LinkIcon, MoreHorizontal, Copy } from "lucide-react";
 import QRCode from "react-qr-code";
-import { toast } from "@repo/ui/sonner";
+import { Copy } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
+import { getShareOptions, copyLink } from "@/lib/share";
 
 interface PaymentRequestCreatedCardProps {
 	link: string;
 }
 
-interface ShareOption {
-	label: string;
-	icon: typeof MessageCircle;
-	iconClassName?: string;
-	onClick: (link: string) => void;
-}
+const SHARE_OPTIONS = getShareOptions("Payment request");
 
-async function copyLink(link: string) {
-	try {
-		await navigator.clipboard.writeText(link);
-		toast.success("Link copied");
-	} catch {
-		toast.error("Couldn't copy");
-	}
-}
-
-const SHARE_OPTIONS: ShareOption[] = [
-	{
-		label: "Whatsapp",
-		icon: MessageCircle,
-		iconClassName: "text-success",
-		onClick: (link) =>
-			window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, "_blank", "noopener"),
-	},
-	{
-		label: "Email",
-		icon: Mail,
-		onClick: (link) => {
-			window.location.href = `mailto:?subject=${encodeURIComponent(
-				"Payment request",
-			)}&body=${encodeURIComponent(link)}`;
-		},
-	},
-	{
-		label: "Copy Link",
-		icon: LinkIcon,
-		onClick: copyLink,
-	},
-	{
-		label: "More",
-		icon: MoreHorizontal,
-		onClick: async (link) => {
-			if (navigator.share) {
-				try {
-					await navigator.share({ url: link, title: "Payment request" });
-				} catch {
-					// User cancelled the share sheet — not an error.
-				}
-			} else {
-				copyLink(link);
-			}
-		},
-	},
-];
-
-/** Revealed once `RequestPaymentForm` creates a request. "Copy Link" and
- * "More" work with the real clipboard/Web Share API; WhatsApp/Email open
- * their real share URLs — genuinely functional, not stubs, since all four
- * are just browser-native mechanisms with no backend involved. */
+/** Revealed once `RequestPaymentForm` creates a request. See `@/lib/share`
+ * for why the four share options live there instead of here. */
 function PaymentRequestCreatedCard({ link }: PaymentRequestCreatedCardProps) {
 	return (
 		<div className="flex flex-col gap-5 rounded-2xl border border-border bg-background p-6 sm:p-8">

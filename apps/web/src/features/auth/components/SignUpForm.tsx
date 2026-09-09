@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
@@ -16,13 +15,11 @@ import {
 	FormControl,
 	FormMessage,
 } from "@repo/ui/form";
-import { toast } from "@repo/ui/sonner";
 import {
 	signUpSchema,
 	type SignUpValues,
 } from "@/lib/validations/authValidations";
 import { useSignUp } from "@/features/auth/hooks";
-import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { PasswordRequirementsChecklist } from "@/features/auth/components/PasswordRequirementsChecklist";
 
 /**
@@ -31,14 +28,11 @@ import { PasswordRequirementsChecklist } from "@/features/auth/components/Passwo
  * later Personal Details step, but the mock makes clear they belong on
  * this screen instead). Routes to email verification next, then Account
  * Type: Sign Up -> Verify -> Account Type -> ... -> Wallet Created.
+ * `useSignUp` owns everything past a successful submit — storing the
+ * fields into `signUpFlowStore`, toasting, and navigating — this component
+ * only builds the form.
  */
 function SignUpForm() {
-	const router = useRouter();
-	const setFirstName = useSignUpFlowStore((state) => state.setFirstName);
-	const setLastName = useSignUpFlowStore((state) => state.setLastName);
-	const setOtherName = useSignUpFlowStore((state) => state.setOtherName);
-	const setEmail = useSignUpFlowStore((state) => state.setEmail);
-	const setPhone = useSignUpFlowStore((state) => state.setPhone);
 	const form = useForm<SignUpValues>({
 		resolver: zodResolver(signUpSchema),
 		defaultValues: {
@@ -55,17 +49,7 @@ function SignUpForm() {
 	const password = useWatch({ control: form.control, name: "password" });
 
 	function onSubmit(values: SignUpValues) {
-		signUp.mutate(values, {
-			onSuccess: () => {
-				setFirstName(values.firstName);
-				setLastName(values.lastName);
-				setOtherName(values.otherName ?? "");
-				setEmail(values.email);
-				setPhone(values.phone);
-				toast.success("Account created");
-				router.push("/auth/sign-up/verify-otp");
-			},
-		});
+		signUp.mutate(values);
 	}
 
 	return (

@@ -65,6 +65,13 @@ interface Transaction {
 	txId: string;
 	counterpartyName?: string;
 	counterpartyPhone?: string;
+	/** How the customer paid — merchant-only (`useMerchantPayments`'s
+	 * entries are always `kind: "received"`); absent everywhere else. */
+	paymentMethod?: "qr" | "link";
+	/** ISO date, for real date-range filtering — merchant-only, same reason
+	 * as `paymentMethod`. `date`/`timestamp` above stay display strings for
+	 * everyone else since nothing else needs to compare them. */
+	isoDate?: string;
 }
 
 function useRecentTransactions() {

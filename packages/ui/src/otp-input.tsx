@@ -77,7 +77,16 @@ function OtpInput({
 					onPaste={handlePaste}
 					aria-invalid={ariaInvalid}
 					className={cn(
-						"h-14 w-12 rounded-lg border border-input bg-background text-center text-h4 text-foreground shadow-xs transition-colors outline-none",
+						// `min-w-0 max-w-12 flex-1` instead of a fixed `w-12` — six
+						// fixed-width boxes plus their gaps (328px) don't fit a narrow
+						// phone once they're inside anything with its own horizontal
+						// padding (e.g. Pay's confirm-step card), and a flex child's
+						// default `min-width: auto` refuses to shrink a fixed width
+						// below its own content size, forcing the whole page into
+						// horizontal scroll instead. This lets every box shrink
+						// together to whatever actually fits, capping out at 48px on
+						// anything wide enough to spare it.
+						"h-14 min-w-0 max-w-12 flex-1 rounded-lg border border-input bg-background text-center text-h4 text-foreground shadow-xs transition-colors outline-none",
 						"focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary-200",
 						"aria-invalid:border-destructive aria-invalid:focus-visible:border-destructive aria-invalid:focus-visible:ring-danger-200",
 						"disabled:cursor-not-allowed disabled:opacity-100 disabled:border-neutral-100 disabled:bg-neutral-100 disabled:text-neutral-400",

@@ -29,4 +29,12 @@ function formatTransactionAmount(transaction: Transaction) {
 	return `${sign}${value} ${transaction.currency}`;
 }
 
-export { KIND_STYLES, STATUS_LABEL, formatTransactionAmount };
+// Merchant-only field (see `Transaction.paymentMethod`) — shared by
+// `PaymentsTable` and `TransactionDetail` so the two can't label it
+// differently.
+const PAYMENT_METHOD_LABEL: Record<NonNullable<Transaction["paymentMethod"]>, string> = {
+	qr: "QR",
+	link: "Link",
+};
+
+export { KIND_STYLES, STATUS_LABEL, PAYMENT_METHOD_LABEL, formatTransactionAmount };

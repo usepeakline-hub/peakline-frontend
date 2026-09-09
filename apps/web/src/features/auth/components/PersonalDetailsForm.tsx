@@ -27,13 +27,15 @@ import { getOnboardingSteps } from "@/features/auth/onboardingSteps";
 // Same country list the phone country picker uses — a "Nationality" picker
 // asking for a country of origin, not a linguistically-correct demonym
 // (there's no reliable "Ghana" -> "Ghanaian" rule that covers all 245
-// entries), matching how most sign-up forms handle this field. Plain
-// lexicographic sort, not `localeCompare` — see phone-input.tsx's own note
-// on why: collation can differ between Node's SSR pass and the browser's,
-// which would reorder (and mismatch) this list between them.
-const NATIONALITIES = Object.values(COUNTRY_NAMES).sort((a, b) =>
-	a < b ? -1 : a > b ? 1 : 0,
-);
+// entries), matching how most sign-up forms handle this field. Value is the
+// ISO 3166-1 alpha-2 code, not the display name — `POST /onboarding/individual`
+// wants "GH", not "Ghana" (confirmed against the real API). Plain
+// lexicographic sort by name, not `localeCompare` — see phone-input.tsx's
+// own note on why: collation can differ between Node's SSR pass and the
+// browser's, which would reorder (and mismatch) this list between them.
+const NATIONALITIES = Object.entries(COUNTRY_NAMES)
+	.map(([iso2, name]) => ({ iso2, name }))
+	.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
 /**
  * Step 1 (Personal Information) of onboarding — first of 2 steps for an
@@ -109,8 +111,8 @@ function PersonalDetailsForm() {
 										<option value="" disabled>
 											Select Nationality
 										</option>
-										{NATIONALITIES.map((name) => (
-											<option key={name} value={name}>
+										{NATIONALITIES.map(({ iso2, name }) => (
+											<option key={iso2} value={iso2}>
 												{name}
 											</option>
 										))}

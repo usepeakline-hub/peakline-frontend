@@ -9,17 +9,28 @@ Turborepo + pnpm. Deliberate decisions (don't re-litigate without asking):
 
 ```
 apps/
-  web/        landing, marketing, AND auth (sign in/up, verify, personal details)
-  dashboard/  individual user app        — NOT SCAFFOLDED YET
-  merchant/   merchant app               — NOT SCAFFOLDED YET
+  web/        landing, marketing, auth, AND the full app — individual dashboard
+              today (`src/app/(dashboard)/*`), merchant capability folding into
+              the same app rather than a separate one (see below)
 packages/
   ui/                 shared design system (@repo/ui) — components, tokens, assets
   eslint-config/
   typescript-config/
 ```
 
-- **Separate apps per surface**, not one app with route groups.
-- **Auth lives in `apps/web`**; it redirects to dashboard/merchant after login.
+- **One app, not one-per-surface** — revised from an earlier plan (this repo's git
+  history/CLAUDE.md once described separate `apps/dashboard`/`apps/merchant`; neither was
+  ever actually started, and the individual dashboard was built straight into `apps/web`
+  instead). Merchant follows the same precedent: no `apps/merchant`. Merchant capability is
+  **permission-gated within `apps/web`**, keyed off the account's `customerType`
+  (`"individual" | "merchant"` — chosen at `/auth/sign-up/account-type`, persisted via the
+  real `PATCH /auth/customer-type`, read back from `authStore`). A merchant account sees
+  additional nav items/routes an individual doesn't; there's no separate deployment, domain,
+  or login for it. Concrete gating mechanism (route guards vs. nav-item visibility vs. both)
+  isn't decided yet — resolve it when the first merchant-only screen actually gets built,
+  not preemptively.
+- **Auth lives in `apps/web`** (still true — nothing to redirect *to* anymore, since
+  dashboard/merchant are this same app now).
 - **No admin app** in the MVP (not in the brief's P0/P1 scope).
 
 ## Form/data stack (apps, not `packages/ui`)

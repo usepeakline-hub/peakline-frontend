@@ -15,7 +15,13 @@ interface FundingSuccessStepProps {
 /** Step 4a. "New Balance" is computed (current + funded), not copied from
  * the mock — its own screenshot shows the new balance as just the funded
  * amount, which would be wrong for a real wallet that already had money in
- * it, so this always adds to whatever the dashboard's balance query has. */
+ * it, so this always adds to whatever the dashboard's balance query has.
+ *
+ * `min-h-full` + `justify-center` vertically centers this the same way
+ * `FundingProcessingStep` already does — has no effect inside the desktop
+ * dialog (its container is content-sized, so a percentage height resolves
+ * to nothing there per spec), only on the mobile full-page route, which is
+ * exactly what's wanted. */
 function FundingSuccessStep({
 	values,
 	onGoToDashboard,
@@ -25,7 +31,7 @@ function FundingSuccessStep({
 	const newBalance = (balance?.amount ?? 0) + values.amount;
 
 	return (
-		<div className="flex flex-col items-center gap-6 py-2 text-center sm:py-4">
+		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-primary-500 sm:size-20">
 				<Check
 					className="size-7 text-primary-foreground sm:size-9"

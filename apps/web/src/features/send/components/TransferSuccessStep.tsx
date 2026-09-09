@@ -18,7 +18,12 @@ interface TransferSuccessStepProps {
  * then the new balance. New Balance is computed (current - sent), not
  * copied from the mock, for the same reason `FundingSuccessStep` computes
  * rather than hardcodes it — a real wallet's balance before the transfer
- * could be anything. */
+ * could be anything.
+ *
+ * `min-h-full` + `justify-center` vertically centers this within whatever
+ * height the page's own container resolves to, same fix (and same reason)
+ * as `TransferProcessingStep`'s — this step previously just sat at the top
+ * of a tall mobile screen instead. */
 function TransferSuccessStep({
 	values,
 	onGoToDashboard,
@@ -28,7 +33,7 @@ function TransferSuccessStep({
 	const newBalance = Math.max((balance?.amount ?? 0) - values.amount, 0);
 
 	return (
-		<div className="flex flex-col items-center gap-6 py-2 text-center sm:py-4">
+		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-primary-500 sm:size-20">
 				<Check
 					className="size-7 text-primary-foreground sm:size-9"
