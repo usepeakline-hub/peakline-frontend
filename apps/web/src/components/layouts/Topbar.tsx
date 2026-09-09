@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronLeft, Store } from "lucide-react";
+import { Bell, Store, Undo2 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
 import { useAuthStore } from "@/lib/stores/authStore";
@@ -21,8 +21,9 @@ interface TopbarProps {
  * deliberate here, the mirror image of `MerchantMobileTopBar`'s own exact
  * match: that bar shows a page's *own* title on its exact route, this one
  * shows the *parent* list's title as a "back" link on anything nested under
- * it. Per the Payment Detail / Create Payment Link / Payment Link Detail
- * mocks, all of which replace the badge with this same breadcrumb. */
+ * it. The label itself renders only as `aria-label`/`title` now, not visible
+ * text — the reference crop for this button showed a plain icon-only circle,
+ * same size/border/hover treatment as the bell beside it, not a text link. */
 function parentBreadcrumb(pathname: string) {
 	const match = MERCHANT_NAV_ITEMS.find(
 		(item) => item.href && item.href !== "/" && pathname.startsWith(`${item.href}/`),
@@ -57,10 +58,11 @@ function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
 			{breadcrumb ? (
 				<Link
 					href={breadcrumb.href}
-					className="flex items-center gap-2 text-b3 font-medium text-foreground hover:text-primary-600"
+					aria-label={breadcrumb.label}
+					title={breadcrumb.label}
+					className="flex aspect-square size-10 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted"
 				>
-					<ChevronLeft className="size-4" aria-hidden="true" />
-					{breadcrumb.label}
+					<Undo2 className="size-4.5" aria-hidden="true" />
 				</Link>
 			) : (
 				isMerchant && (
