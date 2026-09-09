@@ -12,14 +12,24 @@ const SHARE_OPTIONS = getShareOptions("Payment link");
  * inline QR here (unlike `PaymentRequestCreatedCard`'s), matching the
  * mock's own created-panel screenshot — the dedicated QR Code page covers
  * that need for merchant instead.
+ *
+ * Reused as-is by the Payment Link detail page, which shows the identical
+ * panel next to its own receipt-style card — `title` there is "Payment
+ * Link" instead of this component's own default, per that mock; a link
+ * always exists by the time the detail page renders, so its empty state
+ * never shows there.
  */
-function PaymentLinkCreatedCard({ link }: { link: string | null }) {
+function PaymentLinkCreatedCard({
+	link,
+	title = "Payment Link Created",
+}: {
+	link: string | null;
+	title?: string;
+}) {
 	if (!link) {
 		return (
 			<div className="flex min-h-full flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-background p-8 text-center sm:p-12">
-				<h2 className="text-b2 font-semibold text-foreground sm:text-b1">
-					Payment Link Created
-				</h2>
+				<h2 className="text-b2 font-semibold text-foreground sm:text-b1">{title}</h2>
 				<p className="text-b3 text-muted-foreground">No payment link created yet</p>
 			</div>
 		);
@@ -27,9 +37,7 @@ function PaymentLinkCreatedCard({ link }: { link: string | null }) {
 
 	return (
 		<div className="flex flex-col gap-5 rounded-2xl border border-border bg-background p-6 sm:p-8">
-			<h2 className="text-b2 font-semibold text-foreground sm:text-b1">
-				Payment Link Created
-			</h2>
+			<h2 className="text-b2 font-semibold text-foreground sm:text-b1">{title}</h2>
 
 			<div className="flex items-center justify-between gap-4 rounded-lg border border-input bg-muted px-3.5 py-2.5">
 				<span className="truncate text-b3 text-foreground sm:text-b2">{link}</span>

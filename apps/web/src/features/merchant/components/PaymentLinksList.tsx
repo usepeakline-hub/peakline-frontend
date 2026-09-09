@@ -3,10 +3,14 @@
 import { useMemo, useState } from "react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { toast } from "@repo/ui/sonner";
+import { Pagination } from "@/components/Pagination";
 import { useMerchantPaymentLinks } from "@/features/merchant/hooks";
+import { PaymentLinksStatsCards } from "@/features/merchant/components/PaymentLinksStatsCards";
 import { PaymentLinksFilters } from "@/features/merchant/components/PaymentLinksFilters";
 import { PaymentLinksTable } from "@/features/merchant/components/PaymentLinksTable";
 import type { PaymentLink, PaymentLinkStatus } from "@/features/merchant/hooks";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function PaymentLinksListSkeleton() {
 	return (
@@ -29,21 +33,12 @@ function matchesDateRange(paymentLink: PaymentLink, from: string, to: string) {
 }
 
 function downloadCsv(links: PaymentLink[]) {
-	const header = [
-		"Payment Title",
-		"Amount (USDC)",
-		"Description",
-		"Expiration",
-		"Customer Reference",
-		"Status",
-		"Link",
-	];
+	const header = ["Title", "Amount (USDC)", "Created", "Expires", "Status", "Link"];
 	const rows = links.map((link) => [
 		link.title,
 		link.amount.toFixed(2),
-		link.description ?? "",
+		link.created,
 		link.expiration,
-		link.reference ?? "",
 		link.status,
 		link.link,
 	]);
@@ -61,13 +56,16 @@ function downloadCsv(links: PaymentLink[]) {
 }
 
 /** `/payment-links`'s own list — same owns-its-own-filter-state shape as
- * `PaymentsList`. */
+ * `PaymentsList`, extended with the mock's header stat cards and real
+ * pagination over whatever the filters leave. */
 function PaymentLinksList() {
 	const { data } = useMerchantPaymentLinks();
 	const [search, setSearch] = useState("");
 	const [from, setFrom] = useState("");
 	const [to, setTo] = useState("");
 	const [status, setStatus] = useState<PaymentLinkStatus | "all">("all");
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 
 	const filtered = useMemo(() => {
 		if (!data) return null;
@@ -79,6 +77,21 @@ function PaymentLinksList() {
 		);
 	}, [data, search, from, to, status]);
 
+	const totalPages = filtered ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
+	const pageItems = filtered ? filtered.slice((page - 1) * pageSize, page * pageSize) : null;
+
+	function handleFilterChange<T>(setter: (value: T) => void) {
+		return (value: T) => {
+			setter(value);
+			setPage(1);
+		};
+	}
+
+	function handlePageSizeChange(value: number) {
+		setPageSize(value);
+		setPage(1);
+	}
+
 	function handleExport() {
 		if (!filtered || filtered.length === 0) {
 			toast.error("No payment links to export");
@@ -89,20 +102,42 @@ function PaymentLinksList() {
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
-			<PaymentLinksFilters
-				search={search}
-				onSearchChange={setSearch}
-				from={from}
-				onFromChange={setFrom}
-				to={to}
-				onToChange={setTo}
-				status={status}
-				onStatusChange={setStatus}
-				onExport={handleExport}
-			/>
+		<div className="flex flex-col gap-6">
+			<PaymentLinksStatsCards />
 
-			{!filtered ? <PaymentLinksListSkeleton /> : <PaymentLinksTable links={filtered} />}
+			<div className="flex flex-col gap-4">
+				<PaymentLinksFilters
+					search={search}
+					onSearchChange={handleFilterChange(setSearch)}
+					from={from}
+					onFromChange={handleFilterChange(setFrom)}
+					to={to}
+					onToChange={handleFilterChange(setTo)}
+					status={status}
+					onStatusChange={handleFilterChange(setStatus)}
+					onExport={handleExport}
+				/>
+
+				{!filtered || !pageItems ? (
+					<PaymentLinksListSkeleton />
+				) : (
+					<>
+						<PaymentLinksTable links={pageItems} />
+						{filtered.length > 0 && (
+							<Pagination
+								page={page}
+								totalPages={totalPages}
+								pageSize={pageSize}
+								onPageChange={setPage}
+								onPageSizeChange={handlePageSizeChange}
+								pageSizeOptions={PAGE_SIZE_OPTIONS}
+								itemsShown={pageItems.length}
+								total={filtered.length}
+							/>
+						)}
+					</>
+				)}
+			</div>
 		</div>
 	);
 }

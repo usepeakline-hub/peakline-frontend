@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { TransactionDetail } from "@/features/transactions/components/TransactionDetail";
@@ -16,11 +15,11 @@ import { useMerchantPayments } from "@/features/merchant/hooks";
  * matching entry in it.
  *
  * The mock's desktop top bar swaps the "Merchant" badge for a
- * "← Back to Payments" link and the identity for the paying customer's —
- * skipped here, same call `TransactionDetailPage` already made for its own
- * near-identical mock: threading page-specific content into the shared
- * `Topbar` isn't worth it for one screen, and the customer's name/phone
- * already appear in the page body's "From" row regardless.
+ * "← Back to Payments" link — `Topbar` itself now does this centrally for
+ * any route nested under a top-level nav item (see its own
+ * `parentBreadcrumb`), so this page no longer needs its own desktop copy of
+ * that link; only the mobile header (a different component, `Topbar` is
+ * `lg`-only) still needs its own `onBack`.
  */
 export default function PaymentDetailPage() {
 	const params = useParams<{ id: string }>();
@@ -35,14 +34,6 @@ export default function PaymentDetailPage() {
 				title="Payments"
 				onBack={() => router.push("/payments")}
 			/>
-			<button
-				type="button"
-				onClick={() => router.push("/payments")}
-				className="hidden items-center gap-2 text-b3 font-medium text-foreground hover:text-primary-600 lg:flex"
-			>
-				<ChevronLeft className="size-4" aria-hidden="true" />
-				Back to Payments
-			</button>
 
 			{!data ? (
 				<div className="flex flex-col gap-6">

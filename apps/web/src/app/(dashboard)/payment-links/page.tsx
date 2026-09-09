@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { PaymentLinksList } from "@/features/merchant/components/PaymentLinksList";
 
@@ -12,14 +11,16 @@ export const metadata: Metadata = {
 
 // Merchant-only route, replacing "Request Payment" in that nav (see
 // Sidebar) — same no-route-guard-yet caveat as `/payments`.
+//
+// No `MobileStepHeader` here — `MerchantMobileTopBar` (rendered once by
+// `DashboardLayout`, above every page) already shows "Payment Links" as a
+// back+title+hamburger bar for this exact route, same as `/payments`.
 export default function PaymentLinksPage() {
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			{/* No back arrow — primary sidebar destination, same as /payments. */}
-			<MobileStepHeader title="Payment Links" />
 			<PageHeader
 				title="Payment Links"
-				subtitle="Create and manage reusable payment links for your customers"
+				subtitle="All payment links"
 				action={
 					<Button asChild size="large">
 						<Link href="/payment-links/create">

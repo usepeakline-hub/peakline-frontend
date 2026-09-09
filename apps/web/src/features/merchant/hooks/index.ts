@@ -278,6 +278,11 @@ export interface PaymentLink {
 	description?: string;
 	reference?: string;
 	/** Display string. */
+	created: string;
+	/** ISO date, for real date-range filtering (same reasoning as
+	 * `Transaction.isoDate`). */
+	isoCreated: string;
+	/** Display string. */
 	expiration: string;
 	/** ISO date, for real date-range filtering (same reasoning as
 	 * `Transaction.isoDate`). */
@@ -286,62 +291,74 @@ export interface PaymentLink {
 	link: string;
 }
 
+const PAYMENT_LINK_TITLES = [
+	"Custom Order",
+	"Event Payment",
+	"Cloth Payment",
+	"Custom Order",
+	"Hair Payment",
+	"Job Payment",
+] as const;
+
+/** Deterministic, not random — same reasoning as `generateFakeRecentPayments`:
+ * a fixed 50-row fake dataset so pagination always lands on the same content
+ * instead of reshuffling on every refetch. Titles/dates match the mock's own
+ * visible rows exactly; rotates through all three statuses (the mock's own
+ * table only ever shows Active/Expired, but a link that's already been paid
+ * is a real, reachable state too). */
+function generateFakePaymentLinks(count: number): PaymentLink[] {
+	const statuses: PaymentLinkStatus[] = ["active", "expired", "active", "paid"];
+
+	return Array.from({ length: count }, (_, i) => {
+		const title = PAYMENT_LINK_TITLES[i % PAYMENT_LINK_TITLES.length];
+		return {
+			id: `l${i + 1}`,
+			title,
+			amount: 500,
+			currency: "USDC",
+			description: `for a ${title.toLowerCase()}`,
+			created: "12 Aug 2026",
+			isoCreated: "2026-08-12",
+			expiration: "22 Aug 2026",
+			isoExpiration: "2026-08-22",
+			status: statuses[i % statuses.length],
+			link: `https://peakline.com/request/kwame-${i + 1}`,
+		};
+	});
+}
+
+const FAKE_PAYMENT_LINKS = generateFakePaymentLinks(50);
+
+/** The header stat cards' own numbers — kept as fixed values matching the
+ * mock exactly (Total 8 / Active 4 / Expired 4) rather than derived from
+ * `FAKE_PAYMENT_LINKS`' length, same "don't invent a reconciliation between
+ * a mock's headline numbers and its own table" precedent as Overview's
+ * `useMerchantOverview` vs. `useReceivedTrend`. */
+interface PaymentLinksStats {
+	total: number;
+	active: number;
+	expired: number;
+}
+
+function usePaymentLinksStats() {
+	return useQuery({
+		queryKey: ["merchant", "payment-links", "stats"],
+		queryFn: () => fakeRequest<PaymentLinksStats>({ total: 8, active: 4, expired: 4 }, 500),
+	});
+}
+
 /**
  * Payment Links — replaces "Request Payment" for merchant accounts (same
  * underlying create-a-shareable-link idea `useCreatePaymentRequest`
  * already covers, plus a title and its own persistent list/history here).
- * Individual keeps the original `/request-payment` untouched.
+ * Individual keeps the original `/request-payment` untouched. Reused by the
+ * Payment Link detail page (finds by id from this same cached list, same
+ * pattern as `useMerchantPayments` + `/payments/[id]`).
  */
 function useMerchantPaymentLinks() {
 	return useQuery({
 		queryKey: ["merchant", "payment-links"],
-		queryFn: () =>
-			fakeRequest<PaymentLink[]>([
-				{
-					id: "l1",
-					title: "Blue Dress Order",
-					amount: 500,
-					currency: "USDC",
-					description: "Payment for blue dress",
-					reference: "INV-001",
-					expiration: "20 July, 2025",
-					isoExpiration: "2025-07-20",
-					status: "active",
-					link: "https://peakline.com/pay/kwame-enterprise/l1",
-				},
-				{
-					id: "l2",
-					title: "Shoes — Order #245",
-					amount: 500,
-					currency: "USDC",
-					expiration: "15 July, 2025",
-					isoExpiration: "2025-07-15",
-					status: "paid",
-					link: "https://peakline.com/pay/kwame-enterprise/l2",
-				},
-				{
-					id: "l3",
-					title: "Custom Tailoring Order",
-					amount: 500,
-					currency: "USDC",
-					description: "Tailoring service",
-					reference: "INV-002",
-					expiration: "5 July, 2025",
-					isoExpiration: "2025-07-05",
-					status: "expired",
-					link: "https://peakline.com/pay/kwame-enterprise/l3",
-				},
-				{
-					id: "l4",
-					title: "Bag Deposit",
-					amount: 500,
-					currency: "USDC",
-					expiration: "25 July, 2025",
-					isoExpiration: "2025-07-25",
-					status: "paid",
-					link: "https://peakline.com/pay/kwame-enterprise/l4",
-				},
-			]),
+		queryFn: () => fakeRequest<PaymentLink[]>(FAKE_PAYMENT_LINKS),
 	});
 }
 
@@ -351,13 +368,14 @@ interface PaymentLinkResult {
 
 function useCreatePaymentLink() {
 	return useMutation({
-		mutationFn: (values: CreatePaymentLinkValues) =>
-			fakeRequest<PaymentLinkResult>({
-				link: `https://peakline.com/pay/kwame-enterprise/${values.title
-					.toLowerCase()
-					.trim()
-					.replace(/\s+/g, "-")}`,
-			}),
+		mutationFn: (values: CreatePaymentLinkValues) => {
+			// Not reflected in the fake link — matches the mock's own
+			// created-panel screenshot, which shows the same static-looking
+			// URL regardless of what was entered, same base as
+			// `FAKE_MERCHANT_QR_LINK`.
+			void values;
+			return fakeRequest<PaymentLinkResult>({ link: "https://peakline.com/request/kwame" });
+		},
 	});
 }
 
@@ -371,6 +389,7 @@ export {
 	useAccountDisplayName,
 	useMerchantPayments,
 	useMerchantPaymentLinks,
+	usePaymentLinksStats,
 	useCreatePaymentLink,
 	useReceivedTrend,
 	useRecentPayments,

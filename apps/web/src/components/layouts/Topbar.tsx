@@ -1,15 +1,33 @@
 "use client";
 
-import { Bell, Store } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Bell, ChevronLeft, Store } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useAccountDisplayName } from "@/features/merchant/hooks";
+import { MERCHANT_NAV_ITEMS } from "@/components/layouts/MerchantNavList";
 
 interface TopbarProps {
 	userName: string;
 	notificationCount?: number;
 	className?: string;
+}
+
+/** "Back to {label}" for any route nested under a top-level nav item (e.g.
+ * `/payments/[id]`, `/payment-links/create`) — `null` on the nav items
+ * themselves, which keep the plain Merchant badge instead. Prefix match is
+ * deliberate here, the mirror image of `MerchantMobileTopBar`'s own exact
+ * match: that bar shows a page's *own* title on its exact route, this one
+ * shows the *parent* list's title as a "back" link on anything nested under
+ * it. Per the Payment Detail / Create Payment Link / Payment Link Detail
+ * mocks, all of which replace the badge with this same breadcrumb. */
+function parentBreadcrumb(pathname: string) {
+	const match = MERCHANT_NAV_ITEMS.find(
+		(item) => item.href && item.href !== "/" && pathname.startsWith(`${item.href}/`),
+	);
+	return match ? { label: `Back to ${match.label}`, href: match.href as string } : null;
 }
 
 /**
@@ -19,11 +37,14 @@ interface TopbarProps {
  * title/search field for an individual account, per the original note here
  * — turns out to be exactly where the first merchant mock put its
  * "Merchant" badge instead, so that's what fills it once `customerType` is
- * merchant.
+ * merchant (or a "Back to {list}" breadcrumb on a nested route, replacing
+ * the badge the same way).
  */
 function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 	const displayName = useAccountDisplayName(userName);
+	const pathname = usePathname();
+	const breadcrumb = isMerchant ? parentBreadcrumb(pathname) : null;
 
 	return (
 		<header
@@ -33,11 +54,21 @@ function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
 				className,
 			)}
 		>
-			{isMerchant && (
-				<span className="flex items-center gap-2 rounded-lg bg-primary-500/10 px-3 py-2 text-b3 font-medium text-primary-700">
-					<Store className="size-4" aria-hidden="true" />
-					Merchant
-				</span>
+			{breadcrumb ? (
+				<Link
+					href={breadcrumb.href}
+					className="flex items-center gap-2 text-b3 font-medium text-foreground hover:text-primary-600"
+				>
+					<ChevronLeft className="size-4" aria-hidden="true" />
+					{breadcrumb.label}
+				</Link>
+			) : (
+				isMerchant && (
+					<span className="flex items-center gap-2 rounded-lg bg-primary-500/10 px-3 py-2 text-b3 font-medium text-primary-700">
+						<Store className="size-4" aria-hidden="true" />
+						Merchant
+					</span>
+				)
 			)}
 
 			<div className="flex items-center gap-4">

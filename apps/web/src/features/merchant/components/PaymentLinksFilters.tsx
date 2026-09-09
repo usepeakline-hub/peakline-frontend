@@ -25,11 +25,12 @@ interface PaymentLinksFiltersProps {
 	onExport: () => void;
 }
 
-/** Same filter bar shape as `PaymentsFilters` — kept as its own component
- * rather than a shared generic one since the two status vocabularies
- * genuinely differ (a payment link's lifecycle isn't a payment's). Filters
- * on title, not customer name — payment links aren't tied to a payer until
- * someone actually pays them. */
+/** Same filter bar shape as `PaymentsFilters` (including its mobile-compact
+ * treatment — Search + status only there, From/To/Export CSV moving to
+ * `lg`) — kept as its own component rather than a shared generic one since
+ * the two status vocabularies genuinely differ (a payment link's lifecycle
+ * isn't a payment's). Filters on title, not customer name — payment links
+ * aren't tied to a payer until someone actually pays them. */
 function PaymentLinksFilters({
 	search,
 	onSearchChange,
@@ -57,42 +58,44 @@ function PaymentLinksFilters({
 				/>
 			</div>
 
-			<div className="flex items-center gap-2">
+			<div className="hidden items-center gap-2 lg:flex">
 				<span className="text-b3 text-muted-foreground">From</span>
 				<Input
 					type="date"
 					value={from}
 					onChange={(e) => onFromChange(e.target.value)}
 					aria-label="From expiration date"
-					className="flex-1 lg:w-40 lg:flex-none"
+					className="lg:w-40"
 				/>
 			</div>
 
-			<div className="flex items-center gap-2">
+			<div className="hidden items-center gap-2 lg:flex">
 				<span className="text-b3 text-muted-foreground">To</span>
 				<Input
 					type="date"
 					value={to}
 					onChange={(e) => onToChange(e.target.value)}
 					aria-label="To expiration date"
-					className="flex-1 lg:w-40 lg:flex-none"
+					className="lg:w-40"
 				/>
 			</div>
 
-			<Select
-				value={status}
-				onChange={(e) => onStatusChange(e.target.value as PaymentLinkStatus | "all")}
-				aria-label="Filter by status"
-				className="lg:w-44"
-			>
-				{STATUS_OPTIONS.map((option) => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</Select>
+			<div className="flex justify-end lg:contents">
+				<Select
+					value={status}
+					onChange={(e) => onStatusChange(e.target.value as PaymentLinkStatus | "all")}
+					aria-label="Filter by status"
+					className="w-40 lg:w-44"
+				>
+					{STATUS_OPTIONS.map((option) => (
+						<option key={option.value} value={option.value}>
+							{option.label}
+						</option>
+					))}
+				</Select>
+			</div>
 
-			<Button type="button" variant="outline" onClick={onExport}>
+			<Button type="button" variant="outline" onClick={onExport} className="hidden lg:flex">
 				<Download className="size-4" aria-hidden="true" />
 				Export CSV
 			</Button>
