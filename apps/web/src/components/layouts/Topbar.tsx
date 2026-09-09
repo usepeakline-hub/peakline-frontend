@@ -21,9 +21,10 @@ interface TopbarProps {
  * deliberate here, the mirror image of `MerchantMobileTopBar`'s own exact
  * match: that bar shows a page's *own* title on its exact route, this one
  * shows the *parent* list's title as a "back" link on anything nested under
- * it. The label itself renders only as `aria-label`/`title` now, not visible
- * text — the reference crop for this button showed a plain icon-only circle,
- * same size/border/hover treatment as the bell beside it, not a text link. */
+ * it. The icon sits in its own circle (same size/border/hover treatment as
+ * the bell beside it) with the "Back to {label}" text after it, per the
+ * reference crop — not icon-only; an earlier pass dropped the visible text
+ * entirely, which was wrong. */
 function parentBreadcrumb(pathname: string) {
 	const match = MERCHANT_NAV_ITEMS.find(
 		(item) => item.href && item.href !== "/" && pathname.startsWith(`${item.href}/`),
@@ -56,13 +57,13 @@ function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
 			)}
 		>
 			{breadcrumb ? (
-				<Link
-					href={breadcrumb.href}
-					aria-label={breadcrumb.label}
-					title={breadcrumb.label}
-					className="flex aspect-square size-10 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted"
-				>
-					<Undo2 className="size-4.5" aria-hidden="true" />
+				<Link href={breadcrumb.href} className="group flex items-center gap-3">
+					<span className="flex aspect-square size-10 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors group-hover:bg-muted">
+						<Undo2 className="size-4.5" aria-hidden="true" />
+					</span>
+					<span className="text-b3 font-medium text-foreground group-hover:text-primary-600">
+						{breadcrumb.label}
+					</span>
 				</Link>
 			) : (
 				isMerchant && (
