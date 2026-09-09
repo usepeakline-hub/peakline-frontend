@@ -20,12 +20,13 @@ const SIGN_IN_SWITCH: AuthHeader = {
 
 /**
  * Per-route chrome for every /auth/* screen: the top-right header content —
- * the "Already have an account?" switch link on most screens (confirmed
- * verbatim by the 2FA method screenshot, 150:3004 — it's shown even mid-login,
- * not context-aware), a "Back" link only where the actual Figma (127:2709)
- * shows one instead — and which side illustration shows next to the form, or
- * none for Verify's centered layout. Keyed by pathname so individual pages
- * don't each render their own copy of this........
+ * the "Already have an account?" switch link on most screens, a "Back" link
+ * where the user's already mid-flow (a "log in" prompt makes no sense once
+ * they're authenticating, e.g. two-factor's code-entry step — the Figma mock
+ * showed the switch link there too, but a real logged-in-in-progress user
+ * has no use for it) — and which side illustration shows next to the form,
+ * or none for Verify's centered layout. Keyed by pathname so individual
+ * pages don't each render their own copy of this.
  */
 const AUTH_ROUTES: Record<
 	string,
@@ -72,7 +73,7 @@ const AUTH_ROUTES: Record<
 		illustration: authIllustration,
 	},
 	"/auth/sign-in/two-factor": {
-		header: SIGN_IN_SWITCH,
+		header: { kind: "back" },
 		illustration: authIllustration,
 	},
 	"/auth/sign-in/verify": {
