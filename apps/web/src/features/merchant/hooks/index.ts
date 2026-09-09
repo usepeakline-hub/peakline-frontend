@@ -175,6 +175,19 @@ function useRecentPayments(page: number, pageSize: number) {
 	});
 }
 
+/** Merchant's own `/transactions` — same underlying 50-row fake dataset as
+ * `useRecentPayments` (Overview's preview is a slice of exactly this same
+ * ledger, not a different one), but fetched whole so `TransactionsList` can
+ * filter/paginate it client-side the same way `PaymentsList` does. Also the
+ * lookup source `/transactions/[id]` reads from for a merchant session — see
+ * that page's own `isMerchant` branch. */
+function useMerchantTransactions() {
+	return useQuery({
+		queryKey: ["merchant", "transactions"],
+		queryFn: () => fakeRequest<Transaction[]>(FAKE_RECENT_PAYMENTS),
+	});
+}
+
 // TODO: source the real business name from Business Information once that
 // onboarding step has a backend to persist it — same fake-default gap as
 // the individual dashboard's own `userName` prop.
@@ -388,6 +401,7 @@ export {
 	useMerchantOverview,
 	useAccountDisplayName,
 	useMerchantPayments,
+	useMerchantTransactions,
 	useMerchantPaymentLinks,
 	usePaymentLinksStats,
 	useCreatePaymentLink,
