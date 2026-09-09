@@ -1,0 +1,21 @@
+import { parsePhoneNumberFromString } from "libphonenumber-js/min";
+
+/**
+ * `PhoneInput` (@repo/ui) hands back one combined "+<calling code>
+ * <national number>" string (e.g. "+233 241234567") regardless of which
+ * country is selected. The backend instead wants those split apart: E.164
+ * with no space (`phoneNumber: "+233241234567"`) plus a separate ISO
+ * 3166-1 alpha-2 `countryCode` ("GH"). Returns `null` if the value can't be
+ * parsed — `phoneSchema` (already run via zod before this is ever called)
+ * should have rejected that already, so a `null` here would mean the two
+ * have drifted out of sync.
+ */
+function splitPhoneForApi(
+	phone: string,
+): { phoneNumber: string; countryCode: string } | null {
+	const parsed = parsePhoneNumberFromString(phone);
+	if (!parsed || !parsed.country) return null;
+	return { phoneNumber: parsed.number, countryCode: parsed.country };
+}
+
+export { splitPhoneForApi };

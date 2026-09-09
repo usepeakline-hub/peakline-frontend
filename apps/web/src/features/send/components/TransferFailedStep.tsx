@@ -12,10 +12,12 @@ interface TransferFailedStepProps {
 }
 
 /** Step 4b — no reference mock for this one; mirrors `FundingFailedStep`'s
- * layout (same icon-badge + message + card + actions shape). */
+ * layout (same icon-badge + message + card + actions shape), including the
+ * `min-h-full` + `justify-center` vertical-centering fix (see
+ * `TransferSuccessStep`'s note). */
 function TransferFailedStep({ values, onTryAgain, onGoToDashboard }: TransferFailedStepProps) {
 	return (
-		<div className="flex flex-col items-center gap-6 py-2 text-center sm:py-4">
+		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-destructive sm:size-20">
 				<X
 					className="size-7 text-destructive-foreground sm:size-9"

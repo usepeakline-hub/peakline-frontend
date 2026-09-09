@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
@@ -20,8 +19,6 @@ import {
 	type SignInValues,
 } from "@/lib/validations/authValidations";
 import { useSignIn } from "@/features/auth/hooks";
-import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
-import { useAccountSettingsStore } from "@/lib/stores/accountSettingsStore";
 
 /**
  * Figma node 127:4272, confirmed via screenshot. 2FA is optional, not
@@ -33,11 +30,10 @@ import { useAccountSettingsStore } from "@/lib/stores/accountSettingsStore";
  *   Sign In -> Dashboard, if 2FA is already done, or
  *   Sign In -> Set-up prompt -> Dashboard (Skip) or the 2FA method-picker
  *   + verify sequence (Continue), if not.
+ * `useSignIn` owns storing the real tokens it gets back and deciding which
+ * of those two routes to take.
  */
 function SignInForm() {
-	const router = useRouter();
-	const setEmail = useLoginFlowStore((state) => state.setEmail);
-	const has2FA = useAccountSettingsStore((state) => state.has2FA);
 	const form = useForm<SignInValues>({
 		resolver: zodResolver(signInSchema),
 		defaultValues: { email: "", password: "" },
@@ -45,12 +41,7 @@ function SignInForm() {
 	const signIn = useSignIn();
 
 	function onSubmit(values: SignInValues) {
-		signIn.mutate(values, {
-			onSuccess: () => {
-				setEmail(values.email);
-				router.push(has2FA ? "/" : "/auth/sign-in/two-factor-prompt");
-			},
-		});
+		signIn.mutate(values);
 	}
 
 	return (

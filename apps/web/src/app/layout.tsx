@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "@repo/ui/sonner";
 import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -62,8 +63,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 		<html data-scroll-behavior="smooth" lang="en" className={`${dmSans.variable} h-full antialiased`}>
 			<body className="min-h-full flex flex-col">
 				<ReactQueryProvider>
-					{children}
-					<Toaster />
+					<AuthProvider>
+						{children}
+						<Toaster />
+					</AuthProvider>
 				</ReactQueryProvider>
 			</body>
 		</html>

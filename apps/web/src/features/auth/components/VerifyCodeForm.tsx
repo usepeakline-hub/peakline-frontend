@@ -35,6 +35,16 @@ interface VerifyCodeFormProps {
 	isPending: boolean;
 	onSubmit: (values: VerifyOtpValues) => void;
 	onUseAnotherMethod?: () => void;
+	/** Seeds the countdown from a real `OtpSentDto.ttlSeconds` instead of the
+	 * hardcoded default — e.g. sign-up's Verify step seeds this from
+	 * `/auth/register`'s response. */
+	initialSeconds?: number;
+	/** When provided, "Resend code" calls the real `/auth/resend-otp`
+	 * instead of just resetting the timer — return the new `ttlSeconds` to
+	 * reseed the countdown accurately, or throw/reject to leave the
+	 * countdown running (the caller is expected to toast the error).
+	 * Omitted for flows with no backend counterpart yet (login's 2FA). */
+	onResend?: () => Promise<number>;
 }
 
 /**
@@ -49,12 +59,14 @@ function VerifyCodeForm({
 	isPending,
 	onSubmit,
 	onUseAnotherMethod,
+	initialSeconds = RESEND_SECONDS,
+	onResend,
 }: VerifyCodeFormProps) {
 	const form = useForm<VerifyOtpValues>({
 		resolver: zodResolver(verifyOtpSchema),
 		defaultValues: { code: "" },
 	});
-	const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+	const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
 
 	useEffect(() => {
 		if (method !== "email" || secondsLeft === 0) return;
@@ -62,7 +74,16 @@ function VerifyCodeForm({
 		return () => clearInterval(timer);
 	}, [method, secondsLeft]);
 
-	function handleResend() {
+	async function handleResend() {
+		if (onResend) {
+			try {
+				setSecondsLeft(await onResend());
+			} catch {
+				// Caller already surfaced the error (e.g. a toast) — leave the
+				// countdown running so the user retries once it allows again.
+			}
+			return;
+		}
 		setSecondsLeft(RESEND_SECONDS);
 		toast.info("New code sent");
 	}
@@ -122,7 +143,7 @@ function VerifyCodeForm({
 						<p className="text-b3 text-muted-foreground">
 							Didn&apos;t receive the code?{" "}
 							{secondsLeft > 0 ? (
-								`Resend code in 00:${String(secondsLeft).padStart(2, "0")}`
+								`Resend code in ${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`
 							) : (
 								<button
 									type="button"

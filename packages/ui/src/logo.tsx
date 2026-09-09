@@ -1,4 +1,5 @@
 import logoSrc from "./assets/logo.svg";
+import darkLogoSrc from "./assets/dark-logo.svg";
 import { cn } from "./lib/utils";
 
 /**
@@ -14,14 +15,24 @@ const SIZE_CLASS = {
 	xl: "h-15",
 } as const;
 
+// Two separate exports, not one recolored via CSS — the mark's colors are
+// baked into a raster image (see CLAUDE.md's "Known issues"), not vector
+// paths, so there's nothing a `filter`/`currentColor` trick could invert.
+const LOGO_SRC = {
+	default: logoSrc,
+	/** For a dark-background context (e.g. the merchant sidebar). */
+	dark: darkLogoSrc,
+} as const;
+
 interface LogoProps extends Omit<React.ComponentProps<"img">, "src" | "alt"> {
 	size?: keyof typeof SIZE_CLASS;
+	variant?: keyof typeof LOGO_SRC;
 }
 
-function Logo({ size = "md", className, ...props }: LogoProps) {
+function Logo({ size = "md", variant = "default", className, ...props }: LogoProps) {
 	return (
 		<img
-			src={logoSrc.src}
+			src={LOGO_SRC[variant].src}
 			alt="Peakline"
 			className={cn("w-auto", SIZE_CLASS[size], className)}
 			{...props}

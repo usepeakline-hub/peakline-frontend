@@ -12,10 +12,11 @@ interface PaymentFailedStepProps {
 }
 
 /** No reference mock — mirrors `TransferFailedStep`/`FundingFailedStep`'s
- * shape (icon-badge + message + actions). */
+ * shape (icon-badge + message + actions), including the `min-h-full` +
+ * `justify-center` vertical-centering fix (see `PaymentSuccessStep`'s note). */
 function PaymentFailedStep({ values, onTryAgain, onGoToDashboard }: PaymentFailedStepProps) {
 	return (
-		<div className="flex flex-col items-center gap-6 py-2 text-center sm:py-4">
+		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-destructive sm:size-20">
 				<X
 					className="size-7 text-destructive-foreground sm:size-9"

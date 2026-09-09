@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Store, User } from "lucide-react";
@@ -12,7 +11,6 @@ import {
 	type AccountTypeValues,
 } from "@/lib/validations/authValidations";
 import { useSubmitAccountType } from "@/features/auth/hooks";
-import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 
 const ACCOUNT_TYPES = [
 	{
@@ -30,18 +28,18 @@ const ACCOUNT_TYPES = [
 ] as const;
 
 /**
- * Third step of Sign Up, right after email verification. Merchant branches
- * to its own setup step first; Personal skips straight to Personal Details —
- * both have already verified their email by this point, so neither goes
- * back through Verify again:
- *   Sign Up -> Verify -> Account Type -> [Merchant Setup, merchant only]
- *   -> Personal Details -> Wallet Created.
- * Neither `dashboard` nor `merchant` is scaffolded yet, so for now this only
- * records the choice in `signUpFlowStore`.
+ * Third step of Sign Up, right after email verification — both account
+ * types start at Personal Information next; Business Information (merchant
+ * only) comes after it, not before:
+ *   Sign Up -> Verify -> Account Type -> Personal Details ->
+ *   [Business Information, merchant only] -> Review -> Wallet Created.
+ * There's no separate merchant app to route into after that — merchant is a
+ * permission, not a destination (see CLAUDE.md's Monorepo layout); every
+ * account lands in this same `apps/web`, just with merchant-only nav/routes
+ * unlocked by the `customerType` this step sets for real via
+ * `useSubmitAccountType`'s `PATCH /auth/customer-type` call.
  */
 function AccountTypeForm() {
-	const router = useRouter();
-	const setAccountType = useSignUpFlowStore((state) => state.setAccountType);
 	const form = useForm<AccountTypeValues>({
 		resolver: zodResolver(accountTypeSchema),
 		defaultValues: { accountType: undefined },
@@ -49,14 +47,7 @@ function AccountTypeForm() {
 	const submitAccountType = useSubmitAccountType();
 
 	function onSubmit(values: AccountTypeValues) {
-		submitAccountType.mutate(values, {
-			onSuccess: () => {
-				setAccountType(values.accountType);
-				// Both branches start at Personal Information now — Business
-				// Information (merchant only) comes after it, not before.
-				router.push("/auth/sign-up/personal-details");
-			},
-		});
+		submitAccountType.mutate(values);
 	}
 
 	return (

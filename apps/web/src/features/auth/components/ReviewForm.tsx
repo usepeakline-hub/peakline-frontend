@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@repo/ui/button";
 import { Stepper } from "@repo/ui/stepper";
 import { toast } from "@repo/ui/sonner";
+import { COUNTRY_NAMES } from "@repo/ui/lib/country-names";
 import { useCompleteSignUp } from "@/features/auth/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
 import { usePersonalInfoFlowStore } from "@/lib/stores/personalInfoFlowStore";
 import { getOnboardingSteps } from "@/features/auth/onboardingSteps";
@@ -87,6 +89,9 @@ function ReviewForm() {
 					toast.success("Account verified");
 					router.push("/auth/sign-up/set-pin");
 				},
+				onError: (error) => {
+					toast.error(getApiErrorMessage(error, "Couldn't save your details"));
+				},
 			},
 		);
 	}
@@ -115,7 +120,14 @@ function ReviewForm() {
 						{ label: "Email", value: email },
 						{ label: "Phone", value: phone },
 						{ label: "Date of birth", value: personalDetails.dateOfBirth },
-						{ label: "Nationality", value: personalDetails.nationality },
+						{
+							label: "Nationality",
+							// Stored as an ISO 3166-1 alpha-2 code (what the API wants),
+							// not a display name — map back for a readable summary.
+							value:
+								COUNTRY_NAMES[personalDetails.nationality] ??
+								personalDetails.nationality,
+						},
 						{
 							label: "Residential address",
 							value: personalDetails.residentialAddress,

@@ -12,7 +12,7 @@ export default function SendMoneyPage() {
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			<SendStepHeader step={1} />
+			<SendStepHeader step={1} onBack={() => router.back()} />
 			<SendMoneyFormStep
 				defaultValues={values}
 				onContinue={(submitted) => {

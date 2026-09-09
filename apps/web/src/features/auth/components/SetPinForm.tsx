@@ -20,6 +20,7 @@ import {
 	type SetPinValues,
 } from "@/lib/validations/authValidations";
 import { useSetupWallet } from "@/features/auth/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
 
 type Stage = "create" | "confirm";
 
@@ -58,6 +59,9 @@ function SetPinForm() {
 				onSuccess: () => {
 					toast.success("Wallet created");
 					router.push("/auth/sign-up/success");
+				},
+				onError: (error) => {
+					toast.error(getApiErrorMessage(error, "Couldn't set up your wallet"));
 				},
 			},
 		);

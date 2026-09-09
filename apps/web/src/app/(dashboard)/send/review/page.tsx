@@ -19,7 +19,7 @@ export default function ReviewTransferPage() {
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
-			<SendStepHeader step={2} />
+			<SendStepHeader step={2} onBack={() => router.push("/send")} />
 			<ReviewTransferStep values={values} onContinue={() => router.push("/send/processing")} />
 		</div>
 	);

@@ -4,9 +4,10 @@ import type { AccountTypeValues } from "@/lib/validations/authValidations";
 
 /**
  * Transient state carried across the multi-step sign-up flow (Sign Up ->
- * Verify -> Account Type -> [Merchant Setup, merchant only] -> Personal
- * Details -> Wallet Created). Session-scoped (not localStorage) — this
- * shouldn't outlive the browser tab, and shouldn't leak into a URL either.
+ * Verify -> Account Type -> Personal Details -> [Business Information,
+ * merchant only] -> Review -> Wallet Created). Session-scoped (not
+ * localStorage) — this shouldn't outlive the browser tab, and shouldn't
+ * leak into a URL either.
  */
 interface SignUpFlowState {
 	firstName: string;
@@ -21,9 +22,14 @@ interface SignUpFlowState {
 	setEmail: (email: string) => void;
 	phone: string;
 	setPhone: (phone: string) => void;
+	/** `OtpSentDto.ttlSeconds` from `/auth/register`'s response — seeds
+	 * Verify's real resend countdown instead of a hardcoded guess. */
+	otpTtlSeconds: number;
+	setOtpTtlSeconds: (otpTtlSeconds: number) => void;
 	/** Personal vs Merchant, chosen on the Account Type step — decides which
-	 * app (dashboard vs merchant) the user eventually lands in once those
-	 * exist. Unset until that step completes. */
+	 * merchant-only routes/nav this same `apps/web` account unlocks (there's
+	 * no separate merchant app to land in; see CLAUDE.md's Monorepo layout).
+	 * Unset until that step completes. */
 	accountType: AccountTypeValues["accountType"] | null;
 	setAccountType: (accountType: AccountTypeValues["accountType"]) => void;
 	reset: () => void;
@@ -42,6 +48,8 @@ const useSignUpFlowStore = create<SignUpFlowState>()(
 			setEmail: (email) => set({ email }),
 			phone: "",
 			setPhone: (phone) => set({ phone }),
+			otpTtlSeconds: 45,
+			setOtpTtlSeconds: (otpTtlSeconds) => set({ otpTtlSeconds }),
 			accountType: null,
 			setAccountType: (accountType) => set({ accountType }),
 			reset: () =>
@@ -51,6 +59,7 @@ const useSignUpFlowStore = create<SignUpFlowState>()(
 					otherName: "",
 					email: "",
 					phone: "",
+					otpTtlSeconds: 45,
 					accountType: null,
 				}),
 		}),
