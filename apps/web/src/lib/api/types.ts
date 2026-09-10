@@ -94,6 +94,33 @@ export interface StellarWalletData {
 	createdAt: string;
 }
 
+/** The `meta` sibling to `data` on every paginated list endpoint
+ * (notifications, transactions). */
+export interface PaginationMeta {
+	totalCount: number;
+	pageCount: number;
+	currentPage: number;
+	limit: number;
+	prevPage: boolean;
+	nextPage: boolean;
+}
+
+/** `GET /notifications`. `readAt` is `null`/absent until
+ * `PATCH /notifications/{id}/read`, then an ISO timestamp — used as the
+ * unread indicator rather than a separate boolean. */
+export interface NotificationData {
+	id: string;
+	userId: string;
+	businessId?: string | null;
+	type: string;
+	title: string;
+	body: string;
+	data?: Record<string, unknown> | null;
+	readAt?: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
 /** `POST/GET/PATCH /businesses`. `status` and the nullable fields are typed
  * loosely (`docs-json` itself only says `"type": "object"` for most of
  * them, likely a Swagger-decorator gap rather than an intentional shape) —

@@ -68,4 +68,15 @@ export const apiRoutes = {
 		BALANCES: "/api/v1/transactions/balances",
 		byId: (id: string) => `/api/v1/transactions/${id}`,
 	},
+
+	// STREAM (SSE) isn't wired — the notifications panel polls/refetches
+	// instead (see useNotifications), same "real data, simpler transport"
+	// tradeoff as everywhere else fake-polling stood in for a live feed.
+	notifications: {
+		LIST: "/api/v1/notifications",
+		READ_ALL: "/api/v1/notifications/read-all",
+		STREAM: "/api/v1/notifications/stream",
+		byIdRead: (id: string) => `/api/v1/notifications/${id}/read`,
+		byId: (id: string) => `/api/v1/notifications/${id}`,
+	},
 };

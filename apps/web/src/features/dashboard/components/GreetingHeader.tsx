@@ -1,20 +1,16 @@
 "use client";
 
-import { Bell } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { useGreeting } from "@/features/dashboard/hooks";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useAccountDisplayName } from "@/features/merchant/hooks";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 interface GreetingHeaderProps {
 	/** TODO: source from the authenticated session once one exists. */
 	userName?: string;
 }
-
-// TODO: source from a real notifications feed once one exists — same fake
-// default `Topbar` uses for its own (desktop) bell.
-const NOTIFICATION_COUNT = 10;
 
 function timeOfDayGreeting(hour: number) {
 	if (hour < 12) return "Good morning";
@@ -62,24 +58,7 @@ function GreetingHeader({ userName = "John Doe" }: GreetingHeaderProps) {
 				</p>
 			</div>
 			<div className="flex shrink-0 items-center gap-3 lg:hidden">
-				{isMerchant && (
-					<button
-						type="button"
-						aria-label={
-							NOTIFICATION_COUNT > 0
-								? `${NOTIFICATION_COUNT} unread notifications`
-								: "Notifications"
-						}
-						className="relative flex aspect-square size-9 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted"
-					>
-						<Bell className="size-4.5" aria-hidden="true" />
-						{NOTIFICATION_COUNT > 0 && (
-							<span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary-500 text-c3 text-primary-foreground">
-								{NOTIFICATION_COUNT > 99 ? "99+" : NOTIFICATION_COUNT}
-							</span>
-						)}
-					</button>
-				)}
+				{isMerchant && <NotificationBell className="size-9" />}
 				<UserAvatar name={avatarName} />
 			</div>
 		</div>

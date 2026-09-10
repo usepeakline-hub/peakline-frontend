@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Store, Undo2 } from "lucide-react";
+import { Store, Undo2 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useAccountDisplayName } from "@/features/merchant/hooks";
 import { MERCHANT_NAV_ITEMS } from "@/components/layouts/MerchantNavList";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 interface TopbarProps {
 	userName: string;
-	notificationCount?: number;
 	className?: string;
 }
 
@@ -42,7 +42,7 @@ function parentBreadcrumb(pathname: string) {
  * merchant (or a "Back to {list}" breadcrumb on a nested route, replacing
  * the badge the same way).
  */
-function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
+function Topbar({ userName, className }: TopbarProps) {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 	const displayName = useAccountDisplayName(userName);
 	const pathname = usePathname();
@@ -75,22 +75,7 @@ function Topbar({ userName, notificationCount = 0, className }: TopbarProps) {
 			)}
 
 			<div className="flex items-center gap-4">
-				<button
-					type="button"
-					aria-label={
-						notificationCount > 0
-							? `${notificationCount} unread notifications`
-							: "Notifications"
-					}
-					className="relative flex aspect-square size-10 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted"
-				>
-					<Bell className="size-4.5" aria-hidden="true" />
-					{notificationCount > 0 && (
-						<span className="absolute -top-1 -right-1 flex size-4.5 items-center justify-center rounded-full bg-primary-500 text-c3 text-primary-foreground">
-							{notificationCount > 99 ? "99+" : notificationCount}
-						</span>
-					)}
-				</button>
+				<NotificationBell className="size-10" />
 
 				<div className="flex items-center gap-2.5">
 					<UserAvatar name={displayName} />

@@ -12,7 +12,6 @@ interface DashboardLayoutProps {
 	children: React.ReactNode;
 	/** TODO: source from the authenticated session once one exists. */
 	userName?: string;
-	notificationCount?: number;
 }
 
 /**
@@ -43,15 +42,7 @@ interface DashboardLayoutProps {
  * client paint, so still no mismatch — then the *correct* shell renders
  * directly once the cookie read finishes, with nothing wrong ever visible.
  */
-function DashboardLayout({
-	children,
-	userName = "John Doe",
-	// TODO: source from a real notifications feed once one exists — every
-	// provided mock shows the bell badge active, so this defaults to a
-	// nonzero fake count rather than 0 (which would hide it, contradicting
-	// every screenshot).
-	notificationCount = 10,
-}: DashboardLayoutProps) {
+function DashboardLayout({ children, userName = "John Doe" }: DashboardLayoutProps) {
 	// Merchant has no `BottomTabBar` to leave room for (nav is the sidebar
 	// drawer instead) — the extra bottom padding here exists purely to clear
 	// that bar, so it'd otherwise be dead space at the bottom of every
@@ -76,11 +67,7 @@ function DashboardLayout({
 					!isMerchant && "pb-24",
 				)}
 			>
-				<Topbar
-					userName={userName}
-					notificationCount={notificationCount}
-					className="hidden lg:flex"
-				/>
+				<Topbar userName={userName} className="hidden lg:flex" />
 				<MerchantMobileTopBar />
 				<main className="flex-1 lg:rounded-2xl lg:bg-background lg:p-8 lg:shadow-xs">
 					{children}
