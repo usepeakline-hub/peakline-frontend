@@ -26,6 +26,44 @@ function useMyBusiness() {
 	});
 }
 
+/** Both `POST` and `PATCH /businesses` take this same shape — factored out
+ * so the two hooks below can't drift apart on which fields they send. */
+function toBusinessPayload(values: UpdateBusinessValues) {
+	return {
+		name: values.name,
+		category: values.category,
+		country: values.country,
+		city: values.city || undefined,
+		address: values.address || undefined,
+		phone: values.phone || undefined,
+		website: values.website || undefined,
+		description: values.description || undefined,
+		registrationNumber: values.registrationNumber || undefined,
+		taxId: values.taxId || undefined,
+	};
+}
+
+/** Creates the account's business — previously only reachable from
+ * sign-up's Business Information step (merchant onboarding), with no way
+ * to add one afterward if that step was skipped or the business later
+ * deleted (reported live: "where can i add businesses?"). Used by
+ * `BusinessInformationCard`'s own empty state. */
+function useCreateBusiness() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (values: UpdateBusinessValues) => {
+			const { data } = await axiosAuth.post<ApiSuccessResponse<BusinessData>>(
+				apiRoutes.businesses.BASE,
+				toBusinessPayload(values),
+			);
+			return data.data;
+		},
+		onSuccess: (business) => queryClient.setQueryData(MY_BUSINESS_KEY, business),
+	});
+}
+
 function useUpdateBusiness(id: string) {
 	const axiosAuth = useAxiosAuth();
 	const queryClient = useQueryClient();
@@ -34,18 +72,7 @@ function useUpdateBusiness(id: string) {
 		mutationFn: async (values: UpdateBusinessValues) => {
 			const { data } = await axiosAuth.patch<ApiSuccessResponse<BusinessData>>(
 				apiRoutes.businesses.byId(id),
-				{
-					name: values.name,
-					category: values.category,
-					country: values.country,
-					city: values.city || undefined,
-					address: values.address || undefined,
-					phone: values.phone || undefined,
-					website: values.website || undefined,
-					description: values.description || undefined,
-					registrationNumber: values.registrationNumber || undefined,
-					taxId: values.taxId || undefined,
-				},
+				toBusinessPayload(values),
 			);
 			return data.data;
 		},
@@ -66,4 +93,4 @@ function useDeleteBusiness(id: string) {
 	});
 }
 
-export { useMyBusiness, useUpdateBusiness, useDeleteBusiness };
+export { useMyBusiness, useCreateBusiness, useUpdateBusiness, useDeleteBusiness };

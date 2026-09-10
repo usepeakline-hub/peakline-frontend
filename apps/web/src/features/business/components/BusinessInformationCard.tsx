@@ -8,7 +8,6 @@ import { Input } from "@repo/ui/input";
 import { Select } from "@repo/ui/select";
 import { Badge } from "@repo/ui/badge";
 import { Skeleton } from "@repo/ui/skeleton";
-import { cn } from "@repo/ui/lib/utils";
 import {
 	Form,
 	FormField,
@@ -24,12 +23,29 @@ import {
 	updateBusinessSchema,
 	type UpdateBusinessValues,
 } from "@/lib/validations/businessValidations";
-import { useMyBusiness, useUpdateBusiness } from "@/features/business/hooks";
+import {
+	useMyBusiness,
+	useCreateBusiness,
+	useUpdateBusiness,
+} from "@/features/business/hooks";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import { DeleteBusinessDialog } from "@/features/business/components/DeleteBusinessDialog";
 import type { BusinessData } from "@/lib/api/types";
 
 const CATEGORY_LABEL = Object.fromEntries(BUSINESS_CATEGORIES.map((c) => [c.value, c.label]));
+
+const EMPTY_VALUES: UpdateBusinessValues = {
+	name: "",
+	category: "" as unknown as UpdateBusinessValues["category"],
+	country: "",
+	city: "",
+	address: "",
+	phone: "",
+	website: "",
+	description: "",
+	registrationNumber: "",
+	taxId: "",
+};
 
 // The real values this can hold aren't documented (BusinessDto just says
 // `"type": "object"` for `status`) — a neutral badge by default, colored
@@ -71,32 +87,26 @@ function CardSkeleton() {
  * Business Information's own settings-page counterpart to
  * `PersonalInformationCard` — same inline-edit shape (read-only inputs
  * until "Edit", Cancel/Save vs Edit/Delete), but real end to end
- * (`GET/PATCH/DELETE /businesses/{id}`) rather than a stub, and a fuller
+ * (`GET/POST/PATCH/DELETE /businesses`) rather than a stub, and a fuller
  * field set than onboarding's own form collects (website/description/
- * registration number/tax ID are only editable from here). No mock exists
- * for this screen either — follows the same established card conventions
- * as everything else in Account.
+ * registration number/tax ID are only editable from here).
+ *
+ * Doubles as the *only* place to add a business outside of sign-up now —
+ * onboarding's Business Information step was previously the one and only
+ * way to create one, with no way to add one afterward if that step was
+ * skipped or the business later deleted (reported live: "where can i add
+ * businesses?"). When `useMyBusiness` resolves to no business yet, the same
+ * fields render as a create form instead of a dead-end "you don't have
+ * one" message.
  */
 function BusinessInformationCard() {
 	const { data: business, isLoading, isError, error } = useMyBusiness();
 	const [isEditing, setIsEditing] = useState(false);
+	const createBusiness = useCreateBusiness();
 	const updateBusiness = useUpdateBusiness(business?.id ?? "");
 	const form = useForm<UpdateBusinessValues>({
 		resolver: zodResolver(updateBusinessSchema),
-		defaultValues: business
-			? toFormValues(business)
-			: {
-					name: "",
-					category: "" as unknown as UpdateBusinessValues["category"],
-					country: "",
-					city: "",
-					address: "",
-					phone: "",
-					website: "",
-					description: "",
-					registrationNumber: "",
-					taxId: "",
-				},
+		defaultValues: business ? toFormValues(business) : EMPTY_VALUES,
 	});
 
 	// Reset the form once the real business loads (or changes) — the form
@@ -109,13 +119,10 @@ function BusinessInformationCard() {
 
 	if (isLoading) return <CardSkeleton />;
 
-	// Visible feedback either way — this used to return `null` for both
-	// cases, which looked identical to the section not existing at all
-	// (reported live: "i cant see the business section"). A merchant who
-	// never completed Business Information (or whose account predates this
-	// endpoint being wired) genuinely has no business yet; a real fetch
-	// failure is a different, worth-knowing-about case — both now say so
-	// instead of silently rendering nothing.
+	// A real fetch failure is worth saying so, distinctly from "no business
+	// yet" — the latter now gets a real create form below instead of a
+	// dead-end message (this used to return `null` for both, which looked
+	// identical to the section not existing at all).
 	if (isError) {
 		return (
 			<div className="flex flex-col gap-2 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6">
@@ -127,49 +134,61 @@ function BusinessInformationCard() {
 		);
 	}
 
-	if (!business) {
-		return (
-			<div className="flex flex-col gap-2 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6">
-				<h2 className="text-s1 text-foreground">Business Information</h2>
-				<p className="text-b3 text-muted-foreground">
-					You haven&apos;t added your business information yet.
-				</p>
-			</div>
-		);
-	}
-
-	const statusVariant = STATUS_BADGE[business.status.toLowerCase()] ?? "outline";
+	// Fields are always editable while there's no business yet to view —
+	// there's nothing to show read-only, so this skips straight to "fill
+	// this in" rather than an Edit button that would just reveal an empty
+	// form anyway.
+	const fieldsEditable = !business || isEditing;
+	const statusVariant = business ? (STATUS_BADGE[business.status.toLowerCase()] ?? "outline") : null;
 
 	function handleCancel() {
-		form.reset(toFormValues(business!));
+		form.reset(business ? toFormValues(business) : EMPTY_VALUES);
 		setIsEditing(false);
 	}
 
-	function handleSave(values: UpdateBusinessValues) {
-		updateBusiness.mutate(values, {
-			onSuccess: () => {
-				toast.success("Business updated");
-				setIsEditing(false);
-			},
-			onError: (error) => {
-				toast.error(getApiErrorMessage(error, "Couldn't update business"));
-			},
-		});
+	function handleSubmit(values: UpdateBusinessValues) {
+		if (business) {
+			updateBusiness.mutate(values, {
+				onSuccess: () => {
+					toast.success("Business updated");
+					setIsEditing(false);
+				},
+				onError: (error) => {
+					toast.error(getApiErrorMessage(error, "Couldn't update business"));
+				},
+			});
+		} else {
+			createBusiness.mutate(values, {
+				onSuccess: () => toast.success("Business added"),
+				onError: (error) => {
+					toast.error(getApiErrorMessage(error, "Couldn't add business"));
+				},
+			});
+		}
 	}
 
 	return (
 		<Form {...form}>
 			<form
 				noValidate
-				onSubmit={form.handleSubmit(handleSave)}
+				onSubmit={form.handleSubmit(handleSubmit)}
 				className="flex flex-col gap-6 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6"
 			>
 				<div className="flex items-center justify-between gap-4">
-					<h2 className="text-s1 text-foreground lg:text-s1">Business Information</h2>
-					<Badge variant={statusVariant} className="capitalize">
-						{business.status}
-					</Badge>
+					<h2 className="text-s1 text-foreground">Business Information</h2>
+					{statusVariant && (
+						<Badge variant={statusVariant} className="capitalize">
+							{business!.status}
+						</Badge>
+					)}
 				</div>
+
+				{!business && (
+					<p className="text-b3 text-muted-foreground">
+						Add your business details to start accepting payments as a registered
+						business.
+					</p>
+				)}
 
 				<div className="flex flex-col gap-4">
 					<FormField
@@ -179,7 +198,7 @@ function BusinessInformationCard() {
 							<FormItem>
 								<FormLabel>Business Name</FormLabel>
 								<FormControl>
-									<Input readOnly={!isEditing} {...field} />
+									<Input readOnly={!fieldsEditable} {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -190,11 +209,14 @@ function BusinessInformationCard() {
 						control={form.control}
 						name="category"
 						render={({ field }) =>
-							isEditing ? (
+							fieldsEditable ? (
 								<FormItem>
 									<FormLabel>Business Category</FormLabel>
 									<FormControl>
 										<Select {...field} value={field.value ?? ""}>
+											<option value="" disabled>
+												Select a category
+											</option>
 											{BUSINESS_CATEGORIES.map(({ value, label }) => (
 												<option key={value} value={value}>
 													{label}
@@ -220,11 +242,14 @@ function BusinessInformationCard() {
 							control={form.control}
 							name="country"
 							render={({ field }) =>
-								isEditing ? (
+								fieldsEditable ? (
 									<FormItem>
 										<FormLabel>Country</FormLabel>
 										<FormControl>
 											<Select {...field} value={field.value ?? ""}>
+												<option value="" disabled>
+													Select a country
+												</option>
 												{Object.values(COUNTRY_NAMES)
 													.sort((a, b) => a.localeCompare(b))
 													.map((name) => (
@@ -254,7 +279,7 @@ function BusinessInformationCard() {
 								<FormItem>
 									<FormLabel>City</FormLabel>
 									<FormControl>
-										<Input readOnly={!isEditing} {...field} />
+										<Input readOnly={!fieldsEditable} {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -269,7 +294,7 @@ function BusinessInformationCard() {
 							<FormItem>
 								<FormLabel>Address</FormLabel>
 								<FormControl>
-									<Input readOnly={!isEditing} {...field} />
+									<Input readOnly={!fieldsEditable} {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -284,7 +309,7 @@ function BusinessInformationCard() {
 								<FormItem>
 									<FormLabel>Phone</FormLabel>
 									<FormControl>
-										<Input readOnly={!isEditing} {...field} />
+										<Input readOnly={!fieldsEditable} {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -299,7 +324,7 @@ function BusinessInformationCard() {
 									<FormLabel>Website</FormLabel>
 									<FormControl>
 										<Input
-											readOnly={!isEditing}
+											readOnly={!fieldsEditable}
 											placeholder="https://"
 											{...field}
 										/>
@@ -317,7 +342,7 @@ function BusinessInformationCard() {
 							<FormItem>
 								<FormLabel>Description</FormLabel>
 								<FormControl>
-									<Input readOnly={!isEditing} {...field} />
+									<Input readOnly={!fieldsEditable} {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -332,7 +357,7 @@ function BusinessInformationCard() {
 								<FormItem>
 									<FormLabel>Registration Number</FormLabel>
 									<FormControl>
-										<Input readOnly={!isEditing} {...field} />
+										<Input readOnly={!fieldsEditable} {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -346,7 +371,7 @@ function BusinessInformationCard() {
 								<FormItem>
 									<FormLabel>Tax ID</FormLabel>
 									<FormControl>
-										<Input readOnly={!isEditing} {...field} />
+										<Input readOnly={!fieldsEditable} {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -354,8 +379,12 @@ function BusinessInformationCard() {
 						/>
 					</div>
 
-					<div className={cn("flex gap-3 pt-2")}>
-						{isEditing ? (
+					<div className="flex gap-3 pt-2">
+						{!business ? (
+							<Button type="submit" className="w-full" loading={createBusiness.isPending}>
+								Add Business
+							</Button>
+						) : isEditing ? (
 							<>
 								<Button
 									type="button"
