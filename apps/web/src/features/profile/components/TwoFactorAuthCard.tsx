@@ -1,41 +1,28 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { toast } from "@repo/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { useAccountSettingsStore } from "@/lib/stores/accountSettingsStore";
-import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
-
-// TODO: source from the authenticated session once one exists — same
-// placeholder used everywhere else (Topbar, GreetingHeader, Account).
-const CURRENT_USER_EMAIL = "johndoe@example.com";
+import { TwoFactorEnrollDialog } from "@/features/profile/components/TwoFactorEnrollDialog";
+import { TwoFactorDisableDialog } from "@/features/profile/components/TwoFactorDisableDialog";
 
 /**
- * Lets an account turn 2FA on or off outside of the login flow — per the
- * "optional, not mandatory" change, this is the one place it can be
- * enabled if the sign-in prompt was skipped. "Enable" reuses the same
- * method-picker + verify sequence Sign In uses when 2FA is already on; that
- * flow lives under /auth (shared with Sign In) and guards on
- * `loginFlowStore` having an email, so this sets one first the same way a
- * real sign-in would.
+ * Lets an account turn 2FA on or off from settings — real now
+ * (`POST /auth/2fa/enroll` + `/confirm`, `DELETE /auth/2fa`), via
+ * `TwoFactorEnrollDialog`/`TwoFactorDisableDialog`. There's no
+ * "is 2FA enabled" endpoint to check against, so `has2FA` stays a
+ * persisted local flag (`accountSettingsStore`) updated only once the real
+ * enroll/disable call actually succeeds — not optimistically.
+ *
+ * The login flow's own 2FA step (Sign In → method picker → verify) is a
+ * separate, not-yet-updated flow — it predates this endpoint group and
+ * offers an "Email" method this TOTP-only backend has no equivalent for.
+ * Left untouched here; needs its own pass.
  */
 function TwoFactorAuthCard() {
-	const router = useRouter();
 	const has2FA = useAccountSettingsStore((state) => state.has2FA);
 	const setHas2FA = useAccountSettingsStore((state) => state.setHas2FA);
-	const setLoginEmail = useLoginFlowStore((state) => state.setEmail);
-
-	function handleEnable() {
-		setLoginEmail(CURRENT_USER_EMAIL);
-		router.push("/auth/sign-in/two-factor");
-	}
-
-	function handleDisable() {
-		setHas2FA(false);
-		toast.success("2-factor authentication turned off");
-	}
 
 	return (
 		<div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 sm:p-6">
@@ -65,19 +52,17 @@ function TwoFactorAuthCard() {
 			</div>
 
 			{has2FA ? (
-				<Button
-					type="button"
-					variant="outline"
-					size="small"
-					className="shrink-0"
-					onClick={handleDisable}
-				>
-					Disable
-				</Button>
+				<TwoFactorDisableDialog onDisabled={() => setHas2FA(false)}>
+					<Button type="button" variant="outline" size="small" className="shrink-0">
+						Disable
+					</Button>
+				</TwoFactorDisableDialog>
 			) : (
-				<Button type="button" size="small" className="shrink-0" onClick={handleEnable}>
-					Enable
-				</Button>
+				<TwoFactorEnrollDialog onEnabled={() => setHas2FA(true)}>
+					<Button type="button" size="small" className="shrink-0">
+						Enable
+					</Button>
+				</TwoFactorEnrollDialog>
 			)}
 		</div>
 	);

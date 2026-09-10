@@ -93,3 +93,13 @@ export interface StellarWalletData {
 	deactivatedAt?: string | null;
 	createdAt: string;
 }
+
+/** `POST /auth/2fa/enroll` — shown once; the recovery codes can't be
+ * fetched again after this response. */
+export interface EnrollTotpData {
+	/** Base64 data URL — render directly in an `<img>`. */
+	qrCodeDataUrl: string;
+	/** Raw otpauth:// URI, for manual entry when the app can't scan. */
+	otpAuthUri: string;
+	recoveryCodes: string[];
+}
