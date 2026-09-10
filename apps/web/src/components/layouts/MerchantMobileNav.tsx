@@ -3,8 +3,8 @@
 import { LogOut } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/dialog";
 import { Logo } from "@repo/ui/logo";
-import { useLogout } from "@/features/auth/hooks";
 import { MerchantNavList } from "@/components/layouts/MerchantNavList";
+import { LogoutConfirmDialog } from "@/components/layouts/LogoutConfirmDialog";
 
 interface MerchantMobileNavProps {
 	open: boolean;
@@ -26,8 +26,6 @@ interface MerchantMobileNavProps {
  * targeted that utility before.
  */
 function MerchantMobileNav({ open, onOpenChange }: MerchantMobileNavProps) {
-	const logout = useLogout();
-
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
@@ -39,17 +37,15 @@ function MerchantMobileNav({ open, onOpenChange }: MerchantMobileNavProps) {
 					<Logo size="lg" variant="dark" />
 				</div>
 				<MerchantNavList onNavigate={() => onOpenChange(false)} className="flex-1 overflow-y-auto" />
-				<button
-					type="button"
-					onClick={() => {
-						onOpenChange(false);
-						logout();
-					}}
-					className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-b3 font-medium text-destructive transition-colors hover:bg-primary-700"
-				>
-					<LogOut className="size-4.5 shrink-0" aria-hidden="true" />
-					Logout
-				</button>
+				<LogoutConfirmDialog>
+					<button
+						type="button"
+						className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-b3 font-medium text-destructive transition-colors hover:bg-primary-700"
+					>
+						<LogOut className="size-4.5 shrink-0" aria-hidden="true" />
+						Logout
+					</button>
+				</LogoutConfirmDialog>
 			</DialogContent>
 		</Dialog>
 	);

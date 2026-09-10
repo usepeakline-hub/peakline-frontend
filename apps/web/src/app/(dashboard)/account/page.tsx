@@ -8,14 +8,13 @@ import { BusinessInformationCard } from "@/features/business/components/Business
 import { TwoFactorAuthCard } from "@/features/profile/components/TwoFactorAuthCard";
 import { InstallAppCard } from "@/features/profile/components/InstallAppCard";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
-import { useLogout } from "@/features/auth/hooks";
+import { LogoutConfirmDialog } from "@/components/layouts/LogoutConfirmDialog";
 import { useAuthStore } from "@/lib/stores/authStore";
 
 // Profile and Settings used to be two separate (half-empty) destinations —
 // merged into one Account page/nav item, per the actual usage: nothing
 // settings-specific existed yet beyond what already lives here.
 export default function AccountPage() {
-	const logout = useLogout();
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	return (
@@ -39,14 +38,15 @@ export default function AccountPage() {
 			    Sidebar, but mobile has no equivalent nav chrome, so this stays as
 			    a low-emphasis fallback rather than dropping mobile logout
 			    entirely. */}
-			<button
-				type="button"
-				onClick={logout}
-				className="flex items-center justify-center gap-2 self-center text-b3 font-medium text-destructive hover:underline lg:hidden"
-			>
-				<LogOut className="size-4" aria-hidden="true" />
-				Logout
-			</button>
+			<LogoutConfirmDialog>
+				<button
+					type="button"
+					className="flex items-center justify-center gap-2 self-center text-b3 font-medium text-destructive hover:underline lg:hidden"
+				>
+					<LogOut className="size-4" aria-hidden="true" />
+					Logout
+				</button>
+			</LogoutConfirmDialog>
 		</div>
 	);
 }

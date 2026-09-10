@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 import { Logo } from "@repo/ui/logo";
 import { cn } from "@repo/ui/lib/utils";
-import { useLogout } from "@/features/auth/hooks";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { MerchantNavList } from "@/components/layouts/MerchantNavList";
+import { LogoutConfirmDialog } from "@/components/layouts/LogoutConfirmDialog";
 
 // Profile and Settings used to be separate nav items/pages — merged into
 // one "Account" destination, so there's one place for identity + account
@@ -68,7 +68,6 @@ function isActive(pathname: string, href: string) {
  */
 function Sidebar() {
 	const pathname = usePathname();
-	const logout = useLogout();
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	return (
@@ -119,17 +118,18 @@ function Sidebar() {
 				</nav>
 			)}
 
-			<button
-				type="button"
-				onClick={logout}
-				className={cn(
-					"flex items-center gap-3 rounded-lg px-3 py-2.5 text-b3 font-medium text-destructive transition-colors",
-					isMerchant ? "hover:bg-primary-700" : "hover:bg-danger-100",
-				)}
-			>
-				<LogOut className="size-4.5 shrink-0" aria-hidden="true" />
-				Logout
-			</button>
+			<LogoutConfirmDialog>
+				<button
+					type="button"
+					className={cn(
+						"flex items-center gap-3 rounded-lg px-3 py-2.5 text-b3 font-medium text-destructive transition-colors",
+						isMerchant ? "hover:bg-primary-700" : "hover:bg-danger-100",
+					)}
+				>
+					<LogOut className="size-4.5 shrink-0" aria-hidden="true" />
+					Logout
+				</button>
+			</LogoutConfirmDialog>
 		</aside>
 	);
 }

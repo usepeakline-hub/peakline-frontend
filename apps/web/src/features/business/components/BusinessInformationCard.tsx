@@ -78,7 +78,7 @@ function CardSkeleton() {
  * as everything else in Account.
  */
 function BusinessInformationCard() {
-	const { data: business, isLoading } = useMyBusiness();
+	const { data: business, isLoading, isError, error } = useMyBusiness();
 	const [isEditing, setIsEditing] = useState(false);
 	const updateBusiness = useUpdateBusiness(business?.id ?? "");
 	const form = useForm<UpdateBusinessValues>({
@@ -108,7 +108,35 @@ function BusinessInformationCard() {
 	}, [business]);
 
 	if (isLoading) return <CardSkeleton />;
-	if (!business) return null;
+
+	// Visible feedback either way — this used to return `null` for both
+	// cases, which looked identical to the section not existing at all
+	// (reported live: "i cant see the business section"). A merchant who
+	// never completed Business Information (or whose account predates this
+	// endpoint being wired) genuinely has no business yet; a real fetch
+	// failure is a different, worth-knowing-about case — both now say so
+	// instead of silently rendering nothing.
+	if (isError) {
+		return (
+			<div className="flex flex-col gap-2 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6">
+				<h2 className="text-s1 text-foreground">Business Information</h2>
+				<p className="text-b3 text-muted-foreground">
+					{getApiErrorMessage(error, "Couldn't load your business information.")}
+				</p>
+			</div>
+		);
+	}
+
+	if (!business) {
+		return (
+			<div className="flex flex-col gap-2 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6">
+				<h2 className="text-s1 text-foreground">Business Information</h2>
+				<p className="text-b3 text-muted-foreground">
+					You haven&apos;t added your business information yet.
+				</p>
+			</div>
+		);
+	}
 
 	const statusVariant = STATUS_BADGE[business.status.toLowerCase()] ?? "outline";
 
