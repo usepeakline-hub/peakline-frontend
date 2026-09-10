@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { PersonalInformationCard } from "@/features/profile/components/PersonalInformationCard";
+import { BusinessInformationCard } from "@/features/business/components/BusinessInformationCard";
 import { TwoFactorAuthCard } from "@/features/profile/components/TwoFactorAuthCard";
 import { InstallAppCard } from "@/features/profile/components/InstallAppCard";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
@@ -29,6 +30,7 @@ export default function AccountPage() {
 			<PageHeader title="Account" subtitle="Manage your account and settings" />
 
 			<PersonalInformationCard />
+			{isMerchant && <BusinessInformationCard />}
 			<TwoFactorAuthCard />
 			<InstallAppCard />
 			<WalletAddressCard />
