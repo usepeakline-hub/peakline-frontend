@@ -35,7 +35,7 @@ function MerchantMobileNav({ open, onOpenChange }: MerchantMobileNavProps) {
 				className="inset-y-0 top-0 left-0 flex h-screen max-h-screen w-72 max-w-[80vw] translate-x-0 translate-y-0 flex-col gap-8 rounded-none rounded-r-2xl bg-primary-800 p-4 py-6 text-primary-100 data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left"
 			>
 				<DialogTitle className="sr-only">Menu</DialogTitle>
-				<div className="border-b border-primary-100/20 pb-4">
+				<div className="border-b border-primary-100/20 pb-6">
 					<Logo size="lg" variant="dark" />
 				</div>
 				<MerchantNavList onNavigate={() => onOpenChange(false)} className="flex-1 overflow-y-auto" />

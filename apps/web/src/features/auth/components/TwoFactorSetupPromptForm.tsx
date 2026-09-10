@@ -9,13 +9,16 @@ import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
 /**
  * Reached right after a successful Sign In, only when the account doesn't
  * already have 2FA enabled — a one-time, skippable nudge rather than a
- * mandatory gate. "Continue" reuses the same method-picker + verify
- * sequence every login with 2FA already enabled goes through; completing
- * it from here is what actually turns 2FA on (see `LoginVerifyForm`).
+ * mandatory gate. "Continue" goes straight to the code-entry step
+ * (`LoginVerifyForm`) — authenticator app is the only 2FA method this
+ * backend supports (email isn't a separate "method" to choose; it's
+ * already the login step itself), so there's nothing left to pick.
+ * Completing that step is what actually turns 2FA on.
  */
 function TwoFactorSetupPromptForm() {
 	const router = useRouter();
 	const email = useLoginFlowStore((state) => state.email);
+	const setTwoFactorMethod = useLoginFlowStore((state) => state.setTwoFactorMethod);
 
 	// Reached without a completed Sign In in this session — send them back.
 	useEffect(() => {
@@ -56,7 +59,10 @@ function TwoFactorSetupPromptForm() {
 					type="button"
 					size="large"
 					className="w-full"
-					onClick={() => router.push("/auth/sign-in/two-factor")}
+					onClick={() => {
+						setTwoFactorMethod("authenticator");
+						router.push("/auth/sign-in/verify");
+					}}
 				>
 					Continue
 				</Button>

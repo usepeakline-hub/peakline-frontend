@@ -28,7 +28,6 @@ import type {
 	VerifyOtpValues,
 	PersonalDetailsValues,
 	SetPinValues,
-	TwoFactorMethodValues,
 	ForgotPasswordValues,
 	ResetPasswordValues,
 } from "@/lib/validations/authValidations";
@@ -281,19 +280,20 @@ function useSetupWallet() {
 	});
 }
 
-// No backend endpoints exist yet for 2FA at all (see the auth findings
-// report) — `useSubmitTwoFactorMethod`/`useVerifyLogin` stay fake, and
-// `has2FA` (accountSettingsStore) remains the local stand-in for a real
-// per-account 2FA record.
-function useSubmitTwoFactorMethod() {
-	return useMutation({
-		mutationFn: (values: TwoFactorMethodValues) => fakeRequest(values),
-	});
-}
-
-/** Every login's final step — verifying the 2FA code, whichever method was
- * chosen. Distinct from `useVerifyOtp` (Sign Up's email verification) since
- * this can be an authenticator code instead of a mailed one. */
+/**
+ * Every login's final 2FA step — always an authenticator code now (email
+ * isn't a separate method to choose; see `TwoFactorSetupPromptForm`).
+ * Distinct from `useVerifyOtp` (Sign Up's email verification).
+ *
+ * Still fake — real login-time verification needs `POST /auth/2fa/verify`
+ * (`{ mfaToken, totpCode }` → tokens), but `/auth/login`'s own documented
+ * response is `AuthTokensDto` only, with no visible branch for "this
+ * account has 2FA, here's an mfaToken instead of real tokens". Account
+ * settings' enroll/confirm/disable are real (`features/profile/hooks`);
+ * this half needs either backend confirmation of the actual login-time
+ * shape or a live 2FA-enabled account to test against before it can be
+ * wired for real.
+ */
 function useVerifyLogin() {
 	return useMutation({
 		mutationFn: (values: VerifyOtpValues & { email: string }) =>
@@ -356,7 +356,6 @@ export {
 	useVerifyOtp,
 	useCompleteSignUp,
 	useSetupWallet,
-	useSubmitTwoFactorMethod,
 	useVerifyLogin,
 	useForgotPassword,
 	useResetPassword,

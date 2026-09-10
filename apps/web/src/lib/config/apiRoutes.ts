@@ -54,4 +54,18 @@ export const apiRoutes = {
 		BASE: "/api/v1/businesses",
 		byId: (id: string) => `/api/v1/businesses/${id}`,
 	},
+
+	// A generic wallet ledger (deposit/withdrawal/internal_transfer/
+	// conversion/withdrawal_ghs) — a different shape than the app's own
+	// `Transaction` type (built around a named counterparty and a QR/Link
+	// payment method neither this list nor its detail record has any
+	// equivalent for). Only BALANCES is wired so far (see
+	// `useWalletBalance`); LIST/byId are real endpoints but not yet
+	// connected to any UI pending a decision on how to reconcile the two
+	// shapes.
+	transactions: {
+		LIST: "/api/v1/transactions",
+		BALANCES: "/api/v1/transactions/balances",
+		byId: (id: string) => `/api/v1/transactions/${id}`,
+	},
 };

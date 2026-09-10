@@ -118,6 +118,15 @@ export interface BusinessData {
 	updatedAt: string;
 }
 
+/** `GET /transactions/balances` — one entry per currency the account has
+ * ever held (not necessarily both USDC and GHS present). `balance` is a
+ * decimal string (Stellar/ledger precision), not a number — parse with
+ * `Number()` before formatting. */
+export interface BalanceData {
+	currency: string;
+	balance: string;
+}
+
 /** `POST /auth/2fa/enroll` — shown once; the recovery codes can't be
  * fetched again after this response. */
 export interface EnrollTotpData {

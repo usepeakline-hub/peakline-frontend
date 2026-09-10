@@ -1,5 +1,5 @@
 import logoSrc from "./assets/logo.svg";
-import darkLogoSrc from "./assets/dark-logo.svg";
+import darkLogoSrc from "./assets/white-logo.png";
 import { cn } from "./lib/utils";
 
 /**

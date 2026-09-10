@@ -86,7 +86,7 @@ function Sidebar() {
 			    it, per the updated mock — individual's own header area has
 			    never had one. */}
 			{isMerchant ? (
-				<div className="border-b border-primary-100/20 pb-4">
+				<div className="border-b border-primary-100/20 pb-6">
 					<Logo size="lg" variant="dark" />
 				</div>
 			) : (

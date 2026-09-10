@@ -6,6 +6,7 @@ import { BottomTabBar } from "./BottomTabBar";
 import { MerchantMobileTopBar } from "./MerchantMobileTopBar";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { cn } from "@repo/ui/lib/utils";
+import { LoadingBar } from "@repo/ui/loading-bar";
 
 interface DashboardLayoutProps {
 	children: React.ReactNode;
@@ -30,6 +31,17 @@ interface DashboardLayoutProps {
  * `Sidebar` is `fixed` (see its own comment for why), so it no longer
  * claims space in this flex row — `lg:ml-65` on the content column reserves
  * the same width by hand instead.
+ *
+ * `customerType` is unknown until `AuthProvider`'s `initializeAuth` reads
+ * the cookies on mount — the store starts unauthenticated on both the
+ * server and the first client render (avoiding a hydration mismatch), so
+ * rendering the individual/merchant shell immediately showed the wrong one
+ * for a merchant account for one frame, every refresh (reported live: "any
+ * time i refresh there is a glimpse of the individuals dashboard before it
+ * shows the merchants dashboard"). Gating on `isInitialized` instead shows
+ * a brief neutral loading state both times — same on server and first
+ * client paint, so still no mismatch — then the *correct* shell renders
+ * directly once the cookie read finishes, with nothing wrong ever visible.
  */
 function DashboardLayout({
 	children,
@@ -45,6 +57,15 @@ function DashboardLayout({
 	// that bar, so it'd otherwise be dead space at the bottom of every
 	// merchant page.
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
+	const isInitialized = useAuthStore((state) => state.isInitialized);
+
+	if (!isInitialized) {
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-background">
+				<LoadingBar />
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex min-h-screen bg-background lg:bg-muted">

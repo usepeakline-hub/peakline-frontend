@@ -72,10 +72,6 @@ const AUTH_ROUTES: Record<
 	"/auth/sign-in/two-factor-prompt": {
 		illustration: authIllustration,
 	},
-	"/auth/sign-in/two-factor": {
-		header: { kind: "back" },
-		illustration: authIllustration,
-	},
 	"/auth/sign-in/verify": {
 		header: { kind: "back" },
 		illustration: null,

@@ -1,4 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAxiosAuth } from "@/hooks/useAxiosAuth";
+import { apiRoutes } from "@/lib/config/apiRoutes";
+import { usdcToGhs } from "@/lib/currency";
+import type { ApiSuccessResponse, BalanceData } from "@/lib/api/types";
 
 // TODO: replace with real calls into the wallet/ledger API once it exists.
 // Each section fetches independently (and on its own fake delay) so the
@@ -20,21 +24,43 @@ function useGreeting() {
 	});
 }
 
-interface BalanceData {
+interface WalletBalanceSummary {
 	amount: number;
 	currency: string;
 	localAmount: number;
 	localCurrency: string;
 }
 
+/** Real as of `GET /transactions/balances` — an array with one entry per
+ * currency the account has ever held, not a fixed USDC+GHS pair. Reshaped
+ * into the single-object "primary + local estimate" shape every consumer
+ * (`BalanceCard`, `WalletBalanceCard`, Send/Fund/Pay's own success steps)
+ * already expects, so none of them need to change. A GHS entry not being
+ * present yet (an account that's never held any) falls back to the same
+ * fixed-rate `usdcToGhs` estimate the rest of the app already shows
+ * elsewhere (transaction/payment detail's own "~ GHS" line) rather than
+ * showing nothing. */
 function useWalletBalance() {
+	const axiosAuth = useAxiosAuth();
+
 	return useQuery({
 		queryKey: ["dashboard", "balance"],
-		queryFn: () =>
-			fakeRequest<BalanceData>(
-				{ amount: 1200, currency: "USDC", localAmount: 1245, localCurrency: "GHS" },
-				800,
-			),
+		queryFn: async (): Promise<WalletBalanceSummary> => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<BalanceData[]>>(
+				apiRoutes.transactions.BALANCES,
+			);
+			const balances = data.data;
+			const usdc = balances.find((b) => b.currency === "USDC");
+			const ghs = balances.find((b) => b.currency === "GHS");
+			const amount = usdc ? Number(usdc.balance) : 0;
+
+			return {
+				amount,
+				currency: "USDC",
+				localAmount: ghs ? Number(ghs.balance) : usdcToGhs(amount),
+				localCurrency: "GHS",
+			};
+		},
 	});
 }
 
@@ -142,4 +168,4 @@ export {
 	useQuickActionsReady,
 	useRecentTransactions,
 };
-export type { GreetingData, BalanceData, Transaction, TransactionKind };
+export type { GreetingData, WalletBalanceSummary, Transaction, TransactionKind };
