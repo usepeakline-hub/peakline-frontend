@@ -94,6 +94,30 @@ export interface StellarWalletData {
 	createdAt: string;
 }
 
+/** `POST/GET/PATCH /businesses`. `status` and the nullable fields are typed
+ * loosely (`docs-json` itself only says `"type": "object"` for most of
+ * them, likely a Swagger-decorator gap rather than an intentional shape) —
+ * widen these once the real values are seen live. */
+export interface BusinessData {
+	id: string;
+	ownerId: string;
+	name: string;
+	category: string;
+	status: string;
+	country: string;
+	city?: string | null;
+	address?: string | null;
+	phone?: string | null;
+	website?: string | null;
+	logoUrl?: string | null;
+	description?: string | null;
+	registrationNumber?: string | null;
+	taxId?: string | null;
+	verifiedAt?: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
 /** `POST /auth/2fa/enroll` — shown once; the recovery codes can't be
  * fetched again after this response. */
 export interface EnrollTotpData {

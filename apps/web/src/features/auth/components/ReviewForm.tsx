@@ -6,6 +6,7 @@ import { Button } from "@repo/ui/button";
 import { Stepper } from "@repo/ui/stepper";
 import { toast } from "@repo/ui/sonner";
 import { COUNTRY_NAMES } from "@repo/ui/lib/country-names";
+import { BUSINESS_CATEGORIES } from "@/lib/validations/authValidations";
 import { useCompleteSignUp } from "@/features/auth/hooks";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import { useSignUpFlowStore } from "@/lib/stores/signUpFlowStore";
@@ -142,9 +143,16 @@ function ReviewForm() {
 						editHref="/auth/sign-up/personal-details/business-information"
 						rows={[
 							{ label: "Business name", value: businessInfo.businessName },
-							{ label: "Business category", value: businessInfo.businessCategory },
+							{
+								label: "Business category",
+								value:
+									BUSINESS_CATEGORIES.find((c) => c.value === businessInfo.businessCategory)
+										?.label ?? businessInfo.businessCategory,
+							},
 							{ label: "Phone", value: businessInfo.phone },
-							{ label: "Business location", value: businessInfo.businessLocation },
+							{ label: "Country", value: businessInfo.country },
+							{ label: "City", value: businessInfo.businessCity },
+							{ label: "Address", value: businessInfo.businessAddress ?? "" },
 						]}
 					/>
 				)}

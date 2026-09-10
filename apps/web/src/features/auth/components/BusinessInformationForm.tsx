@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
+import { Select } from "@repo/ui/select";
 import { PhoneInput } from "@repo/ui/phone-input";
 import { Stepper } from "@repo/ui/stepper";
+import { COUNTRY_NAMES } from "@repo/ui/lib/country-names";
 import {
 	Form,
 	FormField,
@@ -18,6 +20,7 @@ import {
 } from "@repo/ui/form";
 import {
 	merchantSetupSchema,
+	BUSINESS_CATEGORIES,
 	type MerchantSetupValues,
 } from "@/lib/validations/authValidations";
 import { usePersonalInfoFlowStore } from "@/lib/stores/personalInfoFlowStore";
@@ -28,7 +31,16 @@ import { getOnboardingSteps } from "@/features/auth/onboardingSteps";
  * Step 2 of 3 — merchant accounts only (Individual skips straight from
  * Personal Information to Review). Stored locally like Personal
  * Information is, not submitted on its own — the whole onboarding payload
- * goes to the backend together on Review's final confirm.
+ * goes to the backend together on Review's final confirm, which now also
+ * calls the real `POST /businesses` for merchant accounts (see
+ * `useCompleteSignUp`).
+ *
+ * Fields match `CreateBusinessDto` directly: a fixed category enum instead
+ * of free text, and Country/City/Address split out instead of one
+ * "Business Location" field (that used to be a single free-text field with
+ * no real backend to match against). Country is a plain display name here
+ * (`POST /businesses`' own convention), not the ISO code Personal
+ * Information's nationality field uses.
  */
 function BusinessInformationForm() {
 	const router = useRouter();
@@ -40,11 +52,17 @@ function BusinessInformationForm() {
 		resolver: zodResolver(merchantSetupSchema),
 		defaultValues: stored ?? {
 			businessName: "",
-			businessCategory: "",
+			businessCategory: "" as unknown as MerchantSetupValues["businessCategory"],
 			phone: "",
-			businessLocation: "",
+			country: "",
+			businessCity: "",
+			businessAddress: "",
 		},
 	});
+	const countryNames = useMemo(
+		() => Object.values(COUNTRY_NAMES).sort((a, b) => a.localeCompare(b)),
+		[],
+	);
 
 	// Reached without Personal Information filled in this session — send
 	// back rather than let Review show a blank summary.
@@ -101,10 +119,16 @@ function BusinessInformationForm() {
 							<FormItem>
 								<FormLabel>Business Category</FormLabel>
 								<FormControl>
-									<Input
-										placeholder="e.g. Retail, Restaurant, Salon"
-										{...field}
-									/>
+									<Select {...field} value={field.value ?? ""}>
+										<option value="" disabled>
+											Select a category
+										</option>
+										{BUSINESS_CATEGORIES.map(({ value, label }) => (
+											<option key={value} value={value}>
+												{label}
+											</option>
+										))}
+									</Select>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -133,15 +157,49 @@ function BusinessInformationForm() {
 
 					<FormField
 						control={form.control}
-						name="businessLocation"
+						name="country"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Business Location</FormLabel>
+								<FormLabel>Country</FormLabel>
 								<FormControl>
-									<Input
-										placeholder="Enter your business location"
-										{...field}
-									/>
+									<Select {...field} value={field.value ?? ""}>
+										<option value="" disabled>
+											Select a country
+										</option>
+										{countryNames.map((name) => (
+											<option key={name} value={name}>
+												{name}
+											</option>
+										))}
+									</Select>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="businessCity"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>City</FormLabel>
+								<FormControl>
+									<Input placeholder="Enter your business city" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="businessAddress"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Address (optional)</FormLabel>
+								<FormControl>
+									<Input placeholder="Enter your business address" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>

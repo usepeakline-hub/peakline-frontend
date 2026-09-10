@@ -108,11 +108,40 @@ export type AccountTypeValues = z.infer<typeof accountTypeSchema>;
  * schema/name since the fields haven't changed, just where they're
  * collected (mid-flow now, not a standalone step right after Account Type).
  */
+// `POST/PATCH /businesses`' own fixed category enum — a plain text field
+// would let the backend reject anything that isn't one of these.
+export const BUSINESS_CATEGORIES = [
+	{ value: "retail", label: "Retail" },
+	{ value: "food_beverage", label: "Food & Beverage" },
+	{ value: "services", label: "Services" },
+	{ value: "technology", label: "Technology" },
+	{ value: "healthcare", label: "Healthcare" },
+	{ value: "education", label: "Education" },
+	{ value: "hospitality", label: "Hospitality" },
+	{ value: "finance", label: "Finance" },
+	{ value: "real_estate", label: "Real Estate" },
+	{ value: "agriculture", label: "Agriculture" },
+	{ value: "manufacturing", label: "Manufacturing" },
+	{ value: "other", label: "Other" },
+] as const;
+
+// `businessCity`/`businessAddress` rather than `city`/`address` — this
+// shape gets shallow-merged with `PersonalDetailsValues` on Review's submit
+// (`{ ...personalDetails, ...businessInfo }`), which already owns `city`
+// (the individual's own residential city); reusing that name here would
+// silently clobber it. `country` is safe as-is — personal details has no
+// field by that name (nationality is a separate concept, and stored as an
+// ISO code, not this plain country name `POST /businesses` wants).
 export const merchantSetupSchema = z.object({
 	businessName: z.string().trim().min(1, "Enter your business name"),
-	businessCategory: z.string().trim().min(1, "Enter your business category"),
+	businessCategory: z.enum(
+		BUSINESS_CATEGORIES.map((c) => c.value) as [string, ...string[]],
+		{ message: "Select your business category" },
+	),
 	phone: phoneSchema,
-	businessLocation: z.string().trim().min(1, "Enter your business location"),
+	country: z.string().trim().min(1, "Select your business's country"),
+	businessCity: z.string().trim().min(1, "Enter your business city"),
+	businessAddress: z.string().trim().optional(),
 });
 export type MerchantSetupValues = z.infer<typeof merchantSetupSchema>;
 

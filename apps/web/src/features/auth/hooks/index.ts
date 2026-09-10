@@ -196,11 +196,16 @@ function useSubmitAccountType() {
 }
 
 /**
- * Review's final submit — real as of `POST /onboarding/individual`, which
- * serves both individual and merchant account types. Business Information
- * (merchant only) still has no backend endpoint, so only the four Personal
- * Information fields actually go out; `businessInfo` stays local-only, same
- * as before (still shown on Review, just never submitted anywhere).
+ * Review's final submit — `POST /onboarding/individual` (serves both
+ * individual and merchant account types), then, for a merchant account,
+ * `POST /businesses` right after — both real now. `businessName` is only
+ * ever present when `usePersonalInfoFlowStore`'s `businessInfo` was
+ * non-null (i.e. the account type is merchant, per that store's own
+ * typing), so its presence alone decides whether the second call runs,
+ * without this hook needing its own `accountType` param. By this point
+ * `customerType` on the account is already "merchant" (set back in
+ * `useSubmitAccountType`, a step earlier), satisfying `POST /businesses`'
+ * own "merchant only" requirement.
  */
 function useCompleteSignUp() {
 	const axiosAuth = useAxiosAuth();
@@ -218,6 +223,18 @@ function useCompleteSignUp() {
 					city: values.city,
 				},
 			);
+
+			if (values.businessName) {
+				await axiosAuth.post(apiRoutes.businesses.BASE, {
+					name: values.businessName,
+					category: values.businessCategory,
+					country: values.country,
+					city: values.businessCity,
+					address: values.businessAddress || undefined,
+					phone: values.phone,
+				});
+			}
+
 			return data;
 		},
 	});
