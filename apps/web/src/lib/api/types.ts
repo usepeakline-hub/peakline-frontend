@@ -251,3 +251,61 @@ export interface MerchantDashboardStatsData {
 	pending: DashboardPendingData;
 	chart: DashboardChartData;
 }
+
+export interface PaymentLinkBusinessData {
+	id: string;
+	name: string;
+}
+
+/** No "paid" state — a link's derived status only ever tracks whether it
+ * can still be used (active), has timed out (expired), or was explicitly
+ * cancelled. Whether it's actually been paid is a property of the deposit
+ * transaction made against it, not of the link itself. */
+export type PaymentLinkStatus = "active" | "expired" | "cancelled";
+
+/** `POST/GET /payment-links`, `GET /payment-links/{id}`,
+ * `POST /payment-links/{id}/cancel`. */
+export interface PaymentLinkData {
+	id: string;
+	title: string;
+	/** Decimal string, e.g. "500.00". */
+	amount: string;
+	currency: "USDC";
+	description?: string | null;
+	customerReference?: string | null;
+	expiresAt: string;
+	cancelledAt?: string | null;
+	status: PaymentLinkStatus;
+	/** The URL slug and the Stellar text memo a payer must attach — same
+	 * value, two purposes. */
+	publicCode: string;
+	/** Full shareable URL, ready to use as-is. */
+	url: string;
+	business: PaymentLinkBusinessData;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/** `GET /payment-links/stats` — the three header cards on the Payment
+ * Links page. */
+export interface PaymentLinkStatsData {
+	total: number;
+	active: number;
+	expired: number;
+	cancelled: number;
+}
+
+/** `GET /pay/{code}` — public, no auth. Everything a payer needs to
+ * complete payment themselves (destination wallet + the memo that must
+ * accompany the Stellar transfer for it to be matched to this link). */
+export interface PublicPaymentLinkData {
+	title: string;
+	amount: string;
+	currency: "USDC";
+	description?: string | null;
+	expiresAt: string;
+	status: PaymentLinkStatus;
+	businessName: string;
+	destinationAddress: string;
+	memo: string;
+}

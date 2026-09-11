@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { toast } from "@repo/ui/sonner";
 import { Pagination } from "@/components/Pagination";
-import { useMerchantPaymentLinks } from "@/features/merchant/hooks";
+import {
+	useExportPaymentLinksCsv,
+	useMerchantPaymentLinks,
+	type PaymentLinksQuery,
+} from "@/features/merchant/hooks";
 import { PaymentLinksStatsCards } from "@/features/merchant/components/PaymentLinksStatsCards";
 import { PaymentLinksFilters } from "@/features/merchant/components/PaymentLinksFilters";
 import { PaymentLinksTable } from "@/features/merchant/components/PaymentLinksTable";
-import type { PaymentLink, PaymentLinkStatus } from "@/features/merchant/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import type { PaymentLinkStatus } from "@/lib/api/types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -21,45 +26,11 @@ function PaymentLinksListSkeleton() {
 	);
 }
 
-function matchesSearch(paymentLink: PaymentLink, search: string) {
-	if (!search.trim()) return true;
-	return paymentLink.title.toLowerCase().includes(search.trim().toLowerCase());
-}
-
-function matchesDateRange(paymentLink: PaymentLink, from: string, to: string) {
-	if (from && paymentLink.isoExpiration < from) return false;
-	if (to && paymentLink.isoExpiration > to) return false;
-	return true;
-}
-
-function downloadCsv(links: PaymentLink[]) {
-	const header = ["Title", "Amount (USDC)", "Created", "Expires", "Status", "Link"];
-	const rows = links.map((link) => [
-		link.title,
-		link.amount.toFixed(2),
-		link.created,
-		link.expiration,
-		link.status,
-		link.link,
-	]);
-	const csv = [header, ...rows]
-		.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-		.join("\n");
-
-	const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-	const url = URL.createObjectURL(blob);
-	const anchor = document.createElement("a");
-	anchor.href = url;
-	anchor.download = `payment-links-${new Date().toISOString().slice(0, 10)}.csv`;
-	anchor.click();
-	URL.revokeObjectURL(url);
-}
-
-/** `/payment-links`'s own list — same owns-its-own-filter-state shape as
- * `PaymentsList`, extended with the mock's header stat cards and real
- * pagination over whatever the filters leave. */
+/** `/payment-links`'s own list — filters/pagination are now sent to the
+ * server (`GET /payment-links`'s own `q`/`status`/`from`/`to`/`page`/`limit`
+ * params) rather than fetched once and sliced client-side, so every filter
+ * or page change re-fetches. */
 function PaymentLinksList() {
-	const { data } = useMerchantPaymentLinks();
 	const [search, setSearch] = useState("");
 	const [from, setFrom] = useState("");
 	const [to, setTo] = useState("");
@@ -67,19 +38,18 @@ function PaymentLinksList() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
-	const filtered = useMemo(() => {
-		if (!data) return null;
-		return data.filter(
-			(link) =>
-				matchesSearch(link, search) &&
-				matchesDateRange(link, from, to) &&
-				(status === "all" || link.status === status),
-		);
-	}, [data, search, from, to, status]);
+	const query: PaymentLinksQuery = {
+		q: search.trim() || undefined,
+		status: status === "all" ? undefined : status,
+		from: from || undefined,
+		to: to || undefined,
+	};
 
-	const totalPages = filtered ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
-	const pageItems = filtered ? filtered.slice((page - 1) * pageSize, page * pageSize) : null;
+	const { data, isLoading } = useMerchantPaymentLinks(query, page, pageSize);
+	const exportCsv = useExportPaymentLinksCsv();
 
+	// Debounced-free but still correct: any filter change resets to page 1,
+	// mirroring the old client-side version's own `handleFilterChange`.
 	function handleFilterChange<T>(setter: (value: T) => void) {
 		return (value: T) => {
 			setter(value);
@@ -93,12 +63,11 @@ function PaymentLinksList() {
 	}
 
 	function handleExport() {
-		if (!filtered || filtered.length === 0) {
-			toast.error("No payment links to export");
-			return;
-		}
-		downloadCsv(filtered);
-		toast.success("Payment links exported");
+		exportCsv.mutate(query, {
+			onSuccess: () => toast.success("Payment links exported"),
+			onError: (error) =>
+				toast.error(getApiErrorMessage(error, "Couldn't export payment links")),
+		});
 	}
 
 	return (
@@ -118,21 +87,21 @@ function PaymentLinksList() {
 					onExport={handleExport}
 				/>
 
-				{!filtered || !pageItems ? (
+				{isLoading || !data ? (
 					<PaymentLinksListSkeleton />
 				) : (
 					<>
-						<PaymentLinksTable links={pageItems} />
-						{filtered.length > 0 && (
+						<PaymentLinksTable links={data.links} />
+						{data.meta.totalCount > 0 && (
 							<Pagination
-								page={page}
-								totalPages={totalPages}
+								page={data.meta.currentPage}
+								totalPages={data.meta.pageCount}
 								pageSize={pageSize}
 								onPageChange={setPage}
 								onPageSizeChange={handlePageSizeChange}
 								pageSizeOptions={PAGE_SIZE_OPTIONS}
-								itemsShown={pageItems.length}
-								total={filtered.length}
+								itemsShown={data.links.length}
+								total={data.meta.totalCount}
 							/>
 						)}
 					</>

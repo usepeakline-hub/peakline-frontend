@@ -12,12 +12,16 @@ import {
 	FormControl,
 	FormMessage,
 } from "@repo/ui/form";
+import Link from "next/link";
 import {
 	createPaymentLinkSchema,
 	type CreatePaymentLinkValues,
 } from "@/lib/validations/paymentLinksValidations";
 import { useCreatePaymentLink } from "@/features/merchant/hooks";
+import { useMyBusiness } from "@/features/business/hooks";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import { toast } from "@repo/ui/sonner";
 
 interface CreatePaymentLinkFormProps {
 	onCreated: (link: string) => void;
@@ -34,6 +38,7 @@ interface CreatePaymentLinkFormProps {
  * deliberate design.
  */
 function CreatePaymentLinkForm({ onCreated }: CreatePaymentLinkFormProps) {
+	const { data: business, isLoading: isLoadingBusiness } = useMyBusiness();
 	const createLink = useCreatePaymentLink();
 	const form = useForm<CreatePaymentLinkValues>({
 		resolver: zodResolver(createPaymentLinkSchema),
@@ -50,8 +55,27 @@ function CreatePaymentLinkForm({ onCreated }: CreatePaymentLinkFormProps) {
 
 	function handleSubmit(values: CreatePaymentLinkValues) {
 		createLink.mutate(values, {
-			onSuccess: (result) => onCreated(result.link),
+			onSuccess: (result) => onCreated(result.url),
+			onError: (error) =>
+				toast.error(getApiErrorMessage(error, "Couldn't create payment link")),
 		});
+	}
+
+	// A payment link belongs to a business, and there's no way to name one at
+	// creation time — same underlying gap `BusinessInformationCard`'s own
+	// empty state fixed for Account, surfaced here since it blocks this form
+	// specifically.
+	if (!isLoadingBusiness && !business) {
+		return (
+			<div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center">
+				<p className="text-b3 text-muted-foreground">
+					Add your business information before creating a payment link.
+				</p>
+				<Button asChild size="large">
+					<Link href="/account">Go to Account</Link>
+				</Button>
+			</div>
+		);
 	}
 
 	return (

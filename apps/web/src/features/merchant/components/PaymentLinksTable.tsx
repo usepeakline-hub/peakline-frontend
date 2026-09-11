@@ -5,23 +5,21 @@ import { Eye } from "lucide-react";
 import { Badge } from "@repo/ui/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { formatUsdc } from "@/lib/currency";
-import type { PaymentLink, PaymentLinkStatus } from "@/features/merchant/hooks";
+import type { PaymentLinkData, PaymentLinkStatus } from "@/lib/api/types";
 
 // A link's lifecycle isn't a payment's (Pending/Completed/Failed), but the
-// mock's own pills read identically to `StatusBadge`'s dot+pill convention
-// (green for Active, red for Expired) — reusing `Badge`'s existing
-// completed/failed color variants for that same look rather than adding a
-// third status vocabulary to the shared component. "Paid" (a link that's
-// already been used) reads the same green as Active — a distinct label is
-// enough to tell them apart, same principle as `StatusBadge` itself never
-// needing a unique color per state.
+// mock's own pills read identically to `StatusBadge`'s dot+pill convention —
+// reusing `Badge`'s existing completed/failed/cancelled color variants for
+// that same look rather than adding a third status vocabulary to the shared
+// component. No "paid" state on the real API — a link only ever tracks
+// active/expired/cancelled (see `PaymentLinkStatus`'s own comment).
 const STATUS_BADGE: Record<
 	PaymentLinkStatus,
-	{ variant: "completed" | "failed"; dot: string; label: string }
+	{ variant: "completed" | "failed" | "cancelled"; dot: string; label: string }
 > = {
 	active: { variant: "completed", dot: "bg-success-600", label: "Active" },
-	paid: { variant: "completed", dot: "bg-success-600", label: "Paid" },
 	expired: { variant: "failed", dot: "bg-danger-600", label: "Expired" },
+	cancelled: { variant: "cancelled", dot: "bg-neutral-400", label: "Cancelled" },
 };
 
 function StatusPill({ status }: { status: PaymentLinkStatus }) {
@@ -43,6 +41,16 @@ function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
 	);
 }
 
+/** e.g. "12 Aug 2026" — same short display format the fake data used to
+ * hardcode, now derived from the real ISO timestamps. */
+function formatLinkDate(iso: string) {
+	return new Date(iso).toLocaleDateString(undefined, {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	});
+}
+
 /**
  * A real `<table>` on desktop — Title, Amount, Created, Expires, Status,
  * then a dedicated Action column with an eye icon linking to the link's own
@@ -50,7 +58,7 @@ function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
  * were rebuilt from near-identical mocks). Stacked cards on mobile, same
  * field set, eye icon pinned to each card's own bottom-right corner.
  */
-function PaymentLinksTable({ links }: { links: PaymentLink[] }) {
+function PaymentLinksTable({ links }: { links: PaymentLinkData[] }) {
 	if (links.length === 0) {
 		return (
 			<p className="py-8 text-center text-b3 text-muted-foreground">
@@ -78,10 +86,10 @@ function PaymentLinksTable({ links }: { links: PaymentLink[] }) {
 							<tr key={link.id} className="border-t border-border hover:bg-muted/50">
 								<td className="p-4 text-b3 font-medium text-foreground">{link.title}</td>
 								<td className="p-4 text-b3 text-foreground">
-									{formatUsdc(link.amount)} {link.currency}
+									{formatUsdc(Number(link.amount))} {link.currency}
 								</td>
-								<td className="p-4 text-b3 text-foreground">{link.created}</td>
-								<td className="p-4 text-b3 text-foreground">{link.expiration}</td>
+								<td className="p-4 text-b3 text-foreground">{formatLinkDate(link.createdAt)}</td>
+								<td className="p-4 text-b3 text-foreground">{formatLinkDate(link.expiresAt)}</td>
 								<td className="p-4">
 									<StatusPill status={link.status} />
 								</td>
@@ -104,9 +112,12 @@ function PaymentLinksTable({ links }: { links: PaymentLink[] }) {
 				{links.map((link) => (
 					<div key={link.id} className="flex flex-col gap-3 rounded-xl border border-border p-4">
 						<CardRow label="Title" value={link.title} />
-						<CardRow label="Amount (USDC)" value={`${formatUsdc(link.amount)} ${link.currency}`} />
-						<CardRow label="Created" value={link.created} />
-						<CardRow label="Expires" value={link.expiration} />
+						<CardRow
+							label="Amount (USDC)"
+							value={`${formatUsdc(Number(link.amount))} ${link.currency}`}
+						/>
+						<CardRow label="Created" value={formatLinkDate(link.createdAt)} />
+						<CardRow label="Expires" value={formatLinkDate(link.expiresAt)} />
 						<CardRow label="Status" value={<StatusPill status={link.status} />} />
 						<div className="flex justify-end">
 							<Link

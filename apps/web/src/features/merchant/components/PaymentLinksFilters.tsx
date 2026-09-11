@@ -4,13 +4,13 @@ import { Search, Download } from "lucide-react";
 import { Input } from "@repo/ui/input";
 import { Select } from "@repo/ui/select";
 import { Button } from "@repo/ui/button";
-import type { PaymentLinkStatus } from "@/features/merchant/hooks";
+import type { PaymentLinkStatus } from "@/lib/api/types";
 
 const STATUS_OPTIONS: { value: PaymentLinkStatus | "all"; label: string }[] = [
 	{ value: "all", label: "All statuses" },
 	{ value: "active", label: "Active" },
-	{ value: "paid", label: "Paid" },
 	{ value: "expired", label: "Expired" },
+	{ value: "cancelled", label: "Cancelled" },
 ];
 
 interface PaymentLinksFiltersProps {
@@ -30,7 +30,9 @@ interface PaymentLinksFiltersProps {
  * `lg`) — kept as its own component rather than a shared generic one since
  * the two status vocabularies genuinely differ (a payment link's lifecycle
  * isn't a payment's). Filters on title, not customer name — payment links
- * aren't tied to a payer until someone actually pays them. */
+ * aren't tied to a payer until someone actually pays them. From/To bound the
+ * link's *creation* date (matching what the real `GET /payment-links`
+ * endpoint actually filters `from`/`to` on), not its expiration. */
 function PaymentLinksFilters({
 	search,
 	onSearchChange,
@@ -64,7 +66,7 @@ function PaymentLinksFilters({
 					type="date"
 					value={from}
 					onChange={(e) => onFromChange(e.target.value)}
-					aria-label="From expiration date"
+					aria-label="From creation date"
 					className="lg:w-40"
 				/>
 			</div>
@@ -75,7 +77,7 @@ function PaymentLinksFilters({
 					type="date"
 					value={to}
 					onChange={(e) => onToChange(e.target.value)}
-					aria-label="To expiration date"
+					aria-label="To creation date"
 					className="lg:w-40"
 				/>
 			</div>

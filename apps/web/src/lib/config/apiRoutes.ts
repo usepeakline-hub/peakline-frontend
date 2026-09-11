@@ -54,6 +54,20 @@ export const apiRoutes = {
 		DASHBOARD_STATS: "/api/v1/merchant/dashboard/stats",
 	},
 
+	paymentLinks: {
+		BASE: "/api/v1/payment-links",
+		STATS: "/api/v1/payment-links/stats",
+		EXPORT_CSV: "/api/v1/payment-links/export.csv",
+		byId: (id: string) => `/api/v1/payment-links/${id}`,
+		byIdCancel: (id: string) => `/api/v1/payment-links/${id}/cancel`,
+	},
+
+	// Public — no auth, used by whoever is *paying* a link, not the
+	// merchant managing it.
+	pay: {
+		byCode: (code: string) => `/api/v1/pay/${code}`,
+	},
+
 	// Merchant-only. `verify`/`suspend`/`reactivate`/`status-history` are
 	// admin/staff-only (no admin app exists per CLAUDE.md) — not called from
 	// here.

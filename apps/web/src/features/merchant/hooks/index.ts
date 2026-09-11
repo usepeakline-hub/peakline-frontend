@@ -1,9 +1,17 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
 import { useAuthStore } from "@/lib/stores/authStore";
+import { useMyBusiness } from "@/features/business/hooks";
 import type { Transaction } from "@/features/dashboard/hooks";
-import type { ApiSuccessResponse, MerchantDashboardStatsData } from "@/lib/api/types";
+import type {
+	ApiSuccessResponse,
+	MerchantDashboardStatsData,
+	PaginationMeta,
+	PaymentLinkData,
+	PaymentLinkStatsData,
+	PaymentLinkStatus,
+} from "@/lib/api/types";
 import type { CreatePaymentLinkValues } from "@/lib/validations/paymentLinksValidations";
 
 // TODO: replace with a real call into the merchant/payments API once it
@@ -283,113 +291,136 @@ function useMerchantPayments() {
 	});
 }
 
-export type PaymentLinkStatus = "active" | "paid" | "expired";
+const PAYMENT_LINKS_KEY = ["merchant", "payment-links"];
 
-export interface PaymentLink {
-	id: string;
-	title: string;
-	amount: number;
-	currency: string;
-	description?: string;
-	reference?: string;
-	/** Display string. */
-	created: string;
-	/** ISO date, for real date-range filtering (same reasoning as
-	 * `Transaction.isoDate`). */
-	isoCreated: string;
-	/** Display string. */
-	expiration: string;
-	/** ISO date, for real date-range filtering (same reasoning as
-	 * `Transaction.isoDate`). */
-	isoExpiration: string;
-	status: PaymentLinkStatus;
-	link: string;
-}
-
-const PAYMENT_LINK_TITLES = [
-	"Custom Order",
-	"Event Payment",
-	"Cloth Payment",
-	"Custom Order",
-	"Hair Payment",
-	"Job Payment",
-] as const;
-
-/** Deterministic, not random — same reasoning as `generateFakeRecentPayments`:
- * a fixed 50-row fake dataset so pagination always lands on the same content
- * instead of reshuffling on every refetch. Titles/dates match the mock's own
- * visible rows exactly; rotates through all three statuses (the mock's own
- * table only ever shows Active/Expired, but a link that's already been paid
- * is a real, reachable state too). */
-function generateFakePaymentLinks(count: number): PaymentLink[] {
-	const statuses: PaymentLinkStatus[] = ["active", "expired", "active", "paid"];
-
-	return Array.from({ length: count }, (_, i) => {
-		const title = PAYMENT_LINK_TITLES[i % PAYMENT_LINK_TITLES.length];
-		return {
-			id: `l${i + 1}`,
-			title,
-			amount: 500,
-			currency: "USDC",
-			description: `for a ${title.toLowerCase()}`,
-			created: "12 Aug 2026",
-			isoCreated: "2026-08-12",
-			expiration: "22 Aug 2026",
-			isoExpiration: "2026-08-22",
-			status: statuses[i % statuses.length],
-			link: `https://peakline.com/request/kwame-${i + 1}`,
-		};
-	});
-}
-
-const FAKE_PAYMENT_LINKS = generateFakePaymentLinks(50);
-
-/** The header stat cards' own numbers — kept as fixed values matching the
- * mock exactly (Total 8 / Active 4 / Expired 4) rather than derived from
- * `FAKE_PAYMENT_LINKS`' length, same "don't invent a reconciliation between
- * a mock's headline numbers and its own table" precedent as Overview's
- * `useMerchantOverview` vs. `useReceivedTrend`. */
-interface PaymentLinksStats {
-	total: number;
-	active: number;
-	expired: number;
-}
-
-function usePaymentLinksStats() {
-	return useQuery({
-		queryKey: ["merchant", "payment-links", "stats"],
-		queryFn: () => fakeRequest<PaymentLinksStats>({ total: 8, active: 4, expired: 4 }, 500),
-	});
+export interface PaymentLinksQuery {
+	q?: string;
+	status?: PaymentLinkStatus;
+	from?: string;
+	to?: string;
 }
 
 /**
- * Payment Links — replaces "Request Payment" for merchant accounts (same
- * underlying create-a-shareable-link idea `useCreatePaymentRequest`
- * already covers, plus a title and its own persistent list/history here).
- * Individual keeps the original `/request-payment` untouched. Reused by the
- * Payment Link detail page (finds by id from this same cached list, same
- * pattern as `useMerchantPayments` + `/payments/[id]`).
+ * Payment Links — real `/payment-links` endpoints, replacing the earlier
+ * fake single-cached-array version. Server-side filtered/paginated
+ * (`q`/`status`/`from`/`to`/`page`/`limit`) rather than fetched-once and
+ * sliced client-side, so every filter/page change re-fetches.
  */
-function useMerchantPaymentLinks() {
+function useMerchantPaymentLinks(query: PaymentLinksQuery, page: number, limit: number) {
+	const axiosAuth = useAxiosAuth();
+
 	return useQuery({
-		queryKey: ["merchant", "payment-links"],
-		queryFn: () => fakeRequest<PaymentLink[]>(FAKE_PAYMENT_LINKS),
+		queryKey: [...PAYMENT_LINKS_KEY, query, page, limit],
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<
+				ApiSuccessResponse<PaymentLinkData[]> & { meta: PaginationMeta }
+			>(apiRoutes.paymentLinks.BASE, { params: { ...query, page, limit } });
+			return { links: data.data, meta: data.meta };
+		},
 	});
 }
 
-interface PaymentLinkResult {
-	link: string;
+/** No dedicated cache entry shared with the list above — the list is now
+ * properly server-paginated, so a link viewed on the detail page isn't
+ * guaranteed to be in whatever page the list last fetched. */
+function useMerchantPaymentLink(id: string) {
+	const axiosAuth = useAxiosAuth();
+
+	return useQuery({
+		queryKey: [...PAYMENT_LINKS_KEY, id],
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<PaymentLinkData>>(
+				apiRoutes.paymentLinks.byId(id),
+			);
+			return data.data;
+		},
+		enabled: !!id,
+	});
+}
+
+function usePaymentLinksStats() {
+	const axiosAuth = useAxiosAuth();
+
+	return useQuery({
+		queryKey: [...PAYMENT_LINKS_KEY, "stats"],
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<PaymentLinkStatsData>>(
+				apiRoutes.paymentLinks.STATS,
+			);
+			return data.data;
+		},
+	});
 }
 
 function useCreatePaymentLink() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+	const { data: business } = useMyBusiness();
+
 	return useMutation({
-		mutationFn: (values: CreatePaymentLinkValues) => {
-			// Not reflected in the fake link — matches the mock's own
-			// created-panel screenshot, which shows the same static-looking
-			// URL regardless of what was entered, same base as
-			// `FAKE_MERCHANT_QR_LINK`.
-			void values;
-			return fakeRequest<PaymentLinkResult>({ link: "https://peakline.com/request/kwame" });
+		mutationFn: async (values: CreatePaymentLinkValues) => {
+			if (!business) {
+				throw new Error("Add a business before creating a payment link.");
+			}
+			// `expiration` is a date-only value off a `type="date"` input —
+			// widen to the end of that day (UTC) so the link stays usable
+			// through the whole day it's shown as expiring on, rather than
+			// expiring at midnight.
+			const expiresAt = new Date(`${values.expiration}T23:59:59.999Z`).toISOString();
+			const { data } = await axiosAuth.post<ApiSuccessResponse<PaymentLinkData>>(
+				apiRoutes.paymentLinks.BASE,
+				{
+					title: values.title,
+					amount: values.amount,
+					currency: "USDC",
+					businessId: business.id,
+					expiresAt,
+					description: values.description || undefined,
+					customerReference: values.reference || undefined,
+				},
+			);
+			return data.data;
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: PAYMENT_LINKS_KEY }),
+	});
+}
+
+function useCancelPaymentLink() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (id: string) => {
+			const { data } = await axiosAuth.post<ApiSuccessResponse<PaymentLinkData>>(
+				apiRoutes.paymentLinks.byIdCancel(id),
+			);
+			return data.data;
+		},
+		onSuccess: (link) => {
+			queryClient.setQueryData([...PAYMENT_LINKS_KEY, link.id], link);
+			queryClient.invalidateQueries({ queryKey: PAYMENT_LINKS_KEY });
+		},
+	});
+}
+
+/** Blob download, same reasoning as the QR-code PNG download — a plain
+ * `<a href>` wouldn't carry the `Authorization` header the proxy's
+ * interceptor attaches. Runs the same filters as the list/stats views. */
+function useExportPaymentLinksCsv() {
+	const axiosAuth = useAxiosAuth();
+
+	return useMutation({
+		mutationFn: async (query: PaymentLinksQuery) => {
+			const response = await axiosAuth.get<Blob>(apiRoutes.paymentLinks.EXPORT_CSV, {
+				params: query,
+				responseType: "blob",
+			});
+			const url = URL.createObjectURL(response.data);
+			const anchor = document.createElement("a");
+			anchor.href = url;
+			anchor.download = `payment-links-${new Date().toISOString().slice(0, 10)}.csv`;
+			anchor.click();
+			URL.revokeObjectURL(url);
 		},
 	});
 }
@@ -405,11 +436,14 @@ export {
 	useMerchantPayments,
 	useMerchantTransactions,
 	useMerchantPaymentLinks,
+	useMerchantPaymentLink,
 	usePaymentLinksStats,
 	useCreatePaymentLink,
+	useCancelPaymentLink,
+	useExportPaymentLinksCsv,
 	useReceivedTrend,
 	useRecentPayments,
 	FAKE_BUSINESS_NAME,
 	FAKE_MERCHANT_QR_LINK,
 };
-export type { MerchantOverviewData, ReceivedTrendPoint };
+export type { MerchantOverviewData, ReceivedTrendPoint, PaymentLinkStatus };

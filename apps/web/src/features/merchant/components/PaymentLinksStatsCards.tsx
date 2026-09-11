@@ -22,7 +22,8 @@ function PaymentLinksStatsCards() {
 
 	if (!data) {
 		return (
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+				<StatCardSkeleton />
 				<StatCardSkeleton />
 				<StatCardSkeleton />
 				<StatCardSkeleton />
@@ -31,7 +32,7 @@ function PaymentLinksStatsCards() {
 	}
 
 	return (
-		<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+		<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
 				<span className="text-b3 text-muted-foreground">Total Links</span>
 				<span className="text-h4 text-foreground">{data.total}</span>
@@ -45,6 +46,11 @@ function PaymentLinksStatsCards() {
 			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
 				<span className="text-b3 text-muted-foreground">Expired Links</span>
 				<span className="text-h4 text-foreground">{data.expired}</span>
+			</div>
+
+			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
+				<span className="text-b3 text-muted-foreground">Cancelled Links</span>
+				<span className="text-h4 text-foreground">{data.cancelled}</span>
 			</div>
 		</div>
 	);
