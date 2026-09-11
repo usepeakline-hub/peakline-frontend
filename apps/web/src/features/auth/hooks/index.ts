@@ -18,6 +18,7 @@ import type {
 	AuthTokensData,
 	OtpSentData,
 	CustomerType,
+	ProfileData,
 	StellarWalletData,
 } from "@/lib/api/types";
 import type {
@@ -64,8 +65,27 @@ const CUSTOMER_TYPE_MAP: Record<AccountTypeValues["accountType"], CustomerType> 
 function useRouteAfterLogin() {
 	const router = useRouter();
 	const axiosAuth = useAxiosAuth();
+	const setCustomerType = useAuthStore((state) => state.setCustomerType);
 
 	return async function routeAfterLogin() {
+		// The real, authoritative `customerType` — confirmed live against the
+		// API that `/auth/login`'s own response never carries one
+		// (AuthTokensDto is just the token pair), but `GET /users/me`
+		// (ProfileDto) does. Fetched fresh on every login rather than trusted
+		// from whatever's cached client-side, since that cache has already
+		// drifted from reality once (a dev-only override forced every login
+		// to cache "merchant" for a while) — a stale guess is worse than a
+		// short wait for the real answer.
+		try {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<ProfileData>>(
+				apiRoutes.users.ME,
+			);
+			if (data.data.customerType) setCustomerType(data.data.customerType);
+		} catch {
+			// Non-fatal — falls back to whatever's already cached/cookied,
+			// same as before this fetch existed.
+		}
+
 		try {
 			await axiosAuth.get(apiRoutes.wallets.STELLAR);
 			router.push("/");
