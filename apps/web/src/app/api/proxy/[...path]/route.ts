@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE_URL, buildProxyHeaders } from "@/lib/server/apiProxy";
 
-async function forward(request: NextRequest, path: string[]) {
-	try {
-		const targetUrl = `${API_BASE_URL}/${path.join("/")}${request.nextUrl.search}`;
+// Bounds every proxied call — without this, a hung/slow upstream leaves the
+// `fetch` below (and every layer above it: the browser's axios call, the
+// TanStack Query mutation/query it backs) waiting indefinitely with nothing
+// ever logged, which is exactly what a silent "stuck in loading" bug looks
+// like. `axiosAuth`/`axiosPublic`'s own client-side timeout (see
+// lib/config/axios.ts) is set longer than this on purpose, so THIS timeout
+// fires first and the client gets a real, backend-shaped 504 body to show
+// instead of a bare client-side timeout error.
+const UPSTREAM_TIMEOUT_MS = 20_000;
 
+async function forward(request: NextRequest, path: string[]) {
+	const method = request.method;
+	const targetPath = `/${path.join("/")}`;
+	const targetUrl = `${API_BASE_URL}${targetPath}${request.nextUrl.search}`;
+	const startedAt = Date.now();
+
+	console.log(`[proxy] -> ${method} ${targetPath}`);
+
+	try {
 		const headers = new Headers();
 
 		const contentType = request.headers.get("content-type");
@@ -19,7 +34,7 @@ async function forward(request: NextRequest, path: string[]) {
 			headers.set(key, value);
 		}
 
-		const hasBody = !["GET", "HEAD"].includes(request.method);
+		const hasBody = !["GET", "HEAD"].includes(method);
 		// Buffered rather than streamed straight through — a streamed request
 		// body needs `duplex: "half"` on Node's fetch, which can be flaky
 		// under Turbopack dev. Fine at this app's request sizes (JSON only,
@@ -27,12 +42,17 @@ async function forward(request: NextRequest, path: string[]) {
 		const body = hasBody ? await request.arrayBuffer() : undefined;
 
 		const upstreamResponse = await fetch(targetUrl, {
-			method: request.method,
+			method,
 			headers,
 			body,
+			signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
 		});
 
 		const responseBody = await upstreamResponse.arrayBuffer();
+		const duration = Date.now() - startedAt;
+		const logLine = `[proxy] <- ${upstreamResponse.status} ${method} ${targetPath} ${duration}ms`;
+		if (upstreamResponse.status >= 500) console.error(logLine);
+		else console.log(logLine);
 
 		return new NextResponse(responseBody, {
 			status: upstreamResponse.status,
@@ -42,15 +62,28 @@ async function forward(request: NextRequest, path: string[]) {
 			},
 		});
 	} catch (error) {
-		console.error("Proxy request failed:", error);
+		const duration = Date.now() - startedAt;
+		// `AbortSignal.timeout` rejects with a `TimeoutError` DOMException —
+		// distinct from a genuine connection failure (DNS, ECONNREFUSED, the
+		// backend being down entirely), which is worth telling apart in the
+		// logs and in the error code the client sees.
+		const timedOut = error instanceof Error && error.name === "TimeoutError";
+
+		console.error(
+			`[proxy] xx ${method} ${targetPath} ${duration}ms —`,
+			timedOut ? `no response from upstream after ${UPSTREAM_TIMEOUT_MS}ms` : error,
+		);
 
 		return NextResponse.json(
 			{
-				statusCode: 502,
-				message: "Failed to reach the API. Please try again.",
+				statusCode: timedOut ? 504 : 502,
+				code: timedOut ? "UPSTREAM_TIMEOUT" : "UPSTREAM_UNREACHABLE",
+				message: timedOut
+					? "The server took too long to respond. Please try again."
+					: "Failed to reach the API. Please try again.",
 				timestamp: new Date().toISOString(),
 			},
-			{ status: 502 },
+			{ status: timedOut ? 504 : 502 },
 		);
 	}
 }
