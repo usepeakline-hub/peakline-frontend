@@ -1,32 +1,118 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { FundWalletValues } from "@/lib/validations/walletValidations";
+import { isAxiosError } from "axios";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAxiosAuth } from "@/hooks/useAxiosAuth";
+import { apiRoutes } from "@/lib/config/apiRoutes";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { useMyBusiness } from "@/features/business/hooks";
+import type {
+	ApiSuccessResponse,
+	FundCurrency,
+	FundQuoteData,
+	FundWalletResultData,
+	StellarWalletData,
+} from "@/lib/api/types";
 
-// TODO: replace with a real call into the wallet/ledger API once one exists
-// for actually submitting a funding request (POST /wallets/stellar/fund
-// funds a *testnet* wallet directly — a different thing from "process this
-// funding form" here). Fails about 1 in 4 times on purpose — with no real backend yet, that's
-// the only way to actually exercise the Failed step rather than leaving it
-// dead code.
-async function fakeProcessFunding(values: FundWalletValues) {
-	await new Promise((resolve) => setTimeout(resolve, 1800));
-	if (Math.random() < 0.25) {
-		throw new Error("Funding could not be processed");
-	}
-	return values;
+const MY_WALLET_KEY = ["wallet", "mine"];
+
+/**
+ * The wallet this account should display/fund. An individual has exactly
+ * one personal wallet (`GET /wallets/stellar`). A merchant's own money
+ * moves through their BUSINESS wallet instead — that's what a Payment
+ * Link's `destinationAddress` actually pays into — found via
+ * `GET /wallets/stellar/list` (personal wallet + every business wallet you
+ * own, each tagged with its own `business` object) matched against
+ * `useMyBusiness()`. Resolves the earlier open question of which wallet the
+ * merchant UI actually means, rather than silently pointing at the
+ * account's own personal wallet (which nothing else in the merchant
+ * experience ever pays into).
+ *
+ * Returns `null` (not an error) for "no wallet yet" — an individual mid
+ * sign-up before `useSetupWallet` ran, or a merchant whose business hasn't
+ * had a wallet provisioned yet (see `useCreateBusinessWallet`).
+ */
+function useMyWallet() {
+	const axiosAuth = useAxiosAuth();
+	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
+	const { data: business, isLoading: isLoadingBusiness } = useMyBusiness({
+		enabled: isMerchant,
+	});
+
+	return useQuery({
+		queryKey: [...MY_WALLET_KEY, isMerchant, business?.id ?? null],
+		queryFn: async (): Promise<StellarWalletData | null> => {
+			if (!isMerchant) {
+				try {
+					const { data } = await axiosAuth.get<ApiSuccessResponse<StellarWalletData>>(
+						apiRoutes.wallets.STELLAR,
+					);
+					return data.data;
+				} catch (error) {
+					if (isAxiosError(error) && error.response?.status === 404) return null;
+					throw error;
+				}
+			}
+
+			if (!business) return null;
+			const { data } = await axiosAuth.get<ApiSuccessResponse<StellarWalletData[]>>(
+				apiRoutes.wallets.LIST,
+			);
+			return data.data.find((wallet) => wallet.business?.id === business.id) ?? null;
+		},
+		enabled: isMerchant ? !isLoadingBusiness : true,
+	});
 }
 
-/** Fired by the Processing step on mount. Success invalidates the
- * dashboard's balance query so it refetches (the fake backend doesn't
- * actually persist the new balance, so the number itself won't move — but
- * the refetch itself is real, standing in for what a real one would do). */
-function useProcessFunding() {
+/** Provisions the wallet for a merchant's own business — the empty-state
+ * action when `useMyWallet` resolves to `null` for a merchant who has a
+ * business but no wallet on it yet. */
+function useCreateBusinessWallet(businessId: string) {
+	const axiosAuth = useAxiosAuth();
 	const queryClient = useQueryClient();
+
 	return useMutation({
-		mutationFn: fakeProcessFunding,
+		mutationFn: async () => {
+			const { data } = await axiosAuth.post<ApiSuccessResponse<StellarWalletData>>(
+				apiRoutes.businesses.byIdWallet(businessId),
+			);
+			return data.data;
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: MY_WALLET_KEY }),
+	});
+}
+
+/** A preview, not an action — `POST /wallets/stellar/fund/quote`. */
+function useFundQuote() {
+	const axiosAuth = useAxiosAuth();
+
+	return useMutation({
+		mutationFn: async (input: { amount: number; currency: FundCurrency }) => {
+			const { data } = await axiosAuth.post<ApiSuccessResponse<FundQuoteData>>(
+				apiRoutes.wallets.FUND_QUOTE,
+				{ amount: input.amount.toFixed(2), currency: input.currency },
+			);
+			return data.data;
+		},
+	});
+}
+
+/** The real action — deposits free test USDC into `address` via the
+ * platform's testnet faucet. Fired by the Processing step on mount. */
+function useFundWallet() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (input: { address: string; amount: string }) => {
+			const { data } = await axiosAuth.post<ApiSuccessResponse<FundWalletResultData>>(
+				apiRoutes.wallets.FUND,
+				input,
+			);
+			return data.data;
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["dashboard", "balance"] });
 		},
 	});
 }
 
-export { useProcessFunding };
+export { useMyWallet, useCreateBusinessWallet, useFundQuote, useFundWallet };

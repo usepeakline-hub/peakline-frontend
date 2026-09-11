@@ -4,18 +4,19 @@ import { Check } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
-import type { FundWalletValues } from "@/lib/validations/walletValidations";
+import type { FundWalletResultData } from "@/lib/api/types";
 
 interface FundingSuccessStepProps {
-	values: FundWalletValues;
+	result: FundWalletResultData;
 	onGoToDashboard: () => void;
 	onViewTransactions: () => void;
 }
 
-/** Step 4a. "New Balance" is computed (current + funded), not copied from
- * the mock — its own screenshot shows the new balance as just the funded
- * amount, which would be wrong for a real wallet that already had money in
- * it, so this always adds to whatever the dashboard's balance query has.
+/** Step 4a. `result` is the real faucet response (`txHash`/`amount`/
+ * `asset`). New Balance reads straight from `useWalletBalance`, refetched
+ * via the funding mutation's own cache invalidation, rather than computed
+ * client-side (current + funded) — a real, already-updated balance exists
+ * to ask for now, same reasoning Send/Pay's own real success steps use.
  *
  * `min-h-full` + `justify-center` vertically centers this the same way
  * `FundingProcessingStep` already does — has no effect inside the desktop
@@ -23,12 +24,12 @@ interface FundingSuccessStepProps {
  * to nothing there per spec), only on the mobile full-page route, which is
  * exactly what's wanted. */
 function FundingSuccessStep({
-	values,
+	result,
 	onGoToDashboard,
 	onViewTransactions,
 }: FundingSuccessStepProps) {
 	const { data: balance } = useWalletBalance();
-	const newBalance = (balance?.amount ?? 0) + values.amount;
+	const amount = Number(result.amount);
 
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
@@ -46,21 +47,23 @@ function FundingSuccessStep({
 					You have successfully added
 				</p>
 				<p className="text-h5 text-foreground sm:text-h4">
-					{formatUsdc(values.amount)} USDC
+					{formatUsdc(amount)} {result.asset}
 				</p>
 				<p className="text-b4 text-muted-foreground sm:text-b3">
-					~ GHS {formatUsdc(usdcToGhs(values.amount))} to your wallet
+					~ GHS {formatUsdc(usdcToGhs(amount))} to your wallet
 				</p>
 			</div>
 
 			<div className="flex w-full flex-col gap-1 rounded-xl border border-secondary-300 bg-secondary-100 p-4 sm:p-5">
 				<span className="text-c1 text-muted-foreground sm:text-b3">New Balance</span>
 				<span className="text-h5 text-foreground sm:text-h4">
-					{formatUsdc(newBalance)} USDC
+					{balance ? `${formatUsdc(balance.amount)} ${balance.currency}` : "—"}
 				</span>
-				<span className="text-c1 text-muted-foreground sm:text-b3">
-					~ GHS {formatUsdc(usdcToGhs(newBalance))}
-				</span>
+				{balance && (
+					<span className="text-c1 text-muted-foreground sm:text-b3">
+						~ GHS {formatUsdc(usdcToGhs(balance.amount))}
+					</span>
+				)}
 			</div>
 
 			<div className="flex w-full flex-col items-center gap-4">

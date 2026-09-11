@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
-import { Select } from "@repo/ui/select";
+import { Skeleton } from "@repo/ui/skeleton";
+import { toast } from "@repo/ui/sonner";
 import {
 	Form,
 	FormField,
@@ -13,11 +15,11 @@ import {
 	FormControl,
 	FormMessage,
 } from "@repo/ui/form";
-import {
-	fundWalletSchema,
-	FUNDING_METHODS,
-	type FundWalletValues,
-} from "@/lib/validations/walletValidations";
+import { fundWalletSchema, type FundWalletValues } from "@/lib/validations/walletValidations";
+import { useMyWallet, useCreateBusinessWallet } from "@/features/wallet/hooks";
+import { useMyBusiness } from "@/features/business/hooks";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
@@ -29,26 +31,104 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 	);
 }
 
+/**
+ * A merchant's own wallet is their BUSINESS's wallet (see `useMyWallet`'s
+ * own note) — not automatically provisioned, same "no way to add one" gap
+ * Business Information itself had before its own empty-state fix. Shown in
+ * place of the amount form until a business (and its wallet) exists.
+ */
+function MerchantWalletPrompt() {
+	const { data: business, isLoading } = useMyBusiness();
+
+	if (isLoading) {
+		return (
+			<div className="flex flex-col gap-4">
+				<Skeleton className="h-32 w-full rounded-2xl" />
+			</div>
+		);
+	}
+
+	if (!business) {
+		return (
+			<div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center">
+				<p className="text-b3 text-muted-foreground">
+					Add your business information before funding a wallet.
+				</p>
+				<Button asChild size="large">
+					<Link href="/account">Go to Account</Link>
+				</Button>
+			</div>
+		);
+	}
+
+	return <CreateBusinessWalletPrompt businessId={business.id} />;
+}
+
+function CreateBusinessWalletPrompt({ businessId }: { businessId: string }) {
+	const createWallet = useCreateBusinessWallet(businessId);
+
+	function handleCreate() {
+		createWallet.mutate(undefined, {
+			onError: (error) =>
+				toast.error(getApiErrorMessage(error, "Couldn't create your business wallet")),
+		});
+	}
+
+	return (
+		<div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center">
+			<p className="text-b3 text-muted-foreground">
+				Your business doesn&apos;t have a wallet yet.
+			</p>
+			<Button type="button" size="large" loading={createWallet.isPending} onClick={handleCreate}>
+				Create Business Wallet
+			</Button>
+		</div>
+	);
+}
+
 interface FundWalletFormStepProps {
 	defaultValues?: FundWalletValues | null;
 	onContinue: (values: FundWalletValues) => void;
 }
 
-/** Step 1 — amount + funding method, with a live GHS estimate and summary
- * preview once the amount is valid. Shared by the desktop modal and the
- * mobile /wallet/fund page. */
+/** Step 1 — an amount only now (no funding-method picker; the real backend
+ * has no fiat on-ramp, so the earlier Mobile Money/Bank/Card picker was
+ * fake from the start — see `walletValidations.ts`). Shared by the desktop
+ * modal and the mobile /wallet/fund page. Gates on `useMyWallet` first: a
+ * merchant with no business, or a business with no wallet yet, has nothing
+ * to fund.
+ */
 function FundWalletFormStep({ defaultValues, onContinue }: FundWalletFormStepProps) {
+	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
+	const { data: wallet, isLoading: isLoadingWallet } = useMyWallet();
 	const form = useForm<FundWalletValues>({
 		resolver: zodResolver(fundWalletSchema),
 		defaultValues: {
 			amount: (defaultValues?.amount ?? "") as unknown as number,
-			fundingMethod:
-				defaultValues?.fundingMethod ??
-				(undefined as unknown as FundWalletValues["fundingMethod"]),
 		},
 	});
 	const amount = Number(form.watch("amount"));
 	const amountValid = amount > 0 && !form.formState.errors.amount;
+
+	if (isLoadingWallet) {
+		return (
+			<div className="flex flex-col gap-4">
+				<Skeleton className="h-11 w-full" />
+				<Skeleton className="h-11 w-full" />
+			</div>
+		);
+	}
+
+	if (!wallet) {
+		if (isMerchant) return <MerchantWalletPrompt />;
+		// Shouldn't normally happen — sign-up's own `SetPinForm` already
+		// creates the individual's wallet — but the type allows it.
+		return (
+			<p className="py-6 text-center text-b3 text-muted-foreground">
+				Your wallet hasn&apos;t been set up yet.
+			</p>
+		);
+	}
 
 	return (
 		<Form {...form}>
@@ -89,39 +169,11 @@ function FundWalletFormStep({ defaultValues, onContinue }: FundWalletFormStepPro
 				/>
 
 				{amountValid && (
-					<SummaryRow label="You will receive" value={`${formatUsdc(amount)} USDC`} />
-				)}
-
-				<FormField
-					control={form.control}
-					name="fundingMethod"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Funding Method</FormLabel>
-							<FormControl>
-								<Select {...field} value={field.value ?? ""}>
-									<option value="" disabled>
-										Select funding method
-									</option>
-									{FUNDING_METHODS.map((method) => (
-										<option key={method.value} value={method.value}>
-											{method.label}
-										</option>
-									))}
-								</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				{amountValid && (
 					<div className="flex flex-col gap-2.5 rounded-xl border border-secondary-300 bg-secondary-100 p-4 sm:gap-3 sm:p-5">
 						<span className="text-c1 text-muted-foreground sm:text-b3">Summary</span>
 						<SummaryRow label="Amount" value={`${formatUsdc(amount)} USDC`} />
-						<SummaryRow label="You will receive" value={`${formatUsdc(amount)} USDC`} />
-						<SummaryRow label="Network" value="Stellar" />
-						<SummaryRow label="Est. Fee" value="0.00 USDC" />
+						<SummaryRow label="Network" value="Stellar (testnet)" />
+						<SummaryRow label="Source" value="Peakline test faucet" />
 					</div>
 				)}
 

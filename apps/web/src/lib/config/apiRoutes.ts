@@ -48,6 +48,21 @@ export const apiRoutes = {
 
 	wallets: {
 		STELLAR: "/api/v1/wallets/stellar",
+		// Personal wallet + every business wallet you own (merchant) — the
+		// only way to find a *business's* wallet, since there's no
+		// `GET /businesses/{id}/wallet`.
+		LIST: "/api/v1/wallets/stellar/list",
+		// Testnet faucet — sends free test USDC straight to any address, no
+		// real funding source involved. This, not the intent flow below, is
+		// what Fund Wallet actually uses.
+		FUND: "/api/v1/wallets/stellar/fund",
+		FUND_QUOTE: "/api/v1/wallets/stellar/fund/quote",
+		// `fund/intent` + `fund/intent/{id}` (announce you're about to send
+		// USDC from an external wallet, then poll until it's matched) exist
+		// on the backend but aren't wired here — nothing in this app can
+		// actually act as that external sender (no external-wallet
+		// integration), so building the UI for it would be a dead end with
+		// no way to ever reach "completed".
 	},
 
 	merchant: {
@@ -84,6 +99,9 @@ export const apiRoutes = {
 	businesses: {
 		BASE: "/api/v1/businesses",
 		byId: (id: string) => `/api/v1/businesses/${id}`,
+		// Provisions the business's own wallet — no GET counterpart; find an
+		// existing one via `wallets.LIST` instead, matching on `business.id`.
+		byIdWallet: (id: string) => `/api/v1/businesses/${id}/wallet`,
 	},
 
 	// A generic wallet ledger (deposit/withdrawal/internal_transfer/

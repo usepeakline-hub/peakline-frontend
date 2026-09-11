@@ -2,19 +2,23 @@
 
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
-import { useProcessFunding } from "@/features/wallet/hooks";
-import type { FundWalletValues } from "@/lib/validations/walletValidations";
+import { useFundWallet, useMyWallet } from "@/features/wallet/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import { formatUsdc } from "@/lib/currency";
+import type { FundQuoteData, FundWalletResultData } from "@/lib/api/types";
 
 interface FundingProcessingStepProps {
-	values: FundWalletValues;
-	onSettled: (result: "success" | "failed") => void;
+	quote: FundQuoteData;
+	onSuccess: (result: FundWalletResultData) => void;
+	onError: (message: string) => void;
 }
 
-/** Step 3 — fires the actual (fake) funding request on mount and reports
- * back once it settles. No back button and no close button on the dialog
- * for this step (see FundWalletDialog) — a transaction in flight shouldn't
- * be dismissable.
+/** Step 3 — fires the real faucet deposit on mount and reports back once it
+ * settles. `useMyWallet` is re-read here (cheap — same cache the form step
+ * already populated) rather than threading the address through props/store,
+ * same "just re-fetch it" pattern `useWalletBalance` gets everywhere else.
+ * No back button and no close button on the dialog for this step (see
+ * `FundWalletDialog`) — a transaction in flight shouldn't be dismissable.
  *
  * `min-h-full` centers the loader within whatever height the mobile page's
  * own container resolves to (the dashboard's `main` stretches via `flex-1`
@@ -23,23 +27,31 @@ interface FundingProcessingStepProps {
  * Inside the desktop dialog this has no effect (its container's height is
  * auto/content-sized, so percentage heights resolve to nothing there per
  * spec) — exactly what's wanted, since the dialog was never the problem. */
-function FundingProcessingStep({ values, onSettled }: FundingProcessingStepProps) {
-	const processFunding = useProcessFunding();
+function FundingProcessingStep({ quote, onSuccess, onError }: FundingProcessingStepProps) {
+	const { data: wallet } = useMyWallet();
+	const fundWallet = useFundWallet();
 	// Guards against React 18/19 StrictMode's double-invoked effects firing
-	// this twice in dev, which would otherwise kick off two fake requests.
+	// this twice in dev, which would otherwise kick off two real deposits.
 	const started = useRef(false);
 
 	useEffect(() => {
 		if (started.current) return;
+		if (!wallet) return;
 		started.current = true;
-		processFunding.mutate(values, {
-			onSuccess: () => onSettled("success"),
-			onError: () => onSettled("failed"),
-		});
-		// Intentionally run once on mount — `values`/`onSettled`/`processFunding`
+		fundWallet.mutate(
+			{ address: wallet.publicKey, amount: quote.receiveAmount },
+			{
+				onSuccess: (result) => onSuccess(result),
+				onError: (error) =>
+					onError(getApiErrorMessage(error, "Funding could not be processed")),
+			},
+		);
+		// Intentionally re-checked only while waiting on `wallet` to resolve
+		// (it's already cached by this point in the flow, so this fires on
+		// the very next render); `quote`/`onSuccess`/`onError`/`fundWallet`
 		// are stable for the lifetime of this step.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [wallet]);
 
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-6 text-center sm:py-10">
@@ -52,8 +64,8 @@ function FundingProcessingStep({ values, onSettled }: FundingProcessingStepProps
 					Processing your funding
 				</h2>
 				<p className="text-b4 text-muted-foreground sm:text-b3">
-					Adding {formatUsdc(values.amount)} USDC to your wallet — this only
-					takes a moment.
+					Adding {formatUsdc(Number(quote.receiveAmount))} USDC to your wallet — this
+					only takes a moment.
 				</p>
 			</div>
 		</div>

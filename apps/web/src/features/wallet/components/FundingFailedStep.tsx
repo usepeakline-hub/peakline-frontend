@@ -3,10 +3,10 @@
 import { X, RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { formatUsdc } from "@/lib/currency";
-import type { FundWalletValues } from "@/lib/validations/walletValidations";
 
 interface FundingFailedStepProps {
-	values: FundWalletValues;
+	amount: number;
+	errorMessage: string;
 	onTryAgain: () => void;
 	onGoToDashboard: () => void;
 }
@@ -14,8 +14,17 @@ interface FundingFailedStepProps {
 /** Step 4b — no reference mock for this one; built to mirror the success
  * step's layout (same icon-badge + message + card + actions shape) with
  * the destructive palette instead, including its `min-h-full` +
- * `justify-center` vertical-centering fix (see `FundingSuccessStep`'s note). */
-function FundingFailedStep({ values, onTryAgain, onGoToDashboard }: FundingFailedStepProps) {
+ * `justify-center` vertical-centering fix (see `FundingSuccessStep`'s note).
+ * `errorMessage` is the real backend failure reason — most likely
+ * `MAINNET_FAUCET_FORBIDDEN` (if the network is ever switched) or
+ * `FAUCET_SUBMIT_FAILED` (Horizon rejected the transaction), not a fixed
+ * line about a funding source that no longer exists. */
+function FundingFailedStep({
+	amount,
+	errorMessage,
+	onTryAgain,
+	onGoToDashboard,
+}: FundingFailedStepProps) {
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-destructive sm:size-20">
@@ -29,10 +38,9 @@ function FundingFailedStep({ values, onTryAgain, onGoToDashboard }: FundingFaile
 			<div className="flex flex-col gap-2">
 				<h2 className="text-s1 text-foreground sm:text-h5">Funding Failed</h2>
 				<p className="text-b4 text-muted-foreground sm:text-b3">
-					We couldn&apos;t add {formatUsdc(values.amount)} USDC to your wallet.
-					Your funding source hasn&apos;t been charged — please try again or
-					use a different funding method.
+					We couldn&apos;t add {formatUsdc(amount)} USDC to your wallet.
 				</p>
+				<p className="text-b4 text-muted-foreground sm:text-b3">{errorMessage}</p>
 			</div>
 
 			<div className="flex w-full flex-col items-center gap-4">

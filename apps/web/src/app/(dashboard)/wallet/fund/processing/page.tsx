@@ -7,20 +7,27 @@ import { useFundWalletFlowStore } from "@/features/wallet/store/fundWalletFlowSt
 
 export default function FundingProcessingPage() {
 	const router = useRouter();
-	const values = useFundWalletFlowStore((state) => state.values);
+	const quote = useFundWalletFlowStore((state) => state.quote);
+	const setResult = useFundWalletFlowStore((state) => state.setResult);
+	const setErrorMessage = useFundWalletFlowStore((state) => state.setErrorMessage);
 
 	useEffect(() => {
-		if (!values) router.replace("/wallet/fund");
-	}, [values, router]);
+		if (!quote) router.replace("/wallet/fund");
+	}, [quote, router]);
 
-	if (!values) return null;
+	if (!quote) return null;
 
 	return (
 		<FundingProcessingStep
-			values={values}
-			onSettled={(result) =>
-				router.replace(`/wallet/fund/${result === "success" ? "success" : "failed"}`)
-			}
+			quote={quote}
+			onSuccess={(result) => {
+				setResult(result);
+				router.replace("/wallet/fund/success");
+			}}
+			onError={(message) => {
+				setErrorMessage(message);
+				router.replace("/wallet/fund/failed");
+			}}
 		/>
 	);
 }

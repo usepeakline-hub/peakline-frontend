@@ -8,14 +8,14 @@ import { useFundWalletFlowStore } from "@/features/wallet/store/fundWalletFlowSt
 
 export default function FundingSuccessPage() {
 	const router = useRouter();
-	const values = useFundWalletFlowStore((state) => state.values);
+	const result = useFundWalletFlowStore((state) => state.result);
 	const reset = useFundWalletFlowStore((state) => state.reset);
 
 	useEffect(() => {
-		if (!values) router.replace("/wallet/fund");
-	}, [values, router]);
+		if (!result) router.replace("/wallet/fund");
+	}, [result, router]);
 
-	if (!values) return null;
+	if (!result) return null;
 
 	function goToDashboard() {
 		reset();
@@ -31,7 +31,7 @@ export default function FundingSuccessPage() {
 		<div className="flex flex-col gap-6">
 			<MobileStepHeader title="Fund Wallet" onBack={goToDashboard} />
 			<FundingSuccessStep
-				values={values}
+				result={result}
 				onGoToDashboard={goToDashboard}
 				onViewTransactions={viewTransactions}
 			/>

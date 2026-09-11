@@ -11,6 +11,7 @@ import {
 	DialogDescription,
 } from "@repo/ui/dialog";
 import type { FundWalletValues } from "@/lib/validations/walletValidations";
+import type { FundQuoteData, FundWalletResultData } from "@/lib/api/types";
 import { FundWalletFormStep } from "./FundWalletFormStep";
 import { ConfirmFundingStep } from "./ConfirmFundingStep";
 import { FundingProcessingStep } from "./FundingProcessingStep";
@@ -31,6 +32,9 @@ function FundWalletDialog({ children }: { children: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState<Step>("form");
 	const [values, setValues] = useState<FundWalletValues | null>(null);
+	const [quote, setQuote] = useState<FundQuoteData | null>(null);
+	const [result, setResult] = useState<FundWalletResultData | null>(null);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	function handleOpenChange(next: boolean) {
 		setOpen(next);
@@ -40,6 +44,9 @@ function FundWalletDialog({ children }: { children: React.ReactNode }) {
 			setTimeout(() => {
 				setStep("form");
 				setValues(null);
+				setQuote(null);
+				setResult(null);
+				setErrorMessage(null);
 			}, 200);
 		}
 	}
@@ -72,7 +79,7 @@ function FundWalletDialog({ children }: { children: React.ReactNode }) {
 						<DialogHeader>
 							<DialogTitle>Fund Wallet</DialogTitle>
 							<DialogDescription>
-								Add money to your Peakline wallet.
+								Add test USDC to your Peakline wallet.
 							</DialogDescription>
 						</DialogHeader>
 						<FundWalletFormStep
@@ -92,29 +99,40 @@ function FundWalletDialog({ children }: { children: React.ReactNode }) {
 						</DialogHeader>
 						<ConfirmFundingStep
 							values={values}
-							onContinue={() => setStep("processing")}
+							onContinue={(confirmedQuote) => {
+								setQuote(confirmedQuote);
+								setStep("processing");
+							}}
 						/>
 					</>
 				)}
 
-				{step === "processing" && values && (
+				{step === "processing" && quote && (
 					<FundingProcessingStep
-						values={values}
-						onSettled={(result) => setStep(result)}
+						quote={quote}
+						onSuccess={(fundResult) => {
+							setResult(fundResult);
+							setStep("success");
+						}}
+						onError={(message) => {
+							setErrorMessage(message);
+							setStep("failed");
+						}}
 					/>
 				)}
 
-				{step === "success" && values && (
+				{step === "success" && result && (
 					<FundingSuccessStep
-						values={values}
+						result={result}
 						onGoToDashboard={handleGoToDashboard}
 						onViewTransactions={handleViewTransactions}
 					/>
 				)}
 
-				{step === "failed" && values && (
+				{step === "failed" && values && errorMessage && (
 					<FundingFailedStep
-						values={values}
+						amount={values.amount}
+						errorMessage={errorMessage}
 						onTryAgain={() => setStep("confirm")}
 						onGoToDashboard={handleGoToDashboard}
 					/>

@@ -9,8 +9,9 @@ import { useFundWalletFlowStore } from "@/features/wallet/store/fundWalletFlowSt
 export default function ConfirmFundingPage() {
 	const router = useRouter();
 	const values = useFundWalletFlowStore((state) => state.values);
+	const setQuote = useFundWalletFlowStore((state) => state.setQuote);
 
-	// Reached without an amount/method chosen in this session — send back.
+	// Reached without an amount chosen in this session — send back.
 	useEffect(() => {
 		if (!values) router.replace("/wallet/fund");
 	}, [values, router]);
@@ -25,7 +26,10 @@ export default function ConfirmFundingPage() {
 			/>
 			<ConfirmFundingStep
 				values={values}
-				onContinue={() => router.push("/wallet/fund/processing")}
+				onContinue={(quote) => {
+					setQuote(quote);
+					router.push("/wallet/fund/processing");
+				}}
 			/>
 		</div>
 	);

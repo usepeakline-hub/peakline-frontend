@@ -127,7 +127,15 @@ export interface AccountDeletionStatusData {
 	graceDays: number;
 }
 
-/** `POST/GET /wallets/stellar`. */
+export interface WalletBusinessData {
+	id: string;
+	name: string;
+}
+
+/** `POST/GET /wallets/stellar`, `GET /wallets/stellar/list`. `business` is
+ * only ever attached by the list endpoint — present (non-null) on a
+ * business's own wallet, omitted entirely on the single get/create
+ * endpoints (which only ever return the caller's personal wallet). */
 export interface StellarWalletData {
 	id: string;
 	walletType: CustomerType;
@@ -137,6 +145,37 @@ export interface StellarWalletData {
 	federationAddress?: string | null;
 	deactivatedAt?: string | null;
 	createdAt: string;
+	business?: WalletBusinessData | null;
+}
+
+export type FundCurrency = "USDC" | "GHS";
+
+/** `POST /wallets/stellar/fund/quote` — a preview, not an action. */
+export interface FundQuoteData {
+	amount: string;
+	currency: FundCurrency;
+	network: string;
+	/** Self-funding your own wallet is free — this is here for whenever
+	 * that stops being universally true. */
+	fee: string;
+	receiveAmount: string;
+	receiveCurrency: string;
+	/** Live 1 USDC → GHS rate. */
+	fxRate: string;
+	/** GHS equivalent of `amount` — only set when `currency` is `"USDC"`. */
+	fxEquivalent?: string | null;
+}
+
+/** `POST /wallets/stellar/fund` — the testnet faucet. Sends free test USDC
+ * straight to `address`; there's no real funding *source* involved (no
+ * card/bank/mobile-money — those don't exist on this backend), which is why
+ * Fund Wallet no longer asks for one. Fails with 403 if the network is ever
+ * switched to mainnet (`MAINNET_FAUCET_FORBIDDEN`) — a faucet has no
+ * business existing there. */
+export interface FundWalletResultData {
+	txHash: string;
+	amount: string;
+	asset: string;
 }
 
 /** The `meta` sibling to `data` on every paginated list endpoint

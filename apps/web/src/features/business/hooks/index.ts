@@ -12,7 +12,7 @@ const MY_BUSINESS_KEY = ["business", "mine"];
  * the rest of the app already makes (e.g. `FAKE_BUSINESS_NAME`). Returns
  * `undefined` (not an error) for a merchant account that skipped/never
  * completed Business Information. */
-function useMyBusiness() {
+function useMyBusiness(options?: { enabled?: boolean }) {
 	const axiosAuth = useAxiosAuth();
 
 	return useQuery({
@@ -23,6 +23,7 @@ function useMyBusiness() {
 			);
 			return data.data[0] ?? null;
 		},
+		enabled: options?.enabled,
 	});
 }
 

@@ -9,13 +9,14 @@ import { useFundWalletFlowStore } from "@/features/wallet/store/fundWalletFlowSt
 export default function FundingFailedPage() {
 	const router = useRouter();
 	const values = useFundWalletFlowStore((state) => state.values);
+	const errorMessage = useFundWalletFlowStore((state) => state.errorMessage);
 	const reset = useFundWalletFlowStore((state) => state.reset);
 
 	useEffect(() => {
-		if (!values) router.replace("/wallet/fund");
-	}, [values, router]);
+		if (!values || !errorMessage) router.replace("/wallet/fund");
+	}, [values, errorMessage, router]);
 
-	if (!values) return null;
+	if (!values || !errorMessage) return null;
 
 	function goToDashboard() {
 		reset();
@@ -26,7 +27,8 @@ export default function FundingFailedPage() {
 		<div className="flex flex-col gap-6">
 			<MobileStepHeader title="Fund Wallet" onBack={goToDashboard} />
 			<FundingFailedStep
-				values={values}
+				amount={values.amount}
+				errorMessage={errorMessage}
 				onTryAgain={() => router.push("/wallet/fund/confirm")}
 				onGoToDashboard={goToDashboard}
 			/>

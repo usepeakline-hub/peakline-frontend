@@ -5,11 +5,14 @@ import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader"
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { ReceiveQrCard } from "@/features/receive/components/ReceiveQrCard";
 import { ReceiveInfoCard } from "@/features/receive/components/ReceiveInfoCard";
-import { FAKE_WALLET_ADDRESS, maskWalletAddress } from "@/lib/wallet";
+import { useMyWallet } from "@/features/wallet/hooks";
+import { maskWalletAddress } from "@/lib/wallet";
 import { FAKE_PAYMENT_LINK } from "@/lib/receive";
 
 export default function ReceivePage() {
 	const router = useRouter();
+	const { data: wallet } = useMyWallet();
+	const walletAddress = wallet?.publicKey ?? "";
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
@@ -29,8 +32,8 @@ export default function ReceivePage() {
 					/>
 					<ReceiveInfoCard
 						label="Copy Wallet Address"
-						value={maskWalletAddress(FAKE_WALLET_ADDRESS)}
-						copyValue={FAKE_WALLET_ADDRESS}
+						value={walletAddress ? maskWalletAddress(walletAddress) : "No wallet yet"}
+						copyValue={walletAddress}
 					/>
 					<ReceiveInfoCard
 						label="Share Payment Request"
