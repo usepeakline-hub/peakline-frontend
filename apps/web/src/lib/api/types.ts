@@ -208,3 +208,46 @@ export interface EnrollTotpData {
 	otpAuthUri: string;
 	recoveryCodes: string[];
 }
+
+/** A single money-with-comparison figure — `totalReceived`/`todaysPayments`
+ * on `MerchantDashboardStatsData`. `amount` is a decimal string; `changePct`
+ * is `null` when the comparison baseline was 0. `changeVsLabel` is a
+ * snake_case label ("previous_month", "yesterday") describing what it's
+ * compared against — not an enum the docs pin down, so treated as an
+ * arbitrary string and humanized at render time rather than mapped 1:1. */
+export interface DashboardMoneyData {
+	amount: string;
+	currency: string;
+	changePct: number | null;
+	changeVsLabel: string;
+}
+
+export interface DashboardPendingData {
+	amount: string;
+	currency: string;
+	count: number;
+}
+
+export interface DashboardBucketData {
+	label: string;
+	value: string;
+}
+
+export interface DashboardChartData {
+	period: "year" | "month" | "week";
+	currency: string;
+	total: string;
+	buckets: DashboardBucketData[];
+}
+
+/** `GET /merchant/dashboard/stats` — one call covers both Overview's three
+ * stat cards (`totalReceived`/`todaysPayments`/`pending`) and the Total
+ * Received chart (`chart`, shaped by the `period` query param); the
+ * `period` param only changes `chart` — the other three fields reflect the
+ * same all-time/today/pending totals regardless of it. */
+export interface MerchantDashboardStatsData {
+	totalReceived: DashboardMoneyData;
+	todaysPayments: DashboardMoneyData;
+	pending: DashboardPendingData;
+	chart: DashboardChartData;
+}

@@ -15,12 +15,32 @@ function StatCardSkeleton() {
 	);
 }
 
+function ChangeIndicator({ pct, label }: { pct: number | null; label: string }) {
+	// `changePct` is null when the comparison baseline was 0 (the real
+	// endpoint's own documented behavior) — nothing meaningful to show a
+	// percent change against, so this renders neither the icon nor a
+	// misleading 0%/blank number.
+	if (pct === null) {
+		return <span className="text-c1 text-muted-foreground">{label}</span>;
+	}
+	return (
+		<span className="flex items-center gap-1 text-c1 text-success">
+			<TrendingUp className="size-3.5" aria-hidden="true" />
+			{pct}% {label}
+		</span>
+	);
+}
+
 /**
  * Merchant Overview's three headline numbers — analytics-flavored, unlike
  * the individual dashboard's single `BalanceCard`. The mock shows these
  * with a "$" prefix; kept to the app's own "amount USDC" convention instead
  * (see `formatUsdc`/`BalanceCard`) rather than introducing a one-off
- * dollar-sign format nowhere else in the app uses.
+ * dollar-sign format nowhere else in the app uses. Real as of
+ * `GET /merchant/dashboard/stats` — the comparison label under each of the
+ * first two now reflects what that stat is actually compared against
+ * ("vs previous month" / "vs yesterday") instead of both hardcoding
+ * "this month".
  */
 function MerchantStatsCards() {
 	const { data } = useMerchantOverview();
@@ -42,10 +62,7 @@ function MerchantStatsCards() {
 				<span className="text-h4 text-foreground">
 					{formatUsdc(data.totalReceived)} {data.currency}
 				</span>
-				<span className="flex items-center gap-1 text-c1 text-success">
-					<TrendingUp className="size-3.5" aria-hidden="true" />
-					{data.totalReceivedChangePct}% this month
-				</span>
+				<ChangeIndicator pct={data.totalReceivedChangePct} label={data.totalReceivedChangeLabel} />
 			</div>
 
 			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
@@ -53,10 +70,7 @@ function MerchantStatsCards() {
 				<span className="text-h4 text-foreground">
 					{formatUsdc(data.todaysPayments)} {data.currency}
 				</span>
-				<span className="flex items-center gap-1 text-c1 text-success">
-					<TrendingUp className="size-3.5" aria-hidden="true" />
-					{data.todaysPaymentsChangePct}% this month
-				</span>
+				<ChangeIndicator pct={data.todaysPaymentsChangePct} label={data.todaysPaymentsChangeLabel} />
 			</div>
 
 			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">

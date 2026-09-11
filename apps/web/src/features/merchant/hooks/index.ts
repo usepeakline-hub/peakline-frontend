@@ -1,6 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useAxiosAuth } from "@/hooks/useAxiosAuth";
+import { apiRoutes } from "@/lib/config/apiRoutes";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { Transaction } from "@/features/dashboard/hooks";
+import type { ApiSuccessResponse, MerchantDashboardStatsData } from "@/lib/api/types";
 import type { CreatePaymentLinkValues } from "@/lib/validations/paymentLinksValidations";
 
 // TODO: replace with a real call into the merchant/payments API once it
@@ -10,11 +13,46 @@ async function fakeRequest<T>(payload: T, delay = 800): Promise<T> {
 	return payload;
 }
 
+export type ReceivedTrendPeriod = "week" | "month" | "year";
+
+/** "previous_month" -> "vs previous month" — `changeVsLabel` isn't a fixed
+ * enum the docs pin down, so this humanizes whatever snake_case string
+ * comes back instead of hardcoding "this month" for every stat (the fake
+ * version said that for both Total Received *and* Today's Payments, even
+ * though the latter really compares against yesterday). */
+function humanizeChangeLabel(label: string) {
+	return `vs ${label.replace(/_/g, " ")}`;
+}
+
+/** Both Overview's three stat cards and its Total Received chart come from
+ * this one real endpoint (`GET /merchant/dashboard/stats`) — `period` only
+ * changes the `chart` field, so `useMerchantOverview` calls it with a fixed
+ * period (the other three fields don't vary by period) while
+ * `useReceivedTrend` passes through whatever the chart's own selector
+ * chose. Same query key when both happen to want "month" lets React Query
+ * dedupe the two into one request. */
+function useMerchantDashboardStats(period: ReceivedTrendPeriod) {
+	const axiosAuth = useAxiosAuth();
+
+	return useQuery({
+		queryKey: ["merchant", "dashboard-stats", period],
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<MerchantDashboardStatsData>>(
+				apiRoutes.merchant.DASHBOARD_STATS,
+				{ params: { period } },
+			);
+			return data.data;
+		},
+	});
+}
+
 interface MerchantOverviewData {
 	totalReceived: number;
-	totalReceivedChangePct: number;
+	totalReceivedChangePct: number | null;
+	totalReceivedChangeLabel: string;
 	todaysPayments: number;
-	todaysPaymentsChangePct: number;
+	todaysPaymentsChangePct: number | null;
+	todaysPaymentsChangeLabel: string;
 	pending: number;
 	pendingCount: number;
 	currency: string;
@@ -23,30 +61,24 @@ interface MerchantOverviewData {
 /** Merchant Overview's three headline stats — a merchant-specific query,
  * distinct from the individual dashboard's `useWalletBalance` (a single
  * spendable balance means nothing to a merchant's own "how's business
- * going" view). */
+ * going" view). Real as of `GET /merchant/dashboard/stats`. */
 function useMerchantOverview() {
-	return useQuery({
-		queryKey: ["merchant", "overview"],
-		queryFn: () =>
-			fakeRequest<MerchantOverviewData>({
-				totalReceived: 24000,
-				totalReceivedChangePct: 5.2,
-				todaysPayments: 4000,
-				todaysPaymentsChangePct: 5.2,
-				pending: 2000,
-				pendingCount: 2,
-				currency: "USDC",
-			}),
-	});
-}
+	const { data, ...rest } = useMerchantDashboardStats("month");
 
-/** The trend chart under Overview's "Total Received" heading — one month
- * "selected" (Apr in the mock, both breakpoints) as the highlighted x-axis
- * label. The mock's own headline number (4,250 USDC) doesn't match this
- * chart's Y-axis scale (tens of thousands) — kept exactly as shown rather
- * than inventing a reconciliation between the two, same as the standalone
- * "Total Received" stat card's own $24,000 figure not matching either. */
-export type ReceivedTrendPeriod = "week" | "month" | "year";
+	const overview: MerchantOverviewData | undefined = data && {
+		totalReceived: Number(data.totalReceived.amount),
+		totalReceivedChangePct: data.totalReceived.changePct,
+		totalReceivedChangeLabel: humanizeChangeLabel(data.totalReceived.changeVsLabel),
+		todaysPayments: Number(data.todaysPayments.amount),
+		todaysPaymentsChangePct: data.todaysPayments.changePct,
+		todaysPaymentsChangeLabel: humanizeChangeLabel(data.todaysPayments.changeVsLabel),
+		pending: Number(data.pending.amount),
+		pendingCount: data.pending.count,
+		currency: data.totalReceived.currency,
+	};
+
+	return { ...rest, data: overview };
+}
 
 interface ReceivedTrendPoint {
 	label: string;
@@ -60,56 +92,26 @@ interface ReceivedTrendData {
 	points: ReceivedTrendPoint[];
 }
 
-// The mock only ever shows "This month" — these other two periods are a
-// real (if simple) response to picking them, not a dead dropdown.
-const RECEIVED_TREND_BY_PERIOD: Record<ReceivedTrendPeriod, ReceivedTrendData> = {
-	month: {
-		total: 4250,
-		currency: "USDC",
-		selectedLabel: "Apr",
-		points: [
-			{ label: "Jan", amount: 45000 },
-			{ label: "Feb", amount: 65000 },
-			{ label: "Mar", amount: 42000 },
-			{ label: "Apr", amount: 85000 },
-			{ label: "May", amount: 48000 },
-			{ label: "Jun", amount: 70000 },
-			{ label: "Jul", amount: 65000 },
-			{ label: "Aug", amount: 58000 },
-		],
-	},
-	week: {
-		total: 1180,
-		currency: "USDC",
-		selectedLabel: "Thu",
-		points: [
-			{ label: "Mon", amount: 12000 },
-			{ label: "Tue", amount: 18000 },
-			{ label: "Wed", amount: 9000 },
-			{ label: "Thu", amount: 24000 },
-			{ label: "Fri", amount: 16000 },
-			{ label: "Sat", amount: 20000 },
-			{ label: "Sun", amount: 11000 },
-		],
-	},
-	year: {
-		total: 38900,
-		currency: "USDC",
-		selectedLabel: "2025",
-		points: [
-			{ label: "2022", amount: 210000 },
-			{ label: "2023", amount: 340000 },
-			{ label: "2024", amount: 295000 },
-			{ label: "2025", amount: 410000 },
-		],
-	},
-};
-
+/** The trend chart under Overview's "Total Received" heading. Real as of
+ * the same `GET /merchant/dashboard/stats` `useMerchantOverview` uses, just
+ * reading `chart` instead — there's no "selected" bucket in the real
+ * response (the mock's own highlighted "Apr" pill was never more than
+ * decorative), so this highlights the most recent bucket instead, the
+ * closest real equivalent to "the current period". */
 function useReceivedTrend(period: ReceivedTrendPeriod) {
-	return useQuery({
-		queryKey: ["merchant", "received-trend", period],
-		queryFn: () => fakeRequest(RECEIVED_TREND_BY_PERIOD[period], 700),
-	});
+	const { data, ...rest } = useMerchantDashboardStats(period);
+
+	const trend: ReceivedTrendData | undefined = data && {
+		total: Number(data.chart.total),
+		currency: data.chart.currency,
+		selectedLabel: data.chart.buckets.at(-1)?.label ?? "",
+		points: data.chart.buckets.map((bucket) => ({
+			label: bucket.label,
+			amount: Number(bucket.value),
+		})),
+	};
+
+	return { ...rest, data: trend };
 }
 
 const RECENT_PAYMENT_CUSTOMERS = [

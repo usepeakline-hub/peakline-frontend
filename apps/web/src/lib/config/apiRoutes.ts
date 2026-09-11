@@ -50,6 +50,10 @@ export const apiRoutes = {
 		STELLAR: "/api/v1/wallets/stellar",
 	},
 
+	merchant: {
+		DASHBOARD_STATS: "/api/v1/merchant/dashboard/stats",
+	},
+
 	// Merchant-only. `verify`/`suspend`/`reactivate`/`status-history` are
 	// admin/staff-only (no admin app exists per CLAUDE.md) — not called from
 	// here.
