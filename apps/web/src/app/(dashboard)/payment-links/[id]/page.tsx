@@ -1,7 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { SearchX } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { PaymentLinkDetailCard } from "@/features/merchant/components/PaymentLinkDetailCard";
@@ -40,9 +42,11 @@ export default function PaymentLinkDetailPage() {
 					<Skeleton className="h-72 w-full rounded-2xl" />
 				</div>
 			) : isError || !link ? (
-				<p className="py-8 text-center text-b3 text-muted-foreground">
-					{getApiErrorMessage(error, "Payment link not found.")}
-				</p>
+				<EmptyState
+					icon={SearchX}
+					title="Payment link not found"
+					description={getApiErrorMessage(error, "It may have been cancelled, or the link is out of date.")}
+				/>
 			) : (
 				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
 					<PaymentLinkDetailCard link={link} />

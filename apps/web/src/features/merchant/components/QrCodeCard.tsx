@@ -2,10 +2,11 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { QrCode, Camera, Download } from "lucide-react";
+import { QrCode, Camera, Download, Wallet, Building2 } from "lucide-react";
 import QRCodeSvg from "react-qr-code";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { Logo } from "@repo/ui/logo";
 import { toast } from "@repo/ui/sonner";
 import { downloadSvgAsPng } from "@/lib/qrImage";
@@ -54,27 +55,34 @@ function QrCodeCard() {
 
 	if (!business) {
 		return (
-			<div className="flex max-w-xl flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center sm:p-12">
-				<p className="text-b3 text-muted-foreground">
-					Add your business information before generating a QR code.
-				</p>
-				<Button asChild size="large">
-					<Link href="/account">Go to Account</Link>
-				</Button>
+			<div className="max-w-xl rounded-2xl border border-border bg-background">
+				<EmptyState
+					icon={Building2}
+					title="No business yet"
+					description="Add your business information before generating a QR code."
+					action={
+						<Button asChild size="large">
+							<Link href="/account">Go to Account</Link>
+						</Button>
+					}
+				/>
 			</div>
 		);
 	}
 
 	if (!wallet) {
 		return (
-			<div className="flex max-w-xl flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center sm:p-12">
-				<p className="text-b3 text-muted-foreground">
-					Your business doesn&apos;t have a wallet yet — set one up from the Wallet page
-					before generating a QR code.
-				</p>
-				<Button asChild size="large">
-					<Link href="/wallet">Go to Wallet</Link>
-				</Button>
+			<div className="max-w-xl rounded-2xl border border-border bg-background">
+				<EmptyState
+					icon={Wallet}
+					title="No business wallet yet"
+					description="Your business doesn't have a wallet yet — set one up from the Wallet page before generating a QR code."
+					action={
+						<Button asChild size="large">
+							<Link href="/wallet">Go to Wallet</Link>
+						</Button>
+					}
+				/>
 			</div>
 		);
 	}

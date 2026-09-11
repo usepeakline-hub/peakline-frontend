@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeftRight } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { Pagination } from "@/components/Pagination";
 import { useTransactions, type TransactionsQuery } from "@/features/transactions/hooks";
 import { TransactionRow } from "@/features/transactions/components/TransactionRow";
@@ -74,9 +76,11 @@ function TransactionHistoryList() {
 			{isLoading || !data ? (
 				<TransactionHistoryListSkeleton />
 			) : data.transactions.length === 0 ? (
-				<p className="py-8 text-center text-b3 text-muted-foreground">
-					No transactions match your search.
-				</p>
+				<EmptyState
+					icon={ArrowLeftRight}
+					title="No transactions yet"
+					description="Nothing matches your search, or your history is still empty — send, receive, or pay someone to get started."
+				/>
 			) : (
 				<>
 					<div className="flex flex-col">

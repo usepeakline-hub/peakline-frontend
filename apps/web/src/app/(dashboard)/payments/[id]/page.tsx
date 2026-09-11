@@ -1,7 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { SearchX } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { TransactionDetail } from "@/features/transactions/components/TransactionDetail";
 import { useTransaction } from "@/features/transactions/hooks";
@@ -41,9 +43,11 @@ export default function PaymentDetailPage() {
 					<Skeleton className="h-32 w-full rounded-xl" />
 				</div>
 			) : isError || !payment ? (
-				<p className="py-8 text-center text-b3 text-muted-foreground">
-					{getApiErrorMessage(error, "Payment not found.")}
-				</p>
+				<EmptyState
+					icon={SearchX}
+					title="Payment not found"
+					description={getApiErrorMessage(error, "It may have been removed, or the link is out of date.")}
+				/>
 			) : (
 				<TransactionDetail transaction={payment} />
 			)}

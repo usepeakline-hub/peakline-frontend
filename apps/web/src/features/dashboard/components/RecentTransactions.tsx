@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeftRight } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { useRecentTransactions } from "@/features/dashboard/hooks";
 import { TransactionRow } from "@/features/transactions/components/TransactionRow";
 
@@ -45,6 +47,12 @@ function RecentTransactions() {
 
 			{!data ? (
 				<RecentTransactionsSkeleton />
+			) : data.length === 0 ? (
+				<EmptyState
+					icon={ArrowLeftRight}
+					title="No transactions yet"
+					description="Send, receive, or pay someone to see your activity here."
+				/>
 			) : (
 				<div className="flex flex-col">
 					{data.map((transaction) => (

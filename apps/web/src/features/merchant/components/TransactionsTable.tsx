@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, ArrowLeftRight } from "lucide-react";
 import { StatusBadge } from "@repo/ui/badge";
+import { EmptyState } from "@repo/ui/empty-state";
 import {
 	METHOD_LABEL,
 	transactionTitle,
@@ -32,9 +33,11 @@ function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
 function TransactionsTable({ transactions }: { transactions: TransactionData[] }) {
 	if (transactions.length === 0) {
 		return (
-			<p className="py-8 text-center text-b3 text-muted-foreground">
-				No transactions match your filters.
-			</p>
+			<EmptyState
+				icon={ArrowLeftRight}
+				title="No transactions yet"
+				description="Nothing matches your current filters, or your ledger is still empty."
+			/>
 		);
 	}
 

@@ -3,6 +3,7 @@
 import { Bell, Check, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@repo/ui/dialog";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { toast } from "@repo/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
@@ -131,10 +132,11 @@ function NotificationsPanel({
 							<Skeleton key={i} className="h-16 w-full rounded-xl" />
 						))
 					) : !data || data.length === 0 ? (
-						<div className="flex flex-col items-center gap-2 py-10 text-center">
-							<Bell className="size-8 text-muted-foreground" aria-hidden="true" />
-							<p className="text-b3 text-muted-foreground">No notifications yet.</p>
-						</div>
+						<EmptyState
+							icon={Bell}
+							title="No notifications yet"
+							description="You'll see updates about your account and activity here."
+						/>
 					) : (
 						data.map((notification) => (
 							<NotificationRow key={notification.id} notification={notification} />

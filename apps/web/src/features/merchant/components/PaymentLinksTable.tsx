@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, Link2 } from "lucide-react";
 import { Badge } from "@repo/ui/badge";
+import { EmptyState } from "@repo/ui/empty-state";
 import { cn } from "@repo/ui/lib/utils";
 import { formatUsdc } from "@/lib/currency";
 import type { PaymentLinkData, PaymentLinkStatus } from "@/lib/api/types";
@@ -61,9 +62,11 @@ function formatLinkDate(iso: string) {
 function PaymentLinksTable({ links }: { links: PaymentLinkData[] }) {
 	if (links.length === 0) {
 		return (
-			<p className="py-8 text-center text-b3 text-muted-foreground">
-				No payment links match your filters.
-			</p>
+			<EmptyState
+				icon={Link2}
+				title="No payment links yet"
+				description="Nothing matches your current filters, or you haven't created a payment link yet."
+			/>
 		);
 	}
 

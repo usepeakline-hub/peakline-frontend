@@ -2,8 +2,10 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Building2 } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
+import { EmptyState } from "@repo/ui/empty-state";
 import {
 	Form,
 	FormField,
@@ -65,13 +67,17 @@ function CreatePaymentLinkForm({ onCreated }: CreatePaymentLinkFormProps) {
 	// specifically.
 	if (!isLoadingBusiness && !business) {
 		return (
-			<div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center">
-				<p className="text-b3 text-muted-foreground">
-					Add your business information before creating a payment link.
-				</p>
-				<Button asChild size="large">
-					<Link href="/account">Go to Account</Link>
-				</Button>
+			<div className="rounded-2xl border border-border bg-background">
+				<EmptyState
+					icon={Building2}
+					title="No business yet"
+					description="Add your business information before creating a payment link."
+					action={
+						<Button asChild size="large">
+							<Link href="/account">Go to Account</Link>
+						</Button>
+					}
+				/>
 			</div>
 		);
 	}

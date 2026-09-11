@@ -1,8 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, SearchX } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { TransactionDetail } from "@/features/transactions/components/TransactionDetail";
 import { useTransaction } from "@/features/transactions/hooks";
@@ -56,9 +57,11 @@ export default function TransactionDetailPage() {
 					<Skeleton className="h-32 w-full rounded-xl" />
 				</div>
 			) : isError || !transaction ? (
-				<p className="py-8 text-center text-b3 text-muted-foreground">
-					{getApiErrorMessage(error, "Transaction not found.")}
-				</p>
+				<EmptyState
+					icon={SearchX}
+					title="Transaction not found"
+					description={getApiErrorMessage(error, "It may have been removed, or the link is out of date.")}
+				/>
 			) : (
 				<TransactionDetail transaction={transaction} />
 			)}

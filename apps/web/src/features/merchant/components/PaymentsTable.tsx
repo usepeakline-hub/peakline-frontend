@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, Receipt } from "lucide-react";
 import { StatusBadge } from "@repo/ui/badge";
+import { EmptyState } from "@repo/ui/empty-state";
 import {
 	METHOD_LABEL,
 	transactionCounterpartyLabel,
@@ -41,9 +42,11 @@ function customerLabel(payment: TransactionData) {
 function PaymentsTable({ payments }: { payments: TransactionData[] }) {
 	if (payments.length === 0) {
 		return (
-			<p className="py-8 text-center text-b3 text-muted-foreground">
-				No payments match your filters.
-			</p>
+			<EmptyState
+				icon={Receipt}
+				title="No payments yet"
+				description="Payments from your customers will show up here once they come in."
+			/>
 		);
 	}
 

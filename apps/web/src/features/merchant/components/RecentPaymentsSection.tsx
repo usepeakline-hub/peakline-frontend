@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Receipt } from "lucide-react";
 import { StatusBadge } from "@repo/ui/badge";
 import { Skeleton } from "@repo/ui/skeleton";
+import { EmptyState } from "@repo/ui/empty-state";
 import { Pagination } from "@/components/Pagination";
 import { useTransactions } from "@/features/transactions/hooks";
 import {
@@ -72,6 +74,12 @@ function RecentPaymentsSection() {
 
 			{!data ? (
 				<RecentPaymentsSkeleton />
+			) : data.transactions.length === 0 ? (
+				<EmptyState
+					icon={Receipt}
+					title="No payments yet"
+					description="Payments from your customers will show up here once they come in."
+				/>
 			) : (
 				<>
 					<div className="hidden overflow-x-auto rounded-xl border border-border lg:block">

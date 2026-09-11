@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { Copy, QrCode, Download } from "lucide-react";
+import { Copy, QrCode, Download, Link2 } from "lucide-react";
 import QRCodeSvg from "react-qr-code";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/button";
+import { EmptyState } from "@repo/ui/empty-state";
 import {
 	Dialog,
 	DialogTrigger,
@@ -88,9 +89,12 @@ function PaymentLinkCreatedCard({
 }) {
 	if (!link) {
 		return (
-			<div className="flex min-h-full flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-background p-8 text-center sm:p-12">
-				<h2 className="text-b2 font-semibold text-foreground sm:text-b1">{title}</h2>
-				<p className="text-b3 text-muted-foreground">No payment link created yet</p>
+			<div className="flex min-h-full flex-col items-center justify-center rounded-2xl border border-border bg-background p-8 sm:p-12">
+				<EmptyState
+					icon={Link2}
+					title="No payment link created yet"
+					description="Fill in the details on the left to create one."
+				/>
 			</div>
 		);
 	}
