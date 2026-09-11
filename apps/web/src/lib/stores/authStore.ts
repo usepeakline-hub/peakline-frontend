@@ -9,19 +9,16 @@ const CUSTOMER_TYPE_COOKIE = "pl_customer_type";
 const USER_ROLE_COOKIE = "pl_user_role";
 const WALLET_ADDRESS_COOKIE = "pl_wallet_address";
 
-// ---------------------------------------------------------------------
-// TEMPORARY — for building the merchant UI locally without a real merchant
-// account handy. Forces `customerType` to "merchant" everywhere it's ever
-// set (fresh cookies, login, verify-email, the account-type step), so the
-// app shows the merchant experience regardless of what's actually
-// authenticated. Set back to `null` (or delete this block and its one call
-// site below) once merchant UI work is done — leaving this on would make
-// every real individual login show as merchant too.
-// ---------------------------------------------------------------------
-const DEV_FORCE_CUSTOMER_TYPE: CustomerType | null = "merchant";
-
+// A dev-only override used to force `customerType` to "merchant" (for
+// building the merchant UI without a real merchant account handy) used to
+// live here. Removed — it was still on, live, silently making every real
+// individual account request merchant-only endpoints (403 "Merchant
+// account required" on things like `/merchant/dashboard/stats", visible in
+// the console once query/mutation errors started being logged). This is
+// now a pure passthrough; kept as a named function since a few call sites
+// below already go through it.
 function resolveCustomerType(value: CustomerType | null): CustomerType | null {
-	return DEV_FORCE_CUSTOMER_TYPE ?? value;
+	return value;
 }
 
 // The backend doesn't document a refresh-token lifetime ("long-lived,
