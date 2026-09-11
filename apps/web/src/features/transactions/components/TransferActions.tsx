@@ -1,26 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { Send, ArrowDownLeft, HandCoins } from "lucide-react";
+import { Send, ArrowDownLeft } from "lucide-react";
 
 const ACTIONS = [
 	{ label: "Send", href: "/send", icon: Send },
 	{ label: "Receive", href: "/receive", icon: ArrowDownLeft },
-	{ label: "Request", href: "/request-payment", icon: HandCoins },
 ] as const;
 
 /**
  * The mobile Transactions tab's primary job, per the mock: a chooser for
- * the three transfer directions. `lg:hidden` — at desktop widths the
- * Sidebar already lists Send/Receive/Request Payment as their own nav
- * items, so repeating them here would be redundant (confirmed by the
- * desktop mock, which shows none of this on `/transactions`). "Pay" (scan)
- * has its own dedicated spot either way — `BottomTabBar`'s elevated center
- * action — so it's not included here alongside these three.
+ * transfer direction. `lg:hidden` — at desktop widths the Sidebar already
+ * lists Send/Receive as their own nav items, so repeating them here would
+ * be redundant (confirmed by the desktop mock, which shows none of this on
+ * `/transactions`). "Pay" (scan) has its own dedicated spot either way —
+ * `BottomTabBar`'s elevated center action — so it's not included here
+ * alongside these two.
  */
 function TransferActions() {
 	return (
-		<div className="grid grid-cols-3 gap-3 sm:gap-4 lg:hidden">
+		<div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
 			{ACTIONS.map(({ label, href, icon: Icon }) => (
 				<Link
 					key={label}

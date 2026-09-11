@@ -4,26 +4,6 @@ import { apiRoutes } from "@/lib/config/apiRoutes";
 import { usdcToGhs } from "@/lib/currency";
 import type { ApiSuccessResponse, BalanceData, TransactionData } from "@/lib/api/types";
 
-// TODO: replace with real calls into the wallet/ledger API once it exists.
-// Each section fetches independently (and on its own fake delay) so the
-// skeletons genuinely demonstrate sections loading at different times,
-// the way real, separately-fetched widgets would.
-async function fakeRequest<T>(payload: T, delay = 900): Promise<T> {
-	await new Promise((resolve) => setTimeout(resolve, delay));
-	return payload;
-}
-
-interface GreetingData {
-	firstName: string;
-}
-
-function useGreeting() {
-	return useQuery({
-		queryKey: ["dashboard", "greeting"],
-		queryFn: () => fakeRequest<GreetingData>({ firstName: "Kwame" }, 500),
-	});
-}
-
 interface WalletBalanceSummary {
 	amount: number;
 	currency: string;
@@ -64,15 +44,6 @@ function useWalletBalance() {
 	});
 }
 
-/** Static today, but fetched like the rest — quick actions are the kind of
- * thing a backend would eventually personalize/reorder per account. */
-function useQuickActionsReady() {
-	return useQuery({
-		queryKey: ["dashboard", "quick-actions"],
-		queryFn: () => fakeRequest(true, 650),
-	});
-}
-
 /** The dashboard's abbreviated "Recent Transactions" — the same real
  * `GET /transactions` `TransactionHistoryList` uses, just the first page at
  * a small page size and no filters. Scoped server-side by account type
@@ -93,10 +64,5 @@ function useRecentTransactions(limit = 4) {
 	});
 }
 
-export {
-	useGreeting,
-	useWalletBalance,
-	useQuickActionsReady,
-	useRecentTransactions,
-};
-export type { GreetingData, WalletBalanceSummary };
+export { useWalletBalance, useRecentTransactions };
+export type { WalletBalanceSummary };

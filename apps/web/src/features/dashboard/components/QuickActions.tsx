@@ -1,36 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { Send, ArrowDownLeft, ScanLine, HandCoins } from "lucide-react";
-import { Skeleton } from "@repo/ui/skeleton";
-import { useQuickActionsReady } from "@/features/dashboard/hooks";
+import { Send, ArrowDownLeft, ScanLine } from "lucide-react";
 
 const ACTIONS = [
 	{ label: "Send", href: "/send", icon: Send },
 	{ label: "Receive", href: "/receive", icon: ArrowDownLeft },
 	{ label: "Pay", href: "/pay", icon: ScanLine },
-	{ label: "Request", href: "/request-payment", icon: HandCoins },
 ] as const;
 
-function QuickActionsSkeleton() {
-	return (
-		<div className="grid grid-cols-4 gap-2 sm:gap-4">
-			{ACTIONS.map((action) => (
-				<Skeleton key={action.label} className="h-24 w-full rounded-xl sm:h-28" />
-			))}
-		</div>
-	);
-}
-
-/** Stays a single row of 4 at every width, per the mock (mobile just
- * shrinks padding/icon size rather than wrapping to a 2x2 grid). */
+/** Stays a single row at every width, per the mock (mobile just shrinks
+ * padding/icon size rather than wrapping). Static links, not
+ * data-dependent — the earlier loading-skeleton gate here was timed
+ * entirely artificially (no real "quick actions" endpoint has ever
+ * existed), so it's dropped rather than kept as a delay with nothing real
+ * behind it. */
 function QuickActions() {
-	const { isPending } = useQuickActionsReady();
-
-	if (isPending) return <QuickActionsSkeleton />;
-
 	return (
-		<div className="grid grid-cols-4 gap-2 sm:gap-4">
+		<div className="grid grid-cols-3 gap-2 sm:gap-4">
 			{ACTIONS.map(({ label, href, icon: Icon }) => (
 				<Link
 					key={label}

@@ -29,9 +29,9 @@ function isActive(pathname: string, href: string) {
  * over) — a curated 5 destinations rather than the sidebar's full list,
  * with "Pay" as an elevated center scan/pay action, per the mobile mock.
  * "Transactions" is a hub, not a plain history page: `/transactions`
- * itself leads with a Send/Receive/Request chooser (see `TransferActions`)
- * before the actual history list, so those three don't need their own tab
- * slots — reachable from there or the dashboard's Quick Actions either way.
+ * itself leads with a Send/Receive chooser (see `TransferActions`) before
+ * the actual history list, so those two don't need their own tab slots —
+ * reachable from there or the dashboard's Quick Actions either way.
  * Profile and Settings are merged into one "Account" tab — Logout lives
  * there too; the bottom nav has no room for either as its own slot, and
  * neither is frequent enough to deserve one.

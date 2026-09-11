@@ -28,14 +28,12 @@ interface CreatePaymentLinkFormProps {
 }
 
 /**
- * Merchant's own take on `RequestPaymentForm` — same amount/description/
- * reference shape, plus a "Payment Title" up top (the mock's own reason
- * this exists as a separate feature rather than just reusing that form
- * outright), and a required Expiration Date the individual's request-payment
- * form has no equivalent of. The mock's own screen showed "Description
- * (optional)" twice in a row — kept to one field, since a form asking the
- * same optional question twice reads as a mock duplication bug, not a
- * deliberate design.
+ * Merchant's own payment-collection form — a title, amount, optional
+ * description/reference, and a required Expiration Date (individuals have
+ * no equivalent of this at all; only a business can create a payment
+ * link). The mock's own screen showed "Description (optional)" twice in a
+ * row — kept to one field, since a form asking the same optional question
+ * twice reads as a mock duplication bug, not a deliberate design.
  */
 function CreatePaymentLinkForm({ onCreated }: CreatePaymentLinkFormProps) {
 	const { data: business, isLoading: isLoadingBusiness } = useMyBusiness();

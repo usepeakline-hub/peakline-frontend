@@ -1,31 +1,38 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { QrCode, Camera, Download } from "lucide-react";
 import QRCodeSvg from "react-qr-code";
 import { Button } from "@repo/ui/button";
+import { Skeleton } from "@repo/ui/skeleton";
 import { Logo } from "@repo/ui/logo";
 import { toast } from "@repo/ui/sonner";
 import { downloadSvgAsPng } from "@/lib/qrImage";
-import { FAKE_BUSINESS_NAME, FAKE_MERCHANT_QR_LINK } from "@/features/merchant/hooks";
+import { useMyWallet } from "@/features/wallet/hooks";
+import { useMyBusiness } from "@/features/business/hooks";
 
 /**
  * Two states, per the mock: a plain "Generate" prompt, then the actual QR
- * once requested. Both cards stay at a fixed max width and hug the left
- * edge of the page (not stretched full-width, not centered in the leftover
- * space) — the mock's own card is visibly narrower than the page around
- * it, same treatment either state. "Download QR" is real (see
- * `downloadSvgAsPng`) — "Scan QR" has no real camera access (same
- * limitation as `ScanMerchantCard`), and scanning one's own store code has
- * no obvious purpose anyway (the mock doesn't explain who'd use it or for
- * what), so it's a clear toast rather than invented behavior. Its `primary`
- * variant (vs. "Download QR"'s `outline`) matches the mock's own weighting
- * of the two buttons — Scan is the one likely to be tapped at the counter,
- * Download the occasional one.
+ * once requested. The QR encodes the business's own real Stellar wallet
+ * address (`useMyWallet`) — there's no generic "pay this business any
+ * amount" endpoint, only fixed-amount Payment Links, so this is a raw
+ * wallet-address QR (any Stellar wallet can send USDC to it directly),
+ * not a scannable stand-in for a real payment flow this app's own Pay
+ * screen could look up. Both cards stay at a fixed max width and hug the
+ * left edge of the page (not stretched full-width, not centered in the
+ * leftover space) — the mock's own card is visibly narrower than the page
+ * around it, same treatment either state. "Download QR" is real (see
+ * `downloadSvgAsPng`) — "Scan QR" has no real camera access, and scanning
+ * one's own store code has no obvious purpose anyway (the mock doesn't
+ * explain who'd use it or for what), so it's a clear toast rather than
+ * invented behavior.
  */
 function QrCodeCard() {
 	const [generated, setGenerated] = useState(false);
 	const qrContainerRef = useRef<HTMLDivElement>(null);
+	const { data: business, isLoading: isLoadingBusiness } = useMyBusiness();
+	const { data: wallet, isLoading: isLoadingWallet } = useMyWallet();
 
 	function handleDownload() {
 		const svg = qrContainerRef.current?.querySelector("svg");
@@ -34,6 +41,42 @@ function QrCodeCard() {
 			return;
 		}
 		downloadSvgAsPng(svg, "peakline-store-qr-code.png");
+	}
+
+	if (isLoadingBusiness || isLoadingWallet) {
+		return (
+			<div className="flex max-w-xl flex-col items-center gap-4 rounded-2xl border border-border bg-background p-8 sm:p-12">
+				<Skeleton className="h-6 w-40" />
+				<Skeleton className="h-52 w-52" />
+			</div>
+		);
+	}
+
+	if (!business) {
+		return (
+			<div className="flex max-w-xl flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center sm:p-12">
+				<p className="text-b3 text-muted-foreground">
+					Add your business information before generating a QR code.
+				</p>
+				<Button asChild size="large">
+					<Link href="/account">Go to Account</Link>
+				</Button>
+			</div>
+		);
+	}
+
+	if (!wallet) {
+		return (
+			<div className="flex max-w-xl flex-col items-center gap-3 rounded-2xl border border-border bg-background p-8 text-center sm:p-12">
+				<p className="text-b3 text-muted-foreground">
+					Your business doesn&apos;t have a wallet yet — set one up from the Wallet page
+					before generating a QR code.
+				</p>
+				<Button asChild size="large">
+					<Link href="/wallet">Go to Wallet</Link>
+				</Button>
+			</div>
+		);
 	}
 
 	if (!generated) {
@@ -55,12 +98,14 @@ function QrCodeCard() {
 
 	return (
 		<div className="flex max-w-xl flex-col items-center gap-4 rounded-2xl border border-border bg-background p-6 sm:p-8">
-			<span className="text-h5 text-foreground">{FAKE_BUSINESS_NAME}</span>
+			<span className="text-h5 text-foreground">{business.name}</span>
 			<div ref={qrContainerRef} className="rounded-xl bg-white p-4">
-				<QRCodeSvg value={FAKE_MERCHANT_QR_LINK} size={200} />
+				<QRCodeSvg value={wallet.publicKey} size={200} />
 			</div>
 			<Logo size="sm" />
-			<p className="text-b3 text-muted-foreground">Customers can scan this code to pay you</p>
+			<p className="text-b3 text-muted-foreground">
+				Customers can scan this to send USDC to your business wallet
+			</p>
 
 			<div className="flex w-full flex-col gap-3 sm:flex-row">
 				<Button

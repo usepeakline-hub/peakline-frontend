@@ -7,8 +7,11 @@ import { ReceiveQrCard } from "@/features/receive/components/ReceiveQrCard";
 import { ReceiveInfoCard } from "@/features/receive/components/ReceiveInfoCard";
 import { useMyWallet } from "@/features/wallet/hooks";
 import { maskWalletAddress } from "@/lib/wallet";
-import { FAKE_PAYMENT_LINK } from "@/lib/receive";
 
+// No "Share Payment Link"/"Share Payment Request" rows — neither is a real
+// concept for an individual account on the backend (no equivalent of
+// merchant Payment Links exists for one), so the only real thing to share
+// here is the wallet address itself.
 export default function ReceivePage() {
 	const router = useRouter();
 	const { data: wallet } = useMyWallet();
@@ -24,23 +27,11 @@ export default function ReceivePage() {
 
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
 				<ReceiveQrCard />
-				<div className="flex flex-col gap-4">
-					<ReceiveInfoCard
-						label="Share Payment Link"
-						value={FAKE_PAYMENT_LINK}
-						copyValue={FAKE_PAYMENT_LINK}
-					/>
-					<ReceiveInfoCard
-						label="Copy Wallet Address"
-						value={walletAddress ? maskWalletAddress(walletAddress) : "No wallet yet"}
-						copyValue={walletAddress}
-					/>
-					<ReceiveInfoCard
-						label="Share Payment Request"
-						value="Request payment from anyone"
-						copyValue={FAKE_PAYMENT_LINK}
-					/>
-				</div>
+				<ReceiveInfoCard
+					label="Copy Wallet Address"
+					value={walletAddress ? maskWalletAddress(walletAddress) : "No wallet yet"}
+					copyValue={walletAddress}
+				/>
 			</div>
 		</div>
 	);

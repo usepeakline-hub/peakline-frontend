@@ -17,7 +17,7 @@ const PROFILE_KEY = ["profile", "me"];
  * pending-deletion banner, and `customerType`/`kycTier`/verification
  * timestamps not used yet but worth having typed for whoever needs them
  * next. */
-function useProfile() {
+function useProfile(options?: { enabled?: boolean }) {
 	const axiosAuth = useAxiosAuth();
 
 	return useQuery({
@@ -28,6 +28,7 @@ function useProfile() {
 			);
 			return data.data;
 		},
+		enabled: options?.enabled,
 	});
 }
 

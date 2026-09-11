@@ -3,6 +3,7 @@ import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useMyBusiness } from "@/features/business/hooks";
+import { useProfile } from "@/features/profile/hooks";
 import type {
 	ApiSuccessResponse,
 	MerchantDashboardStatsData,
@@ -114,18 +115,24 @@ function useReceivedTrend(period: ReceivedTrendPeriod) {
 	return { ...rest, data: trend };
 }
 
-// TODO: source the real business name from Business Information once that
-// onboarding step has a backend to persist it — same fake-default gap as
-// the individual dashboard's own `userName` prop.
-const FAKE_BUSINESS_NAME = "Kwame Enterprise";
-
-/** The identity to show for this account — the business name once
- * merchant, whatever the caller would've shown otherwise (typically a
- * personal name) for an individual. Shared by `Topbar` and
- * `GreetingHeader`'s mobile avatar so the two can't drift apart. */
-function useAccountDisplayName(individualName: string) {
+/** The identity to show for this account — the real business name
+ * (`GET /businesses`) once merchant, the real account holder's own name
+ * (`GET /users/me`) for an individual. Both self-fetched (each is cheap and
+ * already cached by whichever card/page also needs it) rather than passed
+ * in by the caller — no page ever actually had a real name to pass, which
+ * is why this used to silently fall back to a fixed fake one everywhere.
+ * Shared by `Topbar` and `GreetingHeader`'s mobile avatar so the two can't
+ * drift apart. Empty string while still loading — every caller already
+ * renders fine with a momentarily-blank name/initial rather than a wrong
+ * one. */
+function useAccountDisplayName() {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
-	return isMerchant ? FAKE_BUSINESS_NAME : individualName;
+	const { data: profile } = useProfile({ enabled: !isMerchant });
+	const { data: business } = useMyBusiness({ enabled: isMerchant });
+
+	if (isMerchant) return business?.name ?? "";
+	if (!profile) return "";
+	return [profile.firstName, profile.lastName].filter(Boolean).join(" ");
 }
 
 const PAYMENT_LINKS_KEY = ["merchant", "payment-links"];
@@ -262,11 +269,6 @@ function useExportPaymentLinksCsv() {
 	});
 }
 
-/** Fake link encoded into the merchant's store QR code — same "no real
- * per-account link from a backend yet" gap as `FAKE_PAYMENT_LINK`
- * (individual's own equivalent, `@/lib/receive`). */
-const FAKE_MERCHANT_QR_LINK = "https://peakline.com/pay/kwame-enterprise";
-
 export {
 	useMerchantOverview,
 	useAccountDisplayName,
@@ -277,7 +279,5 @@ export {
 	useCancelPaymentLink,
 	useExportPaymentLinksCsv,
 	useReceivedTrend,
-	FAKE_BUSINESS_NAME,
-	FAKE_MERCHANT_QR_LINK,
 };
 export type { MerchantOverviewData, ReceivedTrendPoint, PaymentLinkStatus };

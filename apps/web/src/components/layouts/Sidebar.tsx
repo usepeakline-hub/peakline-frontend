@@ -8,7 +8,6 @@ import {
 	Send,
 	ArrowDownLeft,
 	ScanLine,
-	HandCoins,
 	ArrowLeftRight,
 	User,
 	LogOut,
@@ -28,7 +27,6 @@ const INDIVIDUAL_NAV_ITEMS = [
 	{ label: "Send", href: "/send", icon: Send },
 	{ label: "Receive", href: "/receive", icon: ArrowDownLeft },
 	{ label: "Pay", href: "/pay", icon: ScanLine },
-	{ label: "Request Payment", href: "/request-payment", icon: HandCoins },
 	{ label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
 	{ label: "Account", href: "/account", icon: User },
 ] as const;

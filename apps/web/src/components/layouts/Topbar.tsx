@@ -11,7 +11,6 @@ import { MERCHANT_NAV_ITEMS } from "@/components/layouts/MerchantNavList";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 interface TopbarProps {
-	userName: string;
 	className?: string;
 }
 
@@ -42,9 +41,9 @@ function parentBreadcrumb(pathname: string) {
  * merchant (or a "Back to {list}" breadcrumb on a nested route, replacing
  * the badge the same way).
  */
-function Topbar({ userName, className }: TopbarProps) {
+function Topbar({ className }: TopbarProps) {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
-	const displayName = useAccountDisplayName(userName);
+	const displayName = useAccountDisplayName();
 	const pathname = usePathname();
 	const breadcrumb = isMerchant ? parentBreadcrumb(pathname) : null;
 
