@@ -18,7 +18,7 @@ import { RecentPaymentsSection } from "@/features/merchant/components/RecentPaym
  * Merchant's own hero further branches by *breakpoint*, per the updated
  * mock: desktop keeps the original 3 stat cards (Total Received/Today's
  * Payments/Pending), but mobile swaps them for the same "Available
- * Balance" card individual uses (with Withdraw instead of Send — see
+ * Balance" card individual uses (without the Send action — see
  * `BalanceCard`'s own note) — a deliberate per-breakpoint content
  * difference, not just a responsive reflow of the same content. Both
  * breakpoints get the new "Total Received" trend chart and the paginated

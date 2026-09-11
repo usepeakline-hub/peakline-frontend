@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
-import { toast } from "@repo/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { FundWalletDialog } from "@/features/wallet/components/FundWalletDialog";
@@ -36,10 +35,10 @@ function BalanceCardSkeleton() {
  * The individual dashboard's own balance display — also reused, mobile-only,
  * for merchant Overview's new "Available Balance" card (the updated mock
  * replaced merchant's 3 stat cards with this on mobile specifically; desktop
- * keeps the stat cards and never renders this). Second action button
- * branches Send (individual) vs. Withdraw (merchant) — same pattern
- * `WalletBalanceCard` already established, and the same "no real withdrawal
- * flow yet" toast it uses.
+ * keeps the stat cards and never renders this). Individual gets a second
+ * "Send" action; merchant gets "Add Money" alone — same as
+ * `WalletBalanceCard`, its former "Withdraw" button removed for now (no
+ * real withdrawal flow exists yet).
  */
 function BalanceCard({ className }: { className?: string }) {
 	const { data } = useWalletBalance();
@@ -104,16 +103,7 @@ function BalanceCard({ className }: { className?: string }) {
 						Add Money
 					</Button>
 				</FundWalletDialog>
-				{isMerchant ? (
-					<Button
-						type="button"
-						variant="ghost"
-						className="bg-background text-foreground hover:bg-neutral-100"
-						onClick={() => toast.info("Withdrawals are coming soon")}
-					>
-						Withdraw
-					</Button>
-				) : (
+				{!isMerchant && (
 					<Button
 						asChild
 						variant="ghost"

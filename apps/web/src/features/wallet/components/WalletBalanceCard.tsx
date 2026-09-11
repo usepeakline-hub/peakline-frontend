@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
-import { toast } from "@repo/ui/sonner";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { FundWalletDialog } from "@/features/wallet/components/FundWalletDialog";
 import { formatUsdc } from "@/lib/currency";
@@ -30,8 +29,9 @@ function WalletBalanceCardSkeleton() {
  * data with no real endpoint behind it (`transactions/balances` has no
  * concept of a pending bucket, just a settled total per currency) and the
  * user asked for it gone rather than left showing a number that could never
- * be true. Shared by both account types — the only difference is the
- * second action button (Send vs. Withdraw), per the merchant Wallet mock.
+ * be true. Shared by both account types — individual gets a second "Send"
+ * action; merchant gets "Add Money" alone (its own former "Withdraw"
+ * button removed for now — no real withdrawal flow exists yet).
  */
 function WalletBalanceCard() {
 	const { data: available } = useWalletBalance();
@@ -86,19 +86,7 @@ function WalletBalanceCard() {
 						Add Money
 					</Button>
 				</FundWalletDialog>
-				{isMerchant ? (
-					// No withdrawal flow exists yet (no mock for one either) —
-					// a real, clickable button that says so beats either a
-					// dead link or a visually "broken" disabled primary CTA.
-					<Button
-						type="button"
-						variant="ghost"
-						className="bg-background text-foreground hover:bg-neutral-100"
-						onClick={() => toast.info("Withdrawals are coming soon")}
-					>
-						Withdraw
-					</Button>
-				) : (
+				{!isMerchant && (
 					<Button
 						asChild
 						variant="ghost"
