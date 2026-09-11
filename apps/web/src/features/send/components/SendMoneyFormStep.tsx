@@ -28,7 +28,7 @@ const RECIPIENT_FIELD: Record<
 > = {
 	phone: { label: "Recipient Phone Number", placeholder: "" },
 	username: { label: "Recipient Username", placeholder: "Enter username" },
-	wallet_address: {
+	wallet: {
 		label: "Recipient Wallet Address",
 		placeholder: "Enter wallet address",
 	},

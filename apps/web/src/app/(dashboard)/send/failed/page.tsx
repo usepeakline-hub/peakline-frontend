@@ -8,13 +8,14 @@ import { useSendMoneyFlowStore } from "@/features/send/store/sendMoneyFlowStore"
 export default function TransferFailedPage() {
 	const router = useRouter();
 	const values = useSendMoneyFlowStore((state) => state.values);
+	const errorMessage = useSendMoneyFlowStore((state) => state.errorMessage);
 	const reset = useSendMoneyFlowStore((state) => state.reset);
 
 	useEffect(() => {
-		if (!values) router.replace("/send");
-	}, [values, router]);
+		if (!values || !errorMessage) router.replace("/send");
+	}, [values, errorMessage, router]);
 
-	if (!values) return null;
+	if (!values || !errorMessage) return null;
 
 	function goToDashboard() {
 		reset();
@@ -23,7 +24,8 @@ export default function TransferFailedPage() {
 
 	return (
 		<TransferFailedStep
-			values={values}
+			amount={values.amount}
+			errorMessage={errorMessage}
 			onTryAgain={() => router.push("/send/review")}
 			onGoToDashboard={goToDashboard}
 		/>

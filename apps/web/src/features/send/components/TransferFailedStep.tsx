@@ -3,10 +3,10 @@
 import { X, RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { formatUsdc } from "@/lib/currency";
-import type { SendMoneyValues } from "@/lib/validations/sendValidations";
 
 interface TransferFailedStepProps {
-	values: SendMoneyValues;
+	amount: number;
+	errorMessage: string;
 	onTryAgain: () => void;
 	onGoToDashboard: () => void;
 }
@@ -14,8 +14,16 @@ interface TransferFailedStepProps {
 /** Step 4b — no reference mock for this one; mirrors `FundingFailedStep`'s
  * layout (same icon-badge + message + card + actions shape), including the
  * `min-h-full` + `justify-center` vertical-centering fix (see
- * `TransferSuccessStep`'s note). */
-function TransferFailedStep({ values, onTryAgain, onGoToDashboard }: TransferFailedStepProps) {
+ * `TransferSuccessStep`'s note). `errorMessage` is the real backend failure
+ * reason (`getApiErrorMessage`'s output) rather than a fixed line — a
+ * failed send can mean several different real things now (insufficient
+ * balance, invalid recipient, `PIN_NOT_SET`, ...), not just a coin-flip. */
+function TransferFailedStep({
+	amount,
+	errorMessage,
+	onTryAgain,
+	onGoToDashboard,
+}: TransferFailedStepProps) {
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-destructive sm:size-20">
@@ -29,10 +37,10 @@ function TransferFailedStep({ values, onTryAgain, onGoToDashboard }: TransferFai
 			<div className="flex flex-col gap-2">
 				<h2 className="text-s1 text-foreground sm:text-h5">Transfer Failed</h2>
 				<p className="text-b4 text-muted-foreground sm:text-b3">
-					We couldn&apos;t send {formatUsdc(values.amount)} USDC. Your balance
-					hasn&apos;t been charged — please try again or check the recipient
-					details.
+					We couldn&apos;t send {formatUsdc(amount)} USDC. Your balance hasn&apos;t
+					been charged.
 				</p>
+				<p className="text-b4 text-muted-foreground sm:text-b3">{errorMessage}</p>
 			</div>
 
 			<div className="flex w-full flex-col items-center gap-4">

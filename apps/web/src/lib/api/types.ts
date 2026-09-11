@@ -309,3 +309,53 @@ export interface PublicPaymentLinkData {
 	destinationAddress: string;
 	memo: string;
 }
+
+/** `internal` = pure ledger transfer between Peakline users, settled
+ * instantly with no on-chain fee. `external` = an on-chain Stellar send to
+ * a non-Peakline address. */
+export type TransferType = "internal" | "external";
+
+/** `POST /transfers/send`'s own response — a synchronous result, not a
+ * "queued" one (no `status` field here, unlike `TransferStatusData`). */
+export interface SendMoneyResponseData {
+	transactionId: string;
+	type: TransferType;
+	amount: string;
+	currency: string;
+	/** Null for internal transfers. */
+	stellarTxHash?: string | null;
+	/** Whichever identifier (username/phone/truncated wallet address) was
+	 * used to resolve the recipient — there's no directory lookup that
+	 * returns an actual name. */
+	recipientLabel: string;
+}
+
+export type TransferStatus = "pending" | "processing" | "completed" | "failed" | "reversed";
+
+export interface TransferRecipientData {
+	name?: string | null;
+	phone?: string | null;
+	username?: string | null;
+	walletAddress?: string | null;
+}
+
+/** `GET /transfers/{id}` — not wired to any UI yet; nothing currently shows
+ * a transfer's detail-by-id (same gap as `transactions.byId`, which this
+ * would need reconciling with — a real ledger record, not the app's own
+ * named-counterparty `Transaction` shape). */
+export interface TransferStatusData {
+	transactionId: string;
+	status: TransferStatus;
+	type: TransferType;
+	amount: string;
+	currency: string;
+	fee: string;
+	fxEquivalent?: string | null;
+	stellarTxHash?: string | null;
+	recipient: TransferRecipientData;
+	newBalance: string;
+	newBalanceFxEquivalent?: string | null;
+	note?: string | null;
+	createdAt: string;
+	completedAt?: string | null;
+}

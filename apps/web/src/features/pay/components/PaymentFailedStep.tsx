@@ -3,18 +3,25 @@
 import { X, RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { formatUsdc } from "@/lib/currency";
-import type { PayFlowValues } from "@/features/pay/store/payFlowStore";
+import type { PublicPaymentLinkData } from "@/lib/api/types";
 
 interface PaymentFailedStepProps {
-	values: PayFlowValues;
+	link: PublicPaymentLinkData;
+	errorMessage: string;
 	onTryAgain: () => void;
 	onGoToDashboard: () => void;
 }
 
 /** No reference mock — mirrors `TransferFailedStep`/`FundingFailedStep`'s
  * shape (icon-badge + message + actions), including the `min-h-full` +
- * `justify-center` vertical-centering fix (see `PaymentSuccessStep`'s note). */
-function PaymentFailedStep({ values, onTryAgain, onGoToDashboard }: PaymentFailedStepProps) {
+ * `justify-center` vertical-centering fix (see `PaymentSuccessStep`'s note).
+ * `errorMessage` is the real backend failure reason, not a fixed line. */
+function PaymentFailedStep({
+	link,
+	errorMessage,
+	onTryAgain,
+	onGoToDashboard,
+}: PaymentFailedStepProps) {
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center gap-6 py-2 text-center sm:py-4">
 			<span className="flex size-16 items-center justify-center rounded-full bg-destructive sm:size-20">
@@ -28,9 +35,10 @@ function PaymentFailedStep({ values, onTryAgain, onGoToDashboard }: PaymentFaile
 			<div className="flex flex-col gap-2">
 				<h2 className="text-s1 text-foreground sm:text-h5">Payment Failed</h2>
 				<p className="text-b4 text-muted-foreground sm:text-b3">
-					We couldn&apos;t pay {values.merchant.name} {formatUsdc(values.amount)} USDC.
-					Your balance hasn&apos;t been charged — please try again.
+					We couldn&apos;t pay {link.businessName} {formatUsdc(Number(link.amount))} USDC.
+					Your balance hasn&apos;t been charged.
 				</p>
+				<p className="text-b4 text-muted-foreground sm:text-b3">{errorMessage}</p>
 			</div>
 
 			<div className="flex w-full flex-col items-center gap-4">

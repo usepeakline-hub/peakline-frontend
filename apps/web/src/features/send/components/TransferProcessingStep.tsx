@@ -2,37 +2,45 @@
 
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
-import { useProcessTransfer } from "@/features/send/hooks";
-import type { SendMoneyValues } from "@/lib/validations/sendValidations";
+import { useSendMoney } from "@/features/send/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import { formatUsdc } from "@/lib/currency";
+import type { SendMoneyValues } from "@/lib/validations/sendValidations";
+import type { SendMoneyResponseData } from "@/lib/api/types";
 
 interface TransferProcessingStepProps {
 	values: SendMoneyValues;
-	onSettled: (result: "success" | "failed") => void;
+	pin: string;
+	onSuccess: (result: SendMoneyResponseData) => void;
+	onError: (message: string) => void;
 }
 
-/** Step 3 — fires the actual (fake) transfer on mount and reports back once
- * it settles. `min-h-full` + `justify-center` centers the loader within
+/** Step 3 — fires the real transfer on mount and reports back once it
+ * settles. `min-h-full` + `justify-center` centers the loader within
  * whatever height the page's own container actually resolves to (dashboard
  * `main` stretches via `flex-1` to fill the viewport) rather than guessing
  * at a `vh` fraction — an earlier attempt at this on the equivalent Fund
  * Wallet step used a fixed `vh` value, which under- or overshot depending
  * on how tall the surrounding chrome actually was. */
-function TransferProcessingStep({ values, onSettled }: TransferProcessingStepProps) {
-	const processTransfer = useProcessTransfer();
+function TransferProcessingStep({ values, pin, onSuccess, onError }: TransferProcessingStepProps) {
+	const sendMoney = useSendMoney();
 	// Guards against React 18/19 StrictMode's double-invoked effects firing
-	// this twice in dev, which would otherwise kick off two fake requests.
+	// this twice in dev, which would otherwise fire two real transfers.
 	const started = useRef(false);
 
 	useEffect(() => {
 		if (started.current) return;
 		started.current = true;
-		processTransfer.mutate(values, {
-			onSuccess: () => onSettled("success"),
-			onError: () => onSettled("failed"),
-		});
-		// Intentionally run once on mount — `values`/`onSettled`/`processTransfer`
-		// are stable for the lifetime of this step.
+		sendMoney.mutate(
+			{ values, pin },
+			{
+				onSuccess: (result) => onSuccess(result),
+				onError: (error) =>
+					onError(getApiErrorMessage(error, "Transfer could not be processed")),
+			},
+		);
+		// Intentionally run once on mount — `values`/`pin`/`onSuccess`/
+		// `onError`/`sendMoney` are stable for the lifetime of this step.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 

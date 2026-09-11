@@ -7,20 +7,29 @@ import { usePayFlowStore } from "@/features/pay/store/payFlowStore";
 
 export default function PaymentProcessingPage() {
 	const router = useRouter();
-	const values = usePayFlowStore((state) => state.values);
+	const link = usePayFlowStore((state) => state.link);
+	const pin = usePayFlowStore((state) => state.pin);
+	const setResult = usePayFlowStore((state) => state.setResult);
+	const setErrorMessage = usePayFlowStore((state) => state.setErrorMessage);
 
 	useEffect(() => {
-		if (!values) router.replace("/pay");
-	}, [values, router]);
+		if (!link || !pin) router.replace("/pay");
+	}, [link, pin, router]);
 
-	if (!values) return null;
+	if (!link || !pin) return null;
 
 	return (
 		<PaymentProcessingStep
-			values={values}
-			onSettled={(result) =>
-				router.replace(`/pay/${result === "success" ? "success" : "failed"}`)
-			}
+			link={link}
+			pin={pin}
+			onSuccess={(result) => {
+				setResult(result);
+				router.replace("/pay/success");
+			}}
+			onError={(message) => {
+				setErrorMessage(message);
+				router.replace("/pay/failed");
+			}}
 		/>
 	);
 }

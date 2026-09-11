@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { isValidPhoneNumber } from "libphonenumber-js/min";
 
+// Values match `SendMoneyDto`'s own `mode` enum exactly (phone/username/
+// wallet) so building the request body needs no extra mapping step.
 export const TRANSFER_METHODS = [
 	{ value: "phone", label: "Phone Number" },
 	{ value: "username", label: "Username" },
-	{ value: "wallet_address", label: "Wallet Address" },
+	{ value: "wallet", label: "Wallet Address" },
 ] as const;
 
 // Same shape as the fake Stellar public key in `@/lib/wallet` — "G" + 55
@@ -43,7 +45,7 @@ export const sendMoneySchema = z
 					message: "Enter a valid username",
 				});
 			}
-		} else if (data.method === "wallet_address") {
+		} else if (data.method === "wallet") {
 			if (!WALLET_ADDRESS_REGEX.test(data.recipient)) {
 				ctx.addIssue({
 					code: "custom",

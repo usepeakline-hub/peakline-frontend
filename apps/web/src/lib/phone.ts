@@ -18,4 +18,15 @@ function splitPhoneForApi(
 	return { phoneNumber: parsed.number, countryCode: parsed.country };
 }
 
-export { splitPhoneForApi };
+/** `SendMoneyDto`'s phone shape is different from auth's own — it wants
+ * local format with no country code (e.g. "241234567", not
+ * "+233241234567"), so this can't reuse `splitPhoneForApi` above. */
+function splitPhoneForTransfer(
+	phone: string,
+): { phoneNumber: string; countryCode: string } | null {
+	const parsed = parsePhoneNumberFromString(phone);
+	if (!parsed || !parsed.country) return null;
+	return { phoneNumber: parsed.nationalNumber, countryCode: parsed.country };
+}
+
+export { splitPhoneForApi, splitPhoneForTransfer };

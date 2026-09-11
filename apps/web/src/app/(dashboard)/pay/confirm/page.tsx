@@ -8,19 +8,26 @@ import { usePayFlowStore } from "@/features/pay/store/payFlowStore";
 
 export default function ConfirmPaymentPage() {
 	const router = useRouter();
-	const values = usePayFlowStore((state) => state.values);
+	const link = usePayFlowStore((state) => state.link);
+	const setPin = usePayFlowStore((state) => state.setPin);
 
-	// Reached without a merchant/amount chosen in this session — send back.
+	// Reached without a payment link looked up in this session — send back.
 	useEffect(() => {
-		if (!values) router.replace("/pay");
-	}, [values, router]);
+		if (!link) router.replace("/pay");
+	}, [link, router]);
 
-	if (!values) return null;
+	if (!link) return null;
 
 	return (
 		<div className="flex flex-col gap-6">
 			<MobileStepHeader title="Pay" onBack={() => router.push("/pay")} />
-			<ConfirmPaymentStep values={values} onContinue={() => router.push("/pay/processing")} />
+			<ConfirmPaymentStep
+				link={link}
+				onContinue={(pin) => {
+					setPin(pin);
+					router.push("/pay/processing");
+				}}
+			/>
 		</div>
 	);
 }

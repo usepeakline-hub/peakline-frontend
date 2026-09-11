@@ -7,14 +7,15 @@ import { usePayFlowStore } from "@/features/pay/store/payFlowStore";
 
 export default function PaymentFailedPage() {
 	const router = useRouter();
-	const values = usePayFlowStore((state) => state.values);
+	const link = usePayFlowStore((state) => state.link);
+	const errorMessage = usePayFlowStore((state) => state.errorMessage);
 	const reset = usePayFlowStore((state) => state.reset);
 
 	useEffect(() => {
-		if (!values) router.replace("/pay");
-	}, [values, router]);
+		if (!link || !errorMessage) router.replace("/pay");
+	}, [link, errorMessage, router]);
 
-	if (!values) return null;
+	if (!link || !errorMessage) return null;
 
 	function goToDashboard() {
 		reset();
@@ -23,7 +24,8 @@ export default function PaymentFailedPage() {
 
 	return (
 		<PaymentFailedStep
-			values={values}
+			link={link}
+			errorMessage={errorMessage}
 			onTryAgain={() => router.push("/pay/confirm")}
 			onGoToDashboard={goToDashboard}
 		/>

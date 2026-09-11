@@ -54,6 +54,16 @@ export const apiRoutes = {
 		DASHBOARD_STATS: "/api/v1/merchant/dashboard/stats",
 	},
 
+	transfers: {
+		SEND: "/api/v1/transfers/send",
+		// Not wired yet — `POST /transfers/send`'s own response already
+		// carries what the Send flow's Success step needs (transactionId,
+		// type, amount, stellarTxHash, recipientLabel); nothing currently
+		// looks up a transfer by id (same "generic ledger record has no UI
+		// of its own yet" gap as `transactions.byId`).
+		byId: (id: string) => `/api/v1/transfers/${id}`,
+	},
+
 	paymentLinks: {
 		BASE: "/api/v1/payment-links",
 		STATS: "/api/v1/payment-links/stats",

@@ -7,14 +7,15 @@ import { usePayFlowStore } from "@/features/pay/store/payFlowStore";
 
 export default function PaymentSuccessPage() {
 	const router = useRouter();
-	const values = usePayFlowStore((state) => state.values);
+	const link = usePayFlowStore((state) => state.link);
+	const result = usePayFlowStore((state) => state.result);
 	const reset = usePayFlowStore((state) => state.reset);
 
 	useEffect(() => {
-		if (!values) router.replace("/pay");
-	}, [values, router]);
+		if (!link || !result) router.replace("/pay");
+	}, [link, result, router]);
 
-	if (!values) return null;
+	if (!link || !result) return null;
 
 	function goToDashboard() {
 		reset();
@@ -28,7 +29,8 @@ export default function PaymentSuccessPage() {
 
 	return (
 		<PaymentSuccessStep
-			values={values}
+			link={link}
+			result={result}
 			onGoToDashboard={goToDashboard}
 			onViewTransactions={viewTransactions}
 		/>

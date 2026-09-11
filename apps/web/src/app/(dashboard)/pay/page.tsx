@@ -4,25 +4,39 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
-import { ScanMerchantCard } from "@/features/pay/components/ScanMerchantCard";
-import { MerchantPaymentCard } from "@/features/pay/components/MerchantPaymentCard";
-import { useScanMerchantQr } from "@/features/pay/hooks";
+import { PaymentCodeCard } from "@/features/pay/components/PaymentCodeCard";
+import { PaymentLinkPreviewCard } from "@/features/pay/components/PaymentLinkPreviewCard";
+import { usePaymentLinkLookup } from "@/features/pay/hooks";
 import { usePayFlowStore } from "@/features/pay/store/payFlowStore";
-import type { FakeMerchant } from "@/lib/pay";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import type { PublicPaymentLinkData } from "@/lib/api/types";
 
 export default function PayPage() {
 	const router = useRouter();
-	const [merchant, setMerchant] = useState<FakeMerchant | null>(null);
-	const scanMerchant = useScanMerchantQr();
-	const setValues = usePayFlowStore((state) => state.setValues);
+	const [link, setLink] = useState<PublicPaymentLinkData | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const lookup = usePaymentLinkLookup();
+	const setStoreLink = usePayFlowStore((state) => state.setLink);
 
-	function handleScan() {
-		scanMerchant.mutate(undefined, { onSuccess: (result) => setMerchant(result) });
+	function handleLookup(input: string) {
+		setError(null);
+		lookup.mutate(input, {
+			onSuccess: (result) => setLink(result),
+			onError: (err) => {
+				setLink(null);
+				setError(getApiErrorMessage(err, "Payment link not found"));
+			},
+		});
 	}
 
-	function handleContinue(amount: number) {
-		if (!merchant) return;
-		setValues({ merchant, amount });
+	function handleChangeCode() {
+		setLink(null);
+		setError(null);
+	}
+
+	function handleContinue() {
+		if (!link) return;
+		setStoreLink(link);
 		router.push("/pay/confirm");
 	}
 
@@ -31,20 +45,22 @@ export default function PayPage() {
 			{/* No back arrow — primary bottom-tab destination (the elevated
 			    center action), same as /wallet. */}
 			<MobileStepHeader title="Pay" />
-			{/* The mock's own subtitle here was copy-pasted from Receive ("...to
-			    receive payments") — written fresh for what this page actually
-			    does. */}
-			<PageHeader title="Pay" subtitle="Scan a merchant's QR code to pay instantly." />
+			<PageHeader title="Pay" subtitle="Pay a merchant using their payment link." />
 
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-				{/* Desktop: scan card always visible alongside the merchant card.
-				    Mobile: replaced entirely once a merchant is found — there's no
-				    room (or a mock) for both at once on a small screen. */}
-				<div className={merchant ? "hidden lg:block" : ""}>
-					<ScanMerchantCard onScan={handleScan} loading={scanMerchant.isPending} />
+				{/* Desktop: code-entry card always visible alongside the payment
+				    link preview. Mobile: replaced entirely once a link is found —
+				    same space constraint as the old scan-based version, with a
+				    "Look up a different link" way back in if needed. */}
+				<div className={link ? "hidden lg:block" : ""}>
+					<PaymentCodeCard onLookup={handleLookup} loading={lookup.isPending} error={error} />
 				</div>
-				<div className={!merchant ? "hidden lg:block" : ""}>
-					<MerchantPaymentCard merchant={merchant} onContinue={handleContinue} />
+				<div className={!link ? "hidden lg:block" : ""}>
+					<PaymentLinkPreviewCard
+						link={link}
+						onContinue={handleContinue}
+						onChangeCode={handleChangeCode}
+					/>
 				</div>
 			</div>
 		</div>

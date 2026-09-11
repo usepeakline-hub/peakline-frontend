@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
+import { UserRound } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
+import { OtpInput } from "@repo/ui/otp-input";
 import {
 	TRANSFER_METHODS,
 	type SendMoneyValues,
 } from "@/lib/validations/sendValidations";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
-import { FAKE_RECIPIENT_NAME } from "@/lib/send";
+
+const PIN_LENGTH = 6;
 
 function DetailRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
 	return (
@@ -24,16 +27,28 @@ function DetailRow({ label, value, muted }: { label: string; value: string; mute
 
 interface ReviewTransferStepProps {
 	values: SendMoneyValues;
-	onContinue: () => void;
+	onContinue: (pin: string) => void;
 }
 
 /** Step 2 — mirrors `ConfirmFundingStep`'s shape (summary card + detail
- * card), with a recipient card in between since who the money is going to
- * matters more here than in a funding review. */
+ * card), plus a PIN entry at the bottom (same combined review+authorize
+ * pattern as Pay's own `ConfirmPaymentStep` — a real send requires the
+ * transaction PIN on every call). There's no "resolve this identifier to a
+ * name" endpoint, so unlike an earlier version of this screen, the "To" row
+ * shows the identifier as typed rather than a fabricated recipient name —
+ * the real name/label (`recipientLabel`) only comes back once the transfer
+ * actually completes (see `TransferSuccessStep`). */
 function ReviewTransferStep({ values, onContinue }: ReviewTransferStepProps) {
+	const [pin, setPin] = useState("");
+	const pinComplete = pin.length === PIN_LENGTH;
 	const methodLabel =
 		TRANSFER_METHODS.find((method) => method.value === values.method)?.label ??
 		values.method;
+
+	function handleSubmit() {
+		if (!pinComplete) return;
+		onContinue(pin);
+	}
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -50,17 +65,14 @@ function ReviewTransferStep({ values, onContinue }: ReviewTransferStepProps) {
 			<div className="flex flex-col gap-2">
 				<span className="text-c1 text-muted-foreground sm:text-b3">To</span>
 				<div className="flex items-center gap-3 rounded-xl border border-border p-4 sm:p-5">
-					<UserAvatar
-						name={FAKE_RECIPIENT_NAME}
-						className="bg-primary-600 text-primary-foreground"
-					/>
-					<div className="flex flex-col">
-						<span className="text-b3 font-semibold text-foreground sm:text-b2">
-							{FAKE_RECIPIENT_NAME}
-						</span>
-						<span className="text-c1 text-muted-foreground sm:text-b3">
+					<span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700">
+						<UserRound className="size-5" aria-hidden="true" />
+					</span>
+					<div className="flex min-w-0 flex-col">
+						<span className="truncate text-b3 font-semibold text-foreground sm:text-b2">
 							{values.recipient}
 						</span>
+						<span className="text-c1 text-muted-foreground sm:text-b3">{methodLabel}</span>
 					</div>
 				</div>
 			</div>
@@ -73,8 +85,21 @@ function ReviewTransferStep({ values, onContinue }: ReviewTransferStepProps) {
 				<DetailRow label="Total" value={`${formatUsdc(values.amount)} USDC`} />
 			</div>
 
-			<Button type="button" size="large" className="w-full" onClick={onContinue}>
-				Continue
+			<div className="flex flex-col gap-3">
+				<span className="text-c1 text-muted-foreground sm:text-b3">
+					Enter your PIN to confirm
+				</span>
+				<OtpInput value={pin} onChange={setPin} length={PIN_LENGTH} />
+			</div>
+
+			<Button
+				type="button"
+				size="large"
+				className="w-full"
+				disabled={!pinComplete}
+				onClick={handleSubmit}
+			>
+				Send
 			</Button>
 		</div>
 	);

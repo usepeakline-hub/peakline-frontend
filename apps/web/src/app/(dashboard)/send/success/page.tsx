@@ -7,14 +7,14 @@ import { useSendMoneyFlowStore } from "@/features/send/store/sendMoneyFlowStore"
 
 export default function TransferSuccessPage() {
 	const router = useRouter();
-	const values = useSendMoneyFlowStore((state) => state.values);
+	const result = useSendMoneyFlowStore((state) => state.result);
 	const reset = useSendMoneyFlowStore((state) => state.reset);
 
 	useEffect(() => {
-		if (!values) router.replace("/send");
-	}, [values, router]);
+		if (!result) router.replace("/send");
+	}, [result, router]);
 
-	if (!values) return null;
+	if (!result) return null;
 
 	function goToDashboard() {
 		reset();
@@ -28,7 +28,7 @@ export default function TransferSuccessPage() {
 
 	return (
 		<TransferSuccessStep
-			values={values}
+			result={result}
 			onGoToDashboard={goToDashboard}
 			onViewTransactions={viewTransactions}
 		/>
