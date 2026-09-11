@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import { StatusBadge } from "@repo/ui/badge";
-import { PAYMENT_METHOD_LABEL, formatTransactionAmount } from "@/lib/transactions";
-import type { Transaction } from "@/features/dashboard/hooks";
+import {
+	METHOD_LABEL,
+	transactionTitle,
+	formatTransactionAmount,
+	formatTransactionDate,
+} from "@/lib/transactions";
+import type { TransactionData } from "@/lib/api/types";
 
 function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
 	return (
@@ -17,12 +22,14 @@ function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Merchant's own `/transactions` list rendering — identical shape to
  * `PaymentsTable` (same mock, same columns), linking to `/transactions/[id]`
- * instead of `/payments/[id]`. Kept as its own component rather than shared
- * for the same reason `PaymentsTable`/`PaymentLinksTable` stayed separate —
- * a shared generic table would need to know which detail route to link to
- * and which query key backs it, which is more indirection than the small
- * amount of duplication it would save. */
-function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
+ * instead of `/payments/[id]`. `transactionTitle` stands in for the old
+ * fake `counterpartyName` column — a plain counterparty column reads oddly
+ * for a deposit/withdrawal/conversion row, which has no "customer" at all.
+ * Kept as its own component rather than shared for the same reason
+ * `PaymentsTable`/`PaymentLinksTable` stayed separate — a shared generic
+ * table would need to know which detail route to link to, which is more
+ * indirection than the small amount of duplication it would save. */
+function TransactionsTable({ transactions }: { transactions: TransactionData[] }) {
 	if (transactions.length === 0) {
 		return (
 			<p className="py-8 text-center text-b3 text-muted-foreground">
@@ -37,7 +44,7 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
 				<table className="w-full border-collapse text-left">
 					<thead>
 						<tr className="bg-muted">
-							<th className="p-4 text-label text-muted-foreground">Customer</th>
+							<th className="p-4 text-label text-muted-foreground">Transaction</th>
 							<th className="p-4 text-label text-muted-foreground">Amount (USDC)</th>
 							<th className="p-4 text-label text-muted-foreground">Method</th>
 							<th className="p-4 text-label text-muted-foreground">Status</th>
@@ -48,23 +55,27 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
 					<tbody>
 						{transactions.map((transaction) => (
 							<tr key={transaction.id} className="border-t border-border hover:bg-muted/50">
-								<td className="p-4 text-b3 text-foreground">{transaction.counterpartyName}</td>
-								<td className="p-4 text-b3 font-semibold text-success">
+								<td className="p-4 text-b3 text-foreground">
+									{transactionTitle(transaction)}
+								</td>
+								<td
+									className={`p-4 text-b3 font-semibold ${transaction.direction === "outgoing" ? "text-destructive" : "text-success"}`}
+								>
 									{formatTransactionAmount(transaction)}
 								</td>
 								<td className="p-4 text-b3 text-foreground">
-									{transaction.paymentMethod
-										? PAYMENT_METHOD_LABEL[transaction.paymentMethod]
-										: "—"}
+									{transaction.method ? METHOD_LABEL[transaction.method] : "—"}
 								</td>
 								<td className="p-4">
 									<StatusBadge status={transaction.status} />
 								</td>
-								<td className="p-4 text-b3 text-foreground">{transaction.date}</td>
+								<td className="p-4 text-b3 text-foreground">
+									{formatTransactionDate(transaction.completedAt ?? transaction.createdAt)}
+								</td>
 								<td className="p-4">
 									<Link
 										href={`/transactions/${transaction.id}`}
-										aria-label={`View transaction with ${transaction.counterpartyName ?? "customer"}`}
+										aria-label={`View transaction ${transactionTitle(transaction)}`}
 										className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 									>
 										<Eye className="size-4" aria-hidden="true" />
@@ -82,29 +93,34 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
 						key={transaction.id}
 						className="flex flex-col gap-3 rounded-xl border border-border p-4"
 					>
-						<CardRow label="Customer" value={transaction.counterpartyName} />
+						<CardRow label="Transaction" value={transactionTitle(transaction)} />
 						<CardRow
 							label="Amount (USDC)"
 							value={
-								<span className="font-semibold text-success">
+								<span
+									className={
+										transaction.direction === "outgoing"
+											? "font-semibold text-destructive"
+											: "font-semibold text-success"
+									}
+								>
 									{formatTransactionAmount(transaction)}
 								</span>
 							}
 						/>
 						<CardRow
 							label="Method"
-							value={
-								transaction.paymentMethod
-									? PAYMENT_METHOD_LABEL[transaction.paymentMethod]
-									: "—"
-							}
+							value={transaction.method ? METHOD_LABEL[transaction.method] : "—"}
 						/>
 						<CardRow label="Status" value={<StatusBadge status={transaction.status} />} />
-						<CardRow label="Date" value={transaction.date} />
+						<CardRow
+							label="Date"
+							value={formatTransactionDate(transaction.completedAt ?? transaction.createdAt)}
+						/>
 						<div className="flex justify-end">
 							<Link
 								href={`/transactions/${transaction.id}`}
-								aria-label={`View transaction with ${transaction.counterpartyName ?? "customer"}`}
+								aria-label={`View transaction ${transactionTitle(transaction)}`}
 								className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 							>
 								<Eye className="size-4" aria-hidden="true" />

@@ -1,154 +1,90 @@
-import { useQuery } from "@tanstack/react-query";
-import type { Transaction } from "@/features/dashboard/hooks";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useAxiosAuth } from "@/hooks/useAxiosAuth";
+import { apiRoutes } from "@/lib/config/apiRoutes";
+import type {
+	ApiSuccessResponse,
+	PaginationMeta,
+	TransactionData,
+	TransactionDirection,
+	TransactionLedgerStatus,
+	TransactionType,
+} from "@/lib/api/types";
 
-// TODO: replace with real calls into the ledger API once it exists.
-async function fakeRequest<T>(payload: T, delay = 1000): Promise<T> {
-	await new Promise((resolve) => setTimeout(resolve, delay));
-	return payload;
+const TRANSACTIONS_KEY = ["transactions"];
+
+export interface TransactionsQuery {
+	q?: string;
+	type?: TransactionType;
+	status?: TransactionLedgerStatus;
+	currency?: string;
+	direction?: TransactionDirection;
+	from?: string;
+	to?: string;
+	order?: "asc" | "desc";
 }
 
-/** The full history behind the dashboard's abbreviated "Recent
- * Transactions" (latest 4 only) — same fake shape, more entries and a
- * couple of the statuses the dashboard's fixed sample never shows, since
- * this page's whole purpose is being the "view all" destination (and, per
- * each row linking to `/transactions/[id]`, the source for transaction
- * detail lookups too). */
-function useTransactionHistory() {
+/**
+ * `GET /transactions` — server-side filtered/paginated, and already scoped
+ * server-side by account type (an individual's own personal history vs. a
+ * merchant's consolidated feed across their personal wallet + every
+ * business they own). One hook for both `/transactions` (no `direction`)
+ * and `/payments` (merchant-only, `direction: "incoming"` baked into the
+ * query the caller passes) — the endpoint's own filters already draw that
+ * line, so there's no need for two separate hooks.
+ */
+function useTransactions(query: TransactionsQuery, page: number, limit: number) {
+	const axiosAuth = useAxiosAuth();
+
 	return useQuery({
-		queryKey: ["transactions", "history"],
-		queryFn: () =>
-			fakeRequest<Transaction[]>(
-				[
-					{
-						id: "1",
-						kind: "received",
-						title: "Received from John Doe",
-						timestamp: "Today, 10:26 AM",
-						date: "6 September, 2026",
-						txId: "BJFWHUF9824BPFNJEUH8PI98EBOQ",
-						amount: 1000,
-						currency: "USDC",
-						status: "completed",
-						counterpartyName: "John Doe",
-						counterpartyPhone: "+233 24 123 4567",
-					},
-					{
-						id: "2",
-						kind: "sent",
-						title: "Payment to John Doe",
-						timestamp: "Today, 10:26 AM",
-						date: "6 September, 2026",
-						txId: "GKTMNQP4471XZWDCVA6RS3JLYHFE",
-						amount: -500,
-						currency: "USDC",
-						status: "completed",
-						counterpartyName: "John Doe",
-						counterpartyPhone: "+233 24 123 4567",
-					},
-					{
-						id: "3",
-						kind: "sent",
-						title: "Transfer to Ama Serwaa",
-						timestamp: "Today, 9:02 AM",
-						date: "6 September, 2026",
-						txId: "PXWLVA6602KDHZSF3MRT8QGYENJC",
-						amount: -100,
-						currency: "USDC",
-						status: "processing",
-						counterpartyName: "Ama Serwaa",
-						counterpartyPhone: "+233 20 445 8821",
-					},
-					{
-						id: "4",
-						kind: "received",
-						title: "Received from John Doe",
-						timestamp: "Today, 10:26 AM",
-						date: "6 September, 2026",
-						txId: "TVXBHE2358OQKASD9FGH1MNZLPWC",
-						amount: 1000,
-						currency: "USDC",
-						status: "completed",
-						counterpartyName: "John Doe",
-						counterpartyPhone: "+233 24 123 4567",
-					},
-					{
-						id: "5",
-						kind: "scan_pay",
-						title: "Scan & Pay",
-						timestamp: "Yesterday, 10:26 AM",
-						date: "5 September, 2026",
-						txId: "RQZLKD7793WEUAF2NCJT5HBOMXYV",
-						amount: -500,
-						currency: "USDC",
-						status: "completed",
-					},
-					{
-						id: "6",
-						kind: "sent",
-						title: "Transfer to Kojo Mensah",
-						timestamp: "Yesterday, 4:18 PM",
-						date: "5 September, 2026",
-						txId: "HNFCZQ1184UWAB7XTKS2VOJDMLYR",
-						amount: -250,
-						currency: "USDC",
-						status: "failed",
-						counterpartyName: "Kojo Mensah",
-						counterpartyPhone: "+233 27 981 2246",
-					},
-					{
-						id: "7",
-						kind: "received",
-						title: "Received from Kwame Boateng",
-						timestamp: "Yesterday, 1:47 PM",
-						date: "5 September, 2026",
-						txId: "WDOQAM5527JCFRZ9YENH3PVTXKLB",
-						amount: 300,
-						currency: "USDC",
-						status: "pending",
-						counterpartyName: "Kwame Boateng",
-						counterpartyPhone: "+233 54 302 7719",
-					},
-					{
-						id: "8",
-						kind: "scan_pay",
-						title: "Scan & Pay",
-						timestamp: "Mon, 11:05 AM",
-						date: "1 September, 2026",
-						txId: "LSKYPT8836EGNVA4ZHQR7CMWDOJF",
-						amount: -75,
-						currency: "USDC",
-						status: "completed",
-					},
-					{
-						id: "9",
-						kind: "sent",
-						title: "Transfer to Ama Serwaa",
-						timestamp: "Sun, 6:30 PM",
-						date: "31 August, 2026",
-						txId: "ZNRHUC2291MXFLVA6WBJ9QKDYEST",
-						amount: -600,
-						currency: "USDC",
-						status: "cancelled",
-						counterpartyName: "Ama Serwaa",
-						counterpartyPhone: "+233 20 445 8821",
-					},
-					{
-						id: "10",
-						kind: "received",
-						title: "Received from John Doe",
-						timestamp: "Sun, 9:15 AM",
-						date: "31 August, 2026",
-						txId: "FMEQOX7743VDNBK1RTHA5UYGLZWJ",
-						amount: 1000,
-						currency: "USDC",
-						status: "completed",
-						counterpartyName: "John Doe",
-						counterpartyPhone: "+233 24 123 4567",
-					},
-				],
-				1000,
-			),
+		queryKey: [...TRANSACTIONS_KEY, query, page, limit],
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<
+				ApiSuccessResponse<TransactionData[]> & { meta: PaginationMeta }
+			>(apiRoutes.transactions.LIST, { params: { ...query, page, limit } });
+			return { transactions: data.data, meta: data.meta };
+		},
 	});
 }
 
-export { useTransactionHistory };
+/** No dedicated cache entry shared with the list above — the list is
+ * server-paginated, so a transaction viewed on the detail page isn't
+ * guaranteed to be on whatever page the list last fetched (same reasoning
+ * as Payment Links' own `useMerchantPaymentLink`). */
+function useTransaction(id: string) {
+	const axiosAuth = useAxiosAuth();
+
+	return useQuery({
+		queryKey: [...TRANSACTIONS_KEY, id],
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<TransactionData>>(
+				apiRoutes.transactions.byId(id),
+			);
+			return data.data;
+		},
+		enabled: !!id,
+	});
+}
+
+/** Blob download, same pattern as Payment Links' own CSV export — a plain
+ * `<a href>` wouldn't carry the `Authorization` header the proxy's
+ * interceptor attaches. Runs the same filters as the list view. */
+function useExportTransactionsCsv() {
+	const axiosAuth = useAxiosAuth();
+
+	return useMutation({
+		mutationFn: async (query: TransactionsQuery) => {
+			const response = await axiosAuth.get<Blob>(apiRoutes.transactions.EXPORT_CSV, {
+				params: query,
+				responseType: "blob",
+			});
+			const url = URL.createObjectURL(response.data);
+			const anchor = document.createElement("a");
+			anchor.href = url;
+			anchor.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+			anchor.click();
+			URL.revokeObjectURL(url);
+		},
+	});
+}
+
+export { useTransactions, useTransaction, useExportTransactionsCsv };

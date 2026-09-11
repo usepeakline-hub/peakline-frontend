@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Skeleton } from "@repo/ui/skeleton";
-import { useTransactionHistory } from "@/features/transactions/hooks";
+import { Pagination } from "@/components/Pagination";
+import { useTransactions, type TransactionsQuery } from "@/features/transactions/hooks";
 import { TransactionRow } from "@/features/transactions/components/TransactionRow";
 import { TransactionFilters } from "@/features/transactions/components/TransactionFilters";
-import type { Transaction } from "@/features/dashboard/hooks";
+import type { TransactionLedgerStatus } from "@/lib/api/types";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function TransactionHistoryListSkeleton() {
 	return (
@@ -30,53 +33,70 @@ function TransactionHistoryListSkeleton() {
 	);
 }
 
-/** Matches on the transaction's title (which already reads as a name —
- * "Received from John Doe", "Transfer to Ama Serwaa" — since that's the
- * only name-shaped text every entry has; scan_pay's "Scan & Pay" simply
- * won't match a person's name search, which is correct. */
-function matchesSearch(transaction: Transaction, search: string) {
-	if (!search.trim()) return true;
-	return transaction.title.toLowerCase().includes(search.trim().toLowerCase());
-}
-
-/** The `/transactions` page's own full list — the "view all" this page
- * exists to be, versus the dashboard's abbreviated latest-4. Owns the
- * search/status filter state since it's the only thing that needs it. */
+/** The `/transactions` page's own full history — the "view all" this page
+ * exists to be, versus the dashboard's abbreviated latest few. Server-side
+ * filtered/paginated now (`GET /transactions`'s own `q`/`status`/`page`/
+ * `limit`) instead of filtering an already-fetched fake array — same shift
+ * Payment Links' own list made once it got a real endpoint. */
 function TransactionHistoryList() {
-	const { data } = useTransactionHistory();
 	const [search, setSearch] = useState("");
-	const [status, setStatus] = useState<Transaction["status"] | "all">("all");
+	const [status, setStatus] = useState<TransactionLedgerStatus | "all">("all");
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 
-	const filtered = useMemo(() => {
-		if (!data) return null;
-		return data.filter(
-			(transaction) =>
-				matchesSearch(transaction, search) &&
-				(status === "all" || transaction.status === status),
-		);
-	}, [data, search, status]);
+	const query: TransactionsQuery = {
+		q: search.trim() || undefined,
+		status: status === "all" ? undefined : status,
+	};
+	const { data, isLoading } = useTransactions(query, page, pageSize);
+
+	function handleFilterChange<T>(setter: (value: T) => void) {
+		return (value: T) => {
+			setter(value);
+			setPage(1);
+		};
+	}
+
+	function handlePageSizeChange(value: number) {
+		setPageSize(value);
+		setPage(1);
+	}
 
 	return (
 		<div className="flex flex-col gap-4">
 			<TransactionFilters
 				search={search}
-				onSearchChange={setSearch}
+				onSearchChange={handleFilterChange(setSearch)}
 				status={status}
-				onStatusChange={setStatus}
+				onStatusChange={handleFilterChange(setStatus)}
 			/>
 
-			{!filtered ? (
+			{isLoading || !data ? (
 				<TransactionHistoryListSkeleton />
-			) : filtered.length === 0 ? (
+			) : data.transactions.length === 0 ? (
 				<p className="py-8 text-center text-b3 text-muted-foreground">
 					No transactions match your search.
 				</p>
 			) : (
-				<div className="flex flex-col">
-					{filtered.map((transaction) => (
-						<TransactionRow key={transaction.id} transaction={transaction} />
-					))}
-				</div>
+				<>
+					<div className="flex flex-col">
+						{data.transactions.map((transaction) => (
+							<TransactionRow key={transaction.id} transaction={transaction} />
+						))}
+					</div>
+					{data.meta.totalCount > 0 && (
+						<Pagination
+							page={data.meta.currentPage}
+							totalPages={data.meta.pageCount}
+							pageSize={pageSize}
+							onPageChange={setPage}
+							onPageSizeChange={handlePageSizeChange}
+							pageSizeOptions={PAGE_SIZE_OPTIONS}
+							itemsShown={data.transactions.length}
+							total={data.meta.totalCount}
+						/>
+					)}
+				</>
 			)}
 		</div>
 	);

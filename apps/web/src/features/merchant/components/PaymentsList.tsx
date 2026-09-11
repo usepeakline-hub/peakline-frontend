@@ -1,14 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { toast } from "@repo/ui/sonner";
 import { Pagination } from "@/components/Pagination";
-import { useMerchantPayments } from "@/features/merchant/hooks";
+import {
+	useExportTransactionsCsv,
+	useTransactions,
+	type TransactionsQuery,
+} from "@/features/transactions/hooks";
 import { PaymentsFilters } from "@/features/merchant/components/PaymentsFilters";
 import { PaymentsTable } from "@/features/merchant/components/PaymentsTable";
-import { PAYMENT_METHOD_LABEL, STATUS_LABEL } from "@/lib/transactions";
-import type { Transaction } from "@/features/dashboard/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import type { TransactionLedgerStatus } from "@/lib/api/types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -21,71 +25,29 @@ function PaymentsListSkeleton() {
 	);
 }
 
-/** Matches on customer name, same convention as `TransactionHistoryList`. */
-function matchesSearch(payment: Transaction, search: string) {
-	if (!search.trim()) return true;
-	return (payment.counterpartyName ?? "").toLowerCase().includes(search.trim().toLowerCase());
-}
-
-function matchesDateRange(payment: Transaction, from: string, to: string) {
-	if (!payment.isoDate) return true;
-	if (from && payment.isoDate < from) return false;
-	if (to && payment.isoDate > to) return false;
-	return true;
-}
-
-/** Builds a real CSV from whatever's currently filtered and hands it to the
- * browser as a download — the one piece here that isn't just filtering
- * already-fetched fake data, so it's worth actually doing rather than
- * wiring a button that looks clickable and does nothing. */
-function downloadCsv(payments: Transaction[]) {
-	const header = ["Date", "Customer", "Payment Method", "Amount (USDC)", "Status"];
-	const rows = payments.map((payment) => [
-		payment.date,
-		payment.counterpartyName ?? "",
-		payment.paymentMethod ? PAYMENT_METHOD_LABEL[payment.paymentMethod] : "",
-		payment.amount.toFixed(2),
-		STATUS_LABEL[payment.status],
-	]);
-	const csv = [header, ...rows]
-		.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-		.join("\n");
-
-	const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-	const url = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`;
-	link.click();
-	URL.revokeObjectURL(url);
-}
-
-/** The Payments page's own list — owns filter state, same shape as
- * `TransactionHistoryList` (search + status), extended with a real date
- * range, CSV export, and (per the updated mock) real pagination over
- * whatever the filters leave — same `Pagination` control
- * `RecentPaymentsSection` uses, so both lists behave identically. */
+/** The Payments page's own list — "all incoming customer payments", the
+ * same shared `useTransactions` as the general `/transactions` ledger but
+ * with `direction: "incoming"` fixed into every query this list ever sends
+ * (not a user-facing filter — this page simply never shows outgoing rows).
+ * Real CSV export and server-side pagination, same shape as
+ * `TransactionsList`. */
 function PaymentsList() {
-	const { data } = useMerchantPayments();
 	const [search, setSearch] = useState("");
 	const [from, setFrom] = useState("");
 	const [to, setTo] = useState("");
-	const [status, setStatus] = useState<Transaction["status"] | "all">("all");
+	const [status, setStatus] = useState<TransactionLedgerStatus | "all">("all");
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
-	const filtered = useMemo(() => {
-		if (!data) return null;
-		return data.filter(
-			(payment) =>
-				matchesSearch(payment, search) &&
-				matchesDateRange(payment, from, to) &&
-				(status === "all" || payment.status === status),
-		);
-	}, [data, search, from, to, status]);
-
-	const totalPages = filtered ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
-	const pageItems = filtered ? filtered.slice((page - 1) * pageSize, page * pageSize) : null;
+	const query: TransactionsQuery = {
+		direction: "incoming",
+		q: search.trim() || undefined,
+		status: status === "all" ? undefined : status,
+		from: from || undefined,
+		to: to || undefined,
+	};
+	const { data, isLoading } = useTransactions(query, page, pageSize);
+	const exportCsv = useExportTransactionsCsv();
 
 	function handleFilterChange<T>(setter: (value: T) => void) {
 		return (value: T) => {
@@ -100,12 +62,10 @@ function PaymentsList() {
 	}
 
 	function handleExport() {
-		if (!filtered || filtered.length === 0) {
-			toast.error("No payments to export");
-			return;
-		}
-		downloadCsv(filtered);
-		toast.success("Payments exported");
+		exportCsv.mutate(query, {
+			onSuccess: () => toast.success("Payments exported"),
+			onError: (error) => toast.error(getApiErrorMessage(error, "Couldn't export payments")),
+		});
 	}
 
 	return (
@@ -122,21 +82,21 @@ function PaymentsList() {
 				onExport={handleExport}
 			/>
 
-			{!filtered || !pageItems ? (
+			{isLoading || !data ? (
 				<PaymentsListSkeleton />
 			) : (
 				<>
-					<PaymentsTable payments={pageItems} />
-					{filtered.length > 0 && (
+					<PaymentsTable payments={data.transactions} />
+					{data.meta.totalCount > 0 && (
 						<Pagination
-							page={page}
-							totalPages={totalPages}
+							page={data.meta.currentPage}
+							totalPages={data.meta.pageCount}
 							pageSize={pageSize}
 							onPageChange={setPage}
 							onPageSizeChange={handlePageSizeChange}
 							pageSizeOptions={PAGE_SIZE_OPTIONS}
-							itemsShown={pageItems.length}
-							total={filtered.length}
+							itemsShown={data.transactions.length}
+							total={data.meta.totalCount}
 						/>
 					)}
 				</>

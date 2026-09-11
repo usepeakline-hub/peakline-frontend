@@ -3,19 +3,26 @@
 import { Check, Clock, RefreshCw, X, Ban, Copy } from "lucide-react";
 import { toast } from "@repo/ui/sonner";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
-import { STATUS_LABEL, PAYMENT_METHOD_LABEL } from "@/lib/transactions";
+import {
+	STATUS_LABEL,
+	METHOD_LABEL,
+	transactionNoun,
+	transactionCounterpartyLabel,
+	transactionCounterpartyFieldLabel,
+	formatTransactionDate,
+} from "@/lib/transactions";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
-import type { Transaction } from "@/features/dashboard/hooks";
+import type { TransactionData, TransactionLedgerStatus } from "@/lib/api/types";
 
 const STATUS_BANNER: Record<
-	Transaction["status"],
+	TransactionLedgerStatus,
 	{ icon: typeof Check; className: string; headingSuffix: string }
 > = {
 	completed: { icon: Check, className: "bg-success text-success-foreground", headingSuffix: "Successful!" },
 	pending: { icon: Clock, className: "bg-warning text-warning-foreground", headingSuffix: "Pending" },
 	processing: { icon: RefreshCw, className: "bg-info text-info-foreground", headingSuffix: "Processing" },
 	failed: { icon: X, className: "bg-destructive text-destructive-foreground", headingSuffix: "Failed" },
-	cancelled: { icon: Ban, className: "bg-neutral-700 text-white", headingSuffix: "Cancelled" },
+	reversed: { icon: Ban, className: "bg-neutral-700 text-white", headingSuffix: "Reversed" },
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -27,37 +34,27 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 	);
 }
 
-interface TransactionDetailProps {
-	transaction: Transaction;
-	/** "Transfer" for this feature's own usage; "Payment" for the merchant
-	 * Payments detail page, which reuses this whole layout rather than
-	 * duplicating it — same receipt shape either way. */
-	noun?: string;
-	/** "To" for a transfer (money leaving, to someone); "From" for a
-	 * merchant payment (money coming in, from a customer). */
-	counterpartyLabel?: string;
-}
-
 /**
  * The receipt-style page a `TransactionRow` (or a merchant `PaymentsTable`
  * row) links to. Status-aware rather than a fixed "Transfer Successful!" —
- * the mock's own two examples were both completed transfers, but this page
- * also has to render pending/processing/failed/cancelled entries sensibly,
- * so banner color, icon, and heading all follow the fixed status→token
- * mapping from CLAUDE.md (Pending→warning, Processing→info, Completed→
- * success, Failed→destructive, Cancelled→neutral).
+ * banner color, icon, and heading all follow the fixed status→token mapping
+ * from CLAUDE.md (Pending→warning, Processing→info, Completed→success,
+ * Failed→destructive; `reversed` gets the same neutral treatment
+ * "Cancelled" would have, there being no dedicated token for it). The
+ * heading noun ("Transfer"/"Payment"/"Deposit"/...) and counterparty label
+ * ("To"/"From") are both derived from the transaction's own real `type`/
+ * `direction` now (see `lib/transactions.ts`) rather than being passed in
+ * by the caller — a real ledger row already knows which way it went.
  */
-function TransactionDetail({
-	transaction,
-	noun = "Transfer",
-	counterpartyLabel = "To",
-}: TransactionDetailProps) {
+function TransactionDetail({ transaction }: { transaction: TransactionData }) {
 	const { icon: Icon, className, headingSuffix } = STATUS_BANNER[transaction.status];
-	const amount = Math.abs(transaction.amount);
+	const amount = Number(transaction.amount);
+	const counterpartyName = transactionCounterpartyLabel(transaction);
+	const txRef = transaction.stellarTxHash ?? transaction.id;
 
 	async function handleCopyTxId() {
 		try {
-			await navigator.clipboard.writeText(transaction.txId);
+			await navigator.clipboard.writeText(txRef);
 			toast.success("Transaction ID copied");
 		} catch {
 			toast.error("Couldn't copy");
@@ -73,7 +70,7 @@ function TransactionDetail({
 
 			<div className="flex flex-col items-center gap-1 text-center">
 				<h2 className="text-s1 text-foreground sm:text-h5">
-					{noun} {headingSuffix}
+					{transactionNoun(transaction)} {headingSuffix}
 				</h2>
 			</div>
 
@@ -86,23 +83,23 @@ function TransactionDetail({
 				</span>
 			</div>
 
-			{transaction.counterpartyName && (
+			{counterpartyName && (
 				<div className="flex flex-col gap-2">
 					<span className="text-c1 text-muted-foreground sm:text-b3">
-						{counterpartyLabel}
+						{transactionCounterpartyFieldLabel(transaction)}
 					</span>
 					<div className="flex items-center gap-3">
 						<UserAvatar
-							name={transaction.counterpartyName}
+							name={counterpartyName}
 							className="bg-primary-600 text-primary-foreground"
 						/>
 						<div className="flex flex-col">
 							<span className="text-b3 font-semibold text-foreground sm:text-b2">
-								{transaction.counterpartyName}
+								{counterpartyName}
 							</span>
-							{transaction.counterpartyPhone && (
+							{transaction.counterparty?.phone && (
 								<span className="text-c1 text-muted-foreground sm:text-b3">
-									{transaction.counterpartyPhone}
+									{transaction.counterparty.phone}
 								</span>
 							)}
 						</div>
@@ -111,14 +108,16 @@ function TransactionDetail({
 			)}
 
 			<div className="flex flex-col divide-y divide-border">
-				<DetailRow label="Date" value={transaction.date} />
-				<DetailRow label="Network" value="Stellar" />
-				<DetailRow label="Est. Fee" value="0.00 USDC" />
-				{transaction.paymentMethod && (
-					<DetailRow
-						label="Payment Method"
-						value={PAYMENT_METHOD_LABEL[transaction.paymentMethod]}
-					/>
+				<DetailRow
+					label="Date"
+					value={formatTransactionDate(transaction.completedAt ?? transaction.createdAt)}
+				/>
+				{transaction.method && (
+					<DetailRow label="Method" value={METHOD_LABEL[transaction.method]} />
+				)}
+				<DetailRow label="Fee" value={`${formatUsdc(Number(transaction.fee))} ${transaction.currency}`} />
+				{transaction.business && (
+					<DetailRow label="Business" value={transaction.business.name} />
 				)}
 				<div className="flex items-center justify-between gap-4 py-3 text-c1 sm:text-b3">
 					<span className="text-muted-foreground">Transaction ID</span>
@@ -127,7 +126,7 @@ function TransactionDetail({
 						onClick={handleCopyTxId}
 						className="flex items-center gap-1.5 font-semibold text-foreground hover:text-primary-600"
 					>
-						<span className="max-w-48 truncate sm:max-w-none">{transaction.txId}</span>
+						<span className="max-w-48 truncate sm:max-w-none">{txRef}</span>
 						<Copy className="size-4 shrink-0" aria-hidden="true" />
 					</button>
 				</div>

@@ -1,14 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { toast } from "@repo/ui/sonner";
 import { Pagination } from "@/components/Pagination";
-import { useMerchantTransactions } from "@/features/merchant/hooks";
+import {
+	useExportTransactionsCsv,
+	useTransactions,
+	type TransactionsQuery,
+} from "@/features/transactions/hooks";
 import { TransactionsFilters } from "@/features/merchant/components/TransactionsFilters";
 import { TransactionsTable } from "@/features/merchant/components/TransactionsTable";
-import { PAYMENT_METHOD_LABEL, STATUS_LABEL } from "@/lib/transactions";
-import type { Transaction } from "@/features/dashboard/hooks";
+import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import type { TransactionLedgerStatus } from "@/lib/api/types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -21,67 +25,29 @@ function TransactionsListSkeleton() {
 	);
 }
 
-function matchesSearch(transaction: Transaction, search: string) {
-	if (!search.trim()) return true;
-	return (transaction.counterpartyName ?? "").toLowerCase().includes(search.trim().toLowerCase());
-}
-
-function matchesDateRange(transaction: Transaction, from: string, to: string) {
-	if (!transaction.isoDate) return true;
-	if (from && transaction.isoDate < from) return false;
-	if (to && transaction.isoDate > to) return false;
-	return true;
-}
-
-function downloadCsv(transactions: Transaction[]) {
-	const header = ["Date", "Customer", "Payment Method", "Amount (USDC)", "Status"];
-	const rows = transactions.map((transaction) => [
-		transaction.date,
-		transaction.counterpartyName ?? "",
-		transaction.paymentMethod ? PAYMENT_METHOD_LABEL[transaction.paymentMethod] : "",
-		transaction.amount.toFixed(2),
-		STATUS_LABEL[transaction.status],
-	]);
-	const csv = [header, ...rows]
-		.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-		.join("\n");
-
-	const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-	const url = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
-	link.click();
-	URL.revokeObjectURL(url);
-}
-
 /** Merchant's own `/transactions` list — same shape as `PaymentsList`
- * (search + date range + status filter, CSV export, real pagination over
- * the filtered results), backed by `useMerchantTransactions` instead of
- * `useMerchantPayments`. Individual keeps its own existing
- * `TransactionHistoryList` untouched — this only renders for a merchant
- * session (see `transactions/page.tsx`'s own branch). */
+ * (search + date range + status filter, real CSV export, server-side
+ * pagination), backed by the shared `useTransactions` with no `direction`
+ * filter (unlike `PaymentsList`, which fixes it to `"incoming"`).
+ * Individual keeps its own existing `TransactionHistoryList` untouched —
+ * this only renders for a merchant session (see `transactions/page.tsx`'s
+ * own branch). */
 function TransactionsList() {
-	const { data } = useMerchantTransactions();
 	const [search, setSearch] = useState("");
 	const [from, setFrom] = useState("");
 	const [to, setTo] = useState("");
-	const [status, setStatus] = useState<Transaction["status"] | "all">("all");
+	const [status, setStatus] = useState<TransactionLedgerStatus | "all">("all");
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
-	const filtered = useMemo(() => {
-		if (!data) return null;
-		return data.filter(
-			(transaction) =>
-				matchesSearch(transaction, search) &&
-				matchesDateRange(transaction, from, to) &&
-				(status === "all" || transaction.status === status),
-		);
-	}, [data, search, from, to, status]);
-
-	const totalPages = filtered ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
-	const pageItems = filtered ? filtered.slice((page - 1) * pageSize, page * pageSize) : null;
+	const query: TransactionsQuery = {
+		q: search.trim() || undefined,
+		status: status === "all" ? undefined : status,
+		from: from || undefined,
+		to: to || undefined,
+	};
+	const { data, isLoading } = useTransactions(query, page, pageSize);
+	const exportCsv = useExportTransactionsCsv();
 
 	function handleFilterChange<T>(setter: (value: T) => void) {
 		return (value: T) => {
@@ -96,12 +62,11 @@ function TransactionsList() {
 	}
 
 	function handleExport() {
-		if (!filtered || filtered.length === 0) {
-			toast.error("No transactions to export");
-			return;
-		}
-		downloadCsv(filtered);
-		toast.success("Transactions exported");
+		exportCsv.mutate(query, {
+			onSuccess: () => toast.success("Transactions exported"),
+			onError: (error) =>
+				toast.error(getApiErrorMessage(error, "Couldn't export transactions")),
+		});
 	}
 
 	return (
@@ -118,21 +83,21 @@ function TransactionsList() {
 				onExport={handleExport}
 			/>
 
-			{!filtered || !pageItems ? (
+			{isLoading || !data ? (
 				<TransactionsListSkeleton />
 			) : (
 				<>
-					<TransactionsTable transactions={pageItems} />
-					{filtered.length > 0 && (
+					<TransactionsTable transactions={data.transactions} />
+					{data.meta.totalCount > 0 && (
 						<Pagination
-							page={page}
-							totalPages={totalPages}
+							page={data.meta.currentPage}
+							totalPages={data.meta.pageCount}
 							pageSize={pageSize}
 							onPageChange={setPage}
 							onPageSizeChange={handlePageSizeChange}
 							pageSizeOptions={PAGE_SIZE_OPTIONS}
-							itemsShown={pageItems.length}
-							total={filtered.length}
+							itemsShown={data.transactions.length}
+							total={data.meta.totalCount}
 						/>
 					)}
 				</>

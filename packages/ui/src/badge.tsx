@@ -49,7 +49,12 @@ export type PaymentStatus =
 	| "processing"
 	| "completed"
 	| "failed"
-	| "cancelled";
+	| "cancelled"
+	// A real ledger transaction status (reversed after settling), distinct
+	// from "cancelled" (voided before ever completing) — visually the same
+	// neutral treatment (there's no dedicated variant for it, and the two
+	// read as close enough kin), just its own label.
+	| "reversed";
 
 const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 	pending: "Pending",
@@ -57,6 +62,7 @@ const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 	completed: "Completed",
 	failed: "Failed",
 	cancelled: "Cancelled",
+	reversed: "Reversed",
 };
 
 function StatusBadge({
@@ -66,15 +72,16 @@ function StatusBadge({
 	status: PaymentStatus;
 	className?: string;
 }) {
+	const variant = status === "reversed" ? "cancelled" : status;
 	return (
-		<Badge variant={status} className={className}>
+		<Badge variant={variant} className={className}>
 			<span
 				className={cn("size-1.5 rounded-full", {
 					"bg-warning-600": status === "pending",
 					"bg-info-600": status === "processing",
 					"bg-success-600": status === "completed",
 					"bg-danger-600": status === "failed",
-					"bg-neutral-400": status === "cancelled",
+					"bg-neutral-400": status === "cancelled" || status === "reversed",
 				})}
 			/>
 			{PAYMENT_STATUS_LABEL[status]}

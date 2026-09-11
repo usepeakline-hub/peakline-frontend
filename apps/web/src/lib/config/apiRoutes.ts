@@ -105,16 +105,14 @@ export const apiRoutes = {
 	},
 
 	// A generic wallet ledger (deposit/withdrawal/internal_transfer/
-	// conversion/withdrawal_ghs) — a different shape than the app's own
-	// `Transaction` type (built around a named counterparty and a QR/Link
-	// payment method neither this list nor its detail record has any
-	// equivalent for). Only BALANCES is wired so far (see
-	// `useWalletBalance`); LIST/byId are real endpoints but not yet
-	// connected to any UI pending a decision on how to reconcile the two
-	// shapes.
+	// conversion/withdrawal_ghs) — now carries `counterparty`/`direction`/
+	// `method`/`business` too (see `TransactionData`), which is what
+	// finally let the app's own Transactions/Payments UI move off fake data
+	// entirely.
 	transactions: {
 		LIST: "/api/v1/transactions",
 		BALANCES: "/api/v1/transactions/balances",
+		EXPORT_CSV: "/api/v1/transactions/export.csv",
 		byId: (id: string) => `/api/v1/transactions/${id}`,
 	},
 

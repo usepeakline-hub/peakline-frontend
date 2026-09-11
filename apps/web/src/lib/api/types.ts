@@ -238,6 +238,72 @@ export interface BalanceData {
 	balance: string;
 }
 
+export type TransactionType =
+	| "deposit"
+	| "withdrawal"
+	| "internal_transfer"
+	| "conversion"
+	| "withdrawal_ghs";
+
+export type TransactionLedgerStatus =
+	| "pending"
+	| "processing"
+	| "completed"
+	| "failed"
+	| "reversed";
+
+/** From the caller's own perspective — attached by list/findOne only. */
+export type TransactionDirection = "incoming" | "outgoing";
+
+/** How the money moved. `intent` = matched a funding intent (not used by
+ * this app — see `apiRoutes.wallets`' own note on why); `stellar` = raw
+ * on-chain send/receive; `peakline` = internal ledger transfer between
+ * Peakline users; `bank` = fiat rail (GHS); `conversion` = FX. */
+export type TransactionMethod = "intent" | "stellar" | "peakline" | "bank" | "conversion";
+
+export interface TransactionCounterpartyData {
+	id: string;
+	name?: string | null;
+	username?: string | null;
+	phone?: string | null;
+}
+
+export interface TransactionBusinessData {
+	id: string;
+	name: string;
+}
+
+/** `GET /transactions`, `GET /transactions/{id}`. A generic wallet-ledger
+ * record — no display title of its own (see `lib/transactions.ts`'s own
+ * formatters, which derive one from `type`/`counterparty`/`direction`).
+ * `counterparty` is only ever populated for internal Peakline-to-Peakline
+ * transfers; an on-chain send/receive to a bare wallet address has
+ * `externalAddress` instead and no `counterparty`. */
+export interface TransactionData {
+	id: string;
+	userId: string;
+	businessId?: string | null;
+	business?: TransactionBusinessData | null;
+	counterpartyId?: string | null;
+	type: TransactionType;
+	status: TransactionLedgerStatus;
+	amount: string;
+	currency: string;
+	fee: string;
+	fxRate?: string | null;
+	toCurrency?: string | null;
+	toAmount?: string | null;
+	stellarTxHash?: string | null;
+	externalAddress?: string | null;
+	metadata?: Record<string, unknown> | null;
+	completedAt?: string | null;
+	createdAt: string;
+	updatedAt: string;
+	direction?: TransactionDirection;
+	method?: TransactionMethod;
+	counterparty?: TransactionCounterpartyData | null;
+}
+
 /** `POST /auth/2fa/enroll` — shown once; the recovery codes can't be
  * fetched again after this response. */
 export interface EnrollTotpData {

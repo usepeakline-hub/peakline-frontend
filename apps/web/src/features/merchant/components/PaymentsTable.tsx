@@ -3,8 +3,14 @@
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import { StatusBadge } from "@repo/ui/badge";
-import { PAYMENT_METHOD_LABEL, formatTransactionAmount } from "@/lib/transactions";
-import type { Transaction } from "@/features/dashboard/hooks";
+import {
+	METHOD_LABEL,
+	transactionCounterpartyLabel,
+	transactionTitle,
+	formatTransactionAmount,
+	formatTransactionDate,
+} from "@/lib/transactions";
+import type { TransactionData } from "@/lib/api/types";
 
 function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
 	return (
@@ -13,6 +19,14 @@ function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
 			<span className="text-b3 font-medium text-foreground">{value}</span>
 		</div>
 	);
+}
+
+/** "Customer" falls back to `transactionTitle` for the rare incoming row
+ * with no identifiable counterparty at all (e.g. a straight deposit) —
+ * every other real row here has a name/username/phone or an external
+ * wallet address to show instead. */
+function customerLabel(payment: TransactionData) {
+	return transactionCounterpartyLabel(payment) ?? transactionTitle(payment);
 }
 
 /**
@@ -24,7 +38,7 @@ function CardRow({ label, value }: { label: string; value: React.ReactNode }) {
  * matching `RecentPaymentsSection`'s card convention so the two "same
  * shape of data, different page" lists don't drift stylistically apart.
  */
-function PaymentsTable({ payments }: { payments: Transaction[] }) {
+function PaymentsTable({ payments }: { payments: TransactionData[] }) {
 	if (payments.length === 0) {
 		return (
 			<p className="py-8 text-center text-b3 text-muted-foreground">
@@ -50,21 +64,23 @@ function PaymentsTable({ payments }: { payments: Transaction[] }) {
 					<tbody>
 						{payments.map((payment) => (
 							<tr key={payment.id} className="border-t border-border hover:bg-muted/50">
-								<td className="p-4 text-b3 text-foreground">{payment.counterpartyName}</td>
+								<td className="p-4 text-b3 text-foreground">{customerLabel(payment)}</td>
 								<td className="p-4 text-b3 font-semibold text-success">
 									{formatTransactionAmount(payment)}
 								</td>
 								<td className="p-4 text-b3 text-foreground">
-									{payment.paymentMethod ? PAYMENT_METHOD_LABEL[payment.paymentMethod] : "—"}
+									{payment.method ? METHOD_LABEL[payment.method] : "—"}
 								</td>
 								<td className="p-4">
 									<StatusBadge status={payment.status} />
 								</td>
-								<td className="p-4 text-b3 text-foreground">{payment.date}</td>
+								<td className="p-4 text-b3 text-foreground">
+									{formatTransactionDate(payment.completedAt ?? payment.createdAt)}
+								</td>
 								<td className="p-4">
 									<Link
 										href={`/payments/${payment.id}`}
-										aria-label={`View payment from ${payment.counterpartyName ?? "customer"}`}
+										aria-label={`View payment from ${customerLabel(payment)}`}
 										className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 									>
 										<Eye className="size-4" aria-hidden="true" />
@@ -82,7 +98,7 @@ function PaymentsTable({ payments }: { payments: Transaction[] }) {
 						key={payment.id}
 						className="flex flex-col gap-3 rounded-xl border border-border p-4"
 					>
-						<CardRow label="Customer" value={payment.counterpartyName} />
+						<CardRow label="Customer" value={customerLabel(payment)} />
 						<CardRow
 							label="Amount (USDC)"
 							value={
@@ -93,16 +109,17 @@ function PaymentsTable({ payments }: { payments: Transaction[] }) {
 						/>
 						<CardRow
 							label="Method"
-							value={
-								payment.paymentMethod ? PAYMENT_METHOD_LABEL[payment.paymentMethod] : "—"
-							}
+							value={payment.method ? METHOD_LABEL[payment.method] : "—"}
 						/>
 						<CardRow label="Status" value={<StatusBadge status={payment.status} />} />
-						<CardRow label="Date" value={payment.date} />
+						<CardRow
+							label="Date"
+							value={formatTransactionDate(payment.completedAt ?? payment.createdAt)}
+						/>
 						<div className="flex justify-end">
 							<Link
 								href={`/payments/${payment.id}`}
-								aria-label={`View payment from ${payment.counterpartyName ?? "customer"}`}
+								aria-label={`View payment from ${customerLabel(payment)}`}
 								className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 							>
 								<Eye className="size-4" aria-hidden="true" />

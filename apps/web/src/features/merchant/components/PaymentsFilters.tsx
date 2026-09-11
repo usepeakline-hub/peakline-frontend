@@ -4,13 +4,15 @@ import { Search, Download } from "lucide-react";
 import { Input } from "@repo/ui/input";
 import { Select } from "@repo/ui/select";
 import { Button } from "@repo/ui/button";
-import type { Transaction } from "@/features/dashboard/hooks";
+import type { TransactionLedgerStatus } from "@/lib/api/types";
 
-const STATUS_OPTIONS: { value: Transaction["status"] | "all"; label: string }[] = [
+const STATUS_OPTIONS: { value: TransactionLedgerStatus | "all"; label: string }[] = [
 	{ value: "all", label: "All statuses" },
 	{ value: "pending", label: "Pending" },
+	{ value: "processing", label: "Processing" },
 	{ value: "completed", label: "Completed" },
 	{ value: "failed", label: "Failed" },
+	{ value: "reversed", label: "Reversed" },
 ];
 
 interface PaymentsFiltersProps {
@@ -20,8 +22,8 @@ interface PaymentsFiltersProps {
 	onFromChange: (value: string) => void;
 	to: string;
 	onToChange: (value: string) => void;
-	status: Transaction["status"] | "all";
-	onStatusChange: (value: Transaction["status"] | "all") => void;
+	status: TransactionLedgerStatus | "all";
+	onStatusChange: (value: TransactionLedgerStatus | "all") => void;
 	onExport: () => void;
 }
 
@@ -92,7 +94,9 @@ function PaymentsFilters({
 			<div className="flex justify-end lg:contents">
 				<Select
 					value={status}
-					onChange={(e) => onStatusChange(e.target.value as Transaction["status"] | "all")}
+					onChange={(e) =>
+						onStatusChange(e.target.value as TransactionLedgerStatus | "all")
+					}
 					aria-label="Filter by status"
 					className="w-40 lg:w-44"
 				>

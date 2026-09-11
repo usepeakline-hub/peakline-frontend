@@ -3,7 +3,6 @@ import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useMyBusiness } from "@/features/business/hooks";
-import type { Transaction } from "@/features/dashboard/hooks";
 import type {
 	ApiSuccessResponse,
 	MerchantDashboardStatsData,
@@ -13,13 +12,6 @@ import type {
 	PaymentLinkStatus,
 } from "@/lib/api/types";
 import type { CreatePaymentLinkValues } from "@/lib/validations/paymentLinksValidations";
-
-// TODO: replace with a real call into the merchant/payments API once it
-// exists.
-async function fakeRequest<T>(payload: T, delay = 800): Promise<T> {
-	await new Promise((resolve) => setTimeout(resolve, delay));
-	return payload;
-}
 
 export type ReceivedTrendPeriod = "week" | "month" | "year";
 
@@ -122,82 +114,6 @@ function useReceivedTrend(period: ReceivedTrendPeriod) {
 	return { ...rest, data: trend };
 }
 
-const RECENT_PAYMENT_CUSTOMERS = [
-	"John Doe",
-	"Janet John",
-	"Ama Serwaa",
-	"Kwame Boateng",
-	"Kojo Mensah",
-] as const;
-
-/** Deterministic, not random — a fixed 50-row fake dataset so pagination
- * always lands on the same content instead of reshuffling on every
- * refetch. */
-function generateFakeRecentPayments(count: number): Transaction[] {
-	const methods: NonNullable<Transaction["paymentMethod"]>[] = ["qr", "link"];
-	const statuses: Transaction["status"][] = ["completed", "completed", "completed", "pending", "failed"];
-
-	return Array.from({ length: count }, (_, i) => {
-		const customer = RECENT_PAYMENT_CUSTOMERS[i % RECENT_PAYMENT_CUSTOMERS.length];
-		return {
-			id: `rp${i + 1}`,
-			kind: "received",
-			title: `Received from ${customer}`,
-			timestamp: "12 Aug 2026, 11:57 AM",
-			date: "12 Aug 2026",
-			isoDate: "2026-08-12",
-			txId: `HIGUFYRTE${465987 + i}`,
-			amount: 500,
-			currency: "USDC",
-			status: statuses[i % statuses.length],
-			counterpartyName: customer,
-			paymentMethod: methods[i % methods.length],
-		};
-	});
-}
-
-const FAKE_RECENT_PAYMENTS = generateFakeRecentPayments(50);
-
-interface PaginatedPayments {
-	items: Transaction[];
-	total: number;
-}
-
-/** Overview's own "Recent Payments" — a real, paginated slice of a larger
- * (fake) dataset, distinct from `useMerchantPayments` (the full
- * `/payments` page's own, separately-sized fake list). Client-side paging
- * over an already-fetched array for now, same "fake but genuinely does the
- * thing" spirit as `PaymentsList`'s CSV export — real pagination logic,
- * just no real backend behind it yet. */
-function useRecentPayments(page: number, pageSize: number) {
-	return useQuery({
-		queryKey: ["merchant", "recent-payments", page, pageSize],
-		queryFn: () => {
-			const start = (page - 1) * pageSize;
-			return fakeRequest<PaginatedPayments>(
-				{
-					items: FAKE_RECENT_PAYMENTS.slice(start, start + pageSize),
-					total: FAKE_RECENT_PAYMENTS.length,
-				},
-				500,
-			);
-		},
-	});
-}
-
-/** Merchant's own `/transactions` — same underlying 50-row fake dataset as
- * `useRecentPayments` (Overview's preview is a slice of exactly this same
- * ledger, not a different one), but fetched whole so `TransactionsList` can
- * filter/paginate it client-side the same way `PaymentsList` does. Also the
- * lookup source `/transactions/[id]` reads from for a merchant session — see
- * that page's own `isMerchant` branch. */
-function useMerchantTransactions() {
-	return useQuery({
-		queryKey: ["merchant", "transactions"],
-		queryFn: () => fakeRequest<Transaction[]>(FAKE_RECENT_PAYMENTS),
-	});
-}
-
 // TODO: source the real business name from Business Information once that
 // onboarding step has a backend to persist it — same fake-default gap as
 // the individual dashboard's own `userName` prop.
@@ -210,85 +126,6 @@ const FAKE_BUSINESS_NAME = "Kwame Enterprise";
 function useAccountDisplayName(individualName: string) {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 	return isMerchant ? FAKE_BUSINESS_NAME : individualName;
-}
-
-/** The merchant's own "Payments" list (all incoming customer payments) —
- * distinct from the general `/transactions` ledger, which also has to cover
- * outgoing activity a plain payments view has no use for. Every entry is
- * `kind: "received"` and carries a `paymentMethod`, unlike the shared
- * `Transaction` shape's other consumers. Reused by the Payments detail page
- * (finds by id from this same cached list, same pattern as
- * `useTransactionHistory` + `/transactions/[id]`). */
-function useMerchantPayments() {
-	return useQuery({
-		queryKey: ["merchant", "payments"],
-		queryFn: () =>
-			fakeRequest<Transaction[]>(
-				[
-					{
-						id: "p1",
-						kind: "received",
-						title: "Received from Janet John",
-						timestamp: "July 12, 2025",
-						date: "12 July, 2025",
-						isoDate: "2025-07-12",
-						txId: "QKPMFZ8815WRJTNC3XYA6LOEHUDG",
-						amount: 500,
-						currency: "USDC",
-						status: "pending",
-						counterpartyName: "Janet John",
-						counterpartyPhone: "+233 958 3476 4972",
-						paymentMethod: "qr",
-					},
-					{
-						id: "p2",
-						kind: "received",
-						title: "Received from Janet John",
-						timestamp: "July 12, 2025",
-						date: "12 July, 2025",
-						isoDate: "2025-07-12",
-						txId: "BJFWHUF9824BPFNJEUH8PI98EBOQ",
-						amount: 500,
-						currency: "USDC",
-						status: "completed",
-						counterpartyName: "Janet John",
-						counterpartyPhone: "+233 958 3476 4972",
-						paymentMethod: "link",
-					},
-					{
-						id: "p3",
-						kind: "received",
-						title: "Received from Janet John",
-						timestamp: "July 12, 2025",
-						date: "12 July, 2025",
-						isoDate: "2025-07-12",
-						txId: "TVXBHE2358OQKASD9FGH1MNZLPWC",
-						amount: 500,
-						currency: "USDC",
-						status: "failed",
-						counterpartyName: "Janet John",
-						counterpartyPhone: "+233 958 3476 4972",
-						paymentMethod: "qr",
-					},
-					{
-						id: "p4",
-						kind: "received",
-						title: "Received from Janet John",
-						timestamp: "July 12, 2025",
-						date: "12 July, 2025",
-						isoDate: "2025-07-12",
-						txId: "RQZLKD7793WEUAF2NCJT5HBOMXYV",
-						amount: 500,
-						currency: "USDC",
-						status: "completed",
-						counterpartyName: "Janet John",
-						counterpartyPhone: "+233 958 3476 4972",
-						paymentMethod: "qr",
-					},
-				],
-				1000,
-			),
-	});
 }
 
 const PAYMENT_LINKS_KEY = ["merchant", "payment-links"];
@@ -433,8 +270,6 @@ const FAKE_MERCHANT_QR_LINK = "https://peakline.com/pay/kwame-enterprise";
 export {
 	useMerchantOverview,
 	useAccountDisplayName,
-	useMerchantPayments,
-	useMerchantTransactions,
 	useMerchantPaymentLinks,
 	useMerchantPaymentLink,
 	usePaymentLinksStats,
@@ -442,7 +277,6 @@ export {
 	useCancelPaymentLink,
 	useExportPaymentLinksCsv,
 	useReceivedTrend,
-	useRecentPayments,
 	FAKE_BUSINESS_NAME,
 	FAKE_MERCHANT_QR_LINK,
 };
