@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useVerifyLogin } from "@/features/auth/hooks";
+import { useVerifyLogin, useRouteAfterLogin } from "@/features/auth/hooks";
 import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
 import { useAccountSettingsStore } from "@/lib/stores/accountSettingsStore";
 import { VerifyCodeForm } from "@/features/auth/components/VerifyCodeForm";
@@ -19,6 +19,7 @@ function LoginVerifyForm() {
 	const method = useLoginFlowStore((state) => state.twoFactorMethod);
 	const setHas2FA = useAccountSettingsStore((state) => state.setHas2FA);
 	const verifyLogin = useVerifyLogin();
+	const routeAfterLogin = useRouteAfterLogin();
 
 	// Reached without a chosen 2FA method in this session — send them back.
 	useEffect(() => {
@@ -35,7 +36,7 @@ function LoginVerifyForm() {
 	// and races the navigation below.
 	function handleGoToDashboard() {
 		setHas2FA(true);
-		router.push("/");
+		routeAfterLogin();
 	}
 
 	return (

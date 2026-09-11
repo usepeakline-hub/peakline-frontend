@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { useLoginFlowStore } from "@/lib/stores/loginFlowStore";
+import { useRouteAfterLogin } from "@/features/auth/hooks";
 
 /**
  * Reached right after a successful Sign In, only when the account doesn't
@@ -19,6 +20,7 @@ function TwoFactorSetupPromptForm() {
 	const router = useRouter();
 	const email = useLoginFlowStore((state) => state.email);
 	const setTwoFactorMethod = useLoginFlowStore((state) => state.setTwoFactorMethod);
+	const routeAfterLogin = useRouteAfterLogin();
 
 	// Reached without a completed Sign In in this session — send them back.
 	useEffect(() => {
@@ -35,7 +37,7 @@ function TwoFactorSetupPromptForm() {
 	// Sign In instead. The next real sign-in overwrites the store fresh
 	// anyway, so there's nothing to actually clean up by clearing it now.
 	function handleSkip() {
-		router.push("/");
+		routeAfterLogin();
 	}
 
 	return (

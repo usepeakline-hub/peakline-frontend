@@ -21,10 +21,8 @@ export async function copyLink(link: string) {
  * WhatsApp/Email open their real share URLs, "Copy Link" uses the real
  * clipboard, and "More" uses the real Web Share API where available —
  * genuinely functional, not stubs, since all four are just browser-native
- * mechanisms with no backend involved. Shared by `PaymentRequestCreatedCard`
- * (individual's Request Payment) and `PaymentLinkCreatedCard` (merchant's
- * Payment Links) — pulled out once a second consumer needed the identical
- * four options, just with different subject text.
+ * mechanisms with no backend involved. Used by `PaymentLinkCreatedCard`
+ * (merchant's Payment Links).
  */
 function getShareOptions(subject: string): ShareOption[] {
 	return [

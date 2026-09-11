@@ -9,7 +9,6 @@ import {
 	Link2,
 	QrCode,
 	ArrowLeftRight,
-	Users,
 	User,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
@@ -18,9 +17,9 @@ import { cn } from "@repo/ui/lib/utils";
 // Links cover "getting paid"; scanning to pay someone else isn't a
 // merchant flow) — "My QR Code" and "Payment Links" replace them. Profile
 // and Settings stay merged into one "Account", same as individual.
-// `href: null` marks a mock-only item with no screen built yet
-// ("Customers") — rendered disabled rather than pointed at some unrelated
-// existing page.
+// "Customers" removed entirely for now (was rendered disabled, `href:
+// null`, as a mock-only placeholder) — hidden rather than shown-but-dead
+// until there's a real screen behind it.
 export const MERCHANT_NAV_ITEMS = [
 	{ label: "Overview", href: "/", icon: LayoutGrid },
 	{ label: "Wallet", href: "/wallet", icon: Wallet },
@@ -28,7 +27,6 @@ export const MERCHANT_NAV_ITEMS = [
 	{ label: "Payment Links", href: "/payment-links", icon: Link2 },
 	{ label: "My QR Code", href: "/qr-code", icon: QrCode },
 	{ label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
-	{ label: "Customers", href: null, icon: Users },
 	{ label: "Account", href: "/account", icon: User },
 ] as const;
 
@@ -60,20 +58,6 @@ function MerchantNavList({
 	return (
 		<nav className={cn("flex flex-col gap-1", className)}>
 			{MERCHANT_NAV_ITEMS.map(({ label, href, icon: Icon }) => {
-				if (!href) {
-					return (
-						<span
-							key={label}
-							aria-disabled="true"
-							title="Coming soon"
-							className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-b3 font-medium text-primary-300"
-						>
-							<Icon className="size-4.5 shrink-0" aria-hidden="true" />
-							{label}
-						</span>
-					);
-				}
-
 				const active = isActive(pathname, href);
 				return (
 					<Link

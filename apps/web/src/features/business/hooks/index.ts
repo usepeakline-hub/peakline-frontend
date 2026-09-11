@@ -9,9 +9,9 @@ const MY_BUSINESS_KEY = ["business", "mine"];
 /** `GET /businesses` returns every business the account owns, but the app
  * only ever creates one per merchant (see the sign-up onboarding step) —
  * this surfaces just the first, same "one business per merchant" assumption
- * the rest of the app already makes (e.g. `FAKE_BUSINESS_NAME`). Returns
- * `undefined` (not an error) for a merchant account that skipped/never
- * completed Business Information. */
+ * the rest of the app already makes (e.g. `useAccountDisplayName`). Returns
+ * `null` (not an error) for a merchant account that skipped/never completed
+ * Business Information. */
 function useMyBusiness(options?: { enabled?: boolean }) {
 	const axiosAuth = useAxiosAuth();
 

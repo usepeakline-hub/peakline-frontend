@@ -49,11 +49,45 @@ const CUSTOMER_TYPE_MAP: Record<AccountTypeValues["accountType"], CustomerType> 
 	merchant: "merchant",
 };
 
-function useSignIn() {
+/**
+ * Every path that finishes a login — immediate (already has 2FA), or after
+ * the 2FA setup prompt's skip/continue — funnels through here instead of a
+ * raw `router.push("/")`. A real sign-up always creates a wallet before
+ * ever reaching the dashboard (`useSetupWallet`, called from the sign-up
+ * flow's own PIN step), but a returning account that dropped off
+ * mid-onboarding — or exists some other way — could reach login with no
+ * wallet yet; landing them on a dashboard where every balance/address is
+ * empty looks like something's broken rather than like an unfinished
+ * account, so this checks first and routes to the real PIN+wallet step
+ * (reused as-is — it already tolerates being run again) instead.
+ */
+function useRouteAfterLogin() {
 	const router = useRouter();
+	const axiosAuth = useAxiosAuth();
+
+	return async function routeAfterLogin() {
+		try {
+			await axiosAuth.get(apiRoutes.wallets.STELLAR);
+			router.push("/");
+		} catch (error) {
+			if (isAxiosError(error) && error.response?.status === 404) {
+				router.push("/auth/sign-up/set-pin");
+				return;
+			}
+			// An unrelated failure (network, 500) shouldn't block an
+			// otherwise-successful login — the dashboard's own "no wallet
+			// yet" empty states are the fallback here, not a hard stop.
+			router.push("/");
+		}
+	};
+}
+
+function useSignIn() {
 	const setLoginEmail = useLoginFlowStore((state) => state.setEmail);
 	const has2FA = useAccountSettingsStore((state) => state.has2FA);
 	const setTokens = useAuthStore((state) => state.setTokens);
+	const router = useRouter();
+	const routeAfterLogin = useRouteAfterLogin();
 
 	return useMutation({
 		mutationFn: async (values: SignInValues) => {
@@ -65,7 +99,11 @@ function useSignIn() {
 		onSuccess: (data, values) => {
 			setTokens(data.data, values.email);
 			setLoginEmail(values.email);
-			router.push(has2FA ? "/" : "/auth/sign-in/two-factor-prompt");
+			if (has2FA) {
+				routeAfterLogin();
+			} else {
+				router.push("/auth/sign-in/two-factor-prompt");
+			}
 		},
 		onError: (error) => {
 			toast.error(getApiErrorMessage(error, "Couldn't log you in"));
@@ -375,6 +413,7 @@ function useLogoutAll() {
 
 export {
 	useSignIn,
+	useRouteAfterLogin,
 	useSignUp,
 	useSubmitAccountType,
 	useResendOtp,
