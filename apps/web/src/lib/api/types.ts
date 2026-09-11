@@ -66,9 +66,11 @@ export type CustomerType = "individual" | "merchant";
 export type UserRole = "staff" | "customer";
 
 /** `POST /onboarding/individual` — all fields optional on the wire (partial
- * update), but our own form always collects and sends all four. Serves
- * both individual and merchant account types; there's no separate
- * onboarding endpoint for Business Information yet. */
+ * update), but our own form always collects and sends all four. A separate
+ * `POST /onboarding/merchant` now also exists — not yet reconciled with
+ * this one + the standalone `POST /businesses` call `useCompleteSignUp`
+ * currently makes for merchant accounts; needs its own look before
+ * switching over. */
 export interface UpdateProfileData {
 	/** "YYYY-MM-DD". */
 	dateOfBirth?: string;
@@ -80,6 +82,49 @@ export interface UpdateProfileData {
 
 export interface SetPinData {
 	pin: string;
+}
+
+/** `GET /users/me`. Real account fields — `PATCH /users/me` only accepts a
+ * subset of these (see `UpdateProfileFieldsDto`); email/phone changes have
+ * no endpoint yet ("go through a separate verified-change flow" per the
+ * docs, not shipped). */
+export interface ProfileData {
+	id: string;
+	firstName: string;
+	lastName: string;
+	otherName?: string | null;
+	email: string;
+	phoneNumber: string;
+	countryCode: string;
+	nationality?: string | null;
+	dateOfBirth?: string | null;
+	residentialAddress?: string | null;
+	city?: string | null;
+	customerType?: CustomerType | null;
+	kycTier: number;
+	username?: string | null;
+	avatarUrl?: string | null;
+	emailVerifiedAt?: string | null;
+	phoneVerifiedAt?: string | null;
+	deletionRequestedAt?: string | null;
+	deletionScheduledAt?: string | null;
+	createdAt: string;
+}
+
+/** Fields `PATCH /users/me` actually accepts — a subset of `ProfileData`. */
+export interface UpdateProfileFieldsData {
+	firstName?: string;
+	lastName?: string;
+	otherName?: string;
+	username?: string;
+	avatarUrl?: string;
+}
+
+/** `POST/DELETE /users/me/deletion-request`. */
+export interface AccountDeletionStatusData {
+	deletionRequestedAt: string | null;
+	deletionScheduledAt: string | null;
+	graceDays: number;
 }
 
 /** `POST/GET /wallets/stellar`. */

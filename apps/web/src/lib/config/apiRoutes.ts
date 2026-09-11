@@ -14,6 +14,7 @@ export const apiRoutes = {
 		RESEND_OTP: "/api/v1/auth/resend-otp",
 		CUSTOMER_TYPE: "/api/v1/auth/customer-type",
 		LOGOUT: "/api/v1/auth/logout",
+		LOGOUT_ALL: "/api/v1/auth/logout-all",
 	},
 
 	// TOTP (authenticator-app) 2FA — account-settings enroll/confirm/disable
@@ -39,6 +40,8 @@ export const apiRoutes = {
 	},
 
 	users: {
+		ME: "/api/v1/users/me",
+		ME_DELETION_REQUEST: "/api/v1/users/me/deletion-request",
 		PIN: "/api/v1/users/pin",
 		PIN_CONFIRM: "/api/v1/users/pin/confirm",
 	},

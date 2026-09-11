@@ -1,18 +1,109 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
-import type { ApiSuccessResponse, EnrollTotpData } from "@/lib/api/types";
+import type {
+	AccountDeletionStatusData,
+	ApiSuccessResponse,
+	EnrollTotpData,
+	ProfileData,
+} from "@/lib/api/types";
 import type { ProfileValues } from "@/lib/validations/profileValidations";
 
-// TODO: replace with a real call into the profile API once it exists.
-async function fakeRequest<T>(payload: T, delay = 800): Promise<T> {
-	await new Promise((resolve) => setTimeout(resolve, delay));
-	return payload;
+const PROFILE_KEY = ["profile", "me"];
+
+/** `GET /users/me` — the real account record `PersonalInformationCard`
+ * reads from (previously a hardcoded fake `DEFAULT_VALUES` object). Also
+ * carries `deletionRequestedAt`/`deletionScheduledAt` for that same card's
+ * pending-deletion banner, and `customerType`/`kycTier`/verification
+ * timestamps not used yet but worth having typed for whoever needs them
+ * next. */
+function useProfile() {
+	const axiosAuth = useAxiosAuth();
+
+	return useQuery({
+		queryKey: PROFILE_KEY,
+		queryFn: async () => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<ProfileData>>(
+				apiRoutes.users.ME,
+			);
+			return data.data;
+		},
+	});
 }
 
+/** `PATCH /users/me` — only firstName/lastName/otherName/username actually
+ * go out (see `profileSchema`'s own note on why email/phone aren't here).
+ * Refetches the profile on success rather than trusting the (data: null)
+ * response body to reflect the change. */
 function useUpdateProfile() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
 	return useMutation({
-		mutationFn: (values: ProfileValues) => fakeRequest(values),
+		mutationFn: (values: ProfileValues) =>
+			axiosAuth.patch(apiRoutes.users.ME, {
+				firstName: values.firstName,
+				lastName: values.lastName,
+				otherName: values.otherName || undefined,
+				username: values.username,
+			}),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: PROFILE_KEY }),
+	});
+}
+
+/** Schedules the account for deletion 7 days out — not immediate, per the
+ * endpoint's own description. `useCancelAccountDeletion` (`DELETE` on the
+ * same path) reverses it any time within that window. Both update the
+ * profile cache directly from their own response instead of refetching —
+ * `AccountDeletionStatusDto` already has exactly the two fields that
+ * changed. */
+function useRequestAccountDeletion() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async () => {
+			const { data } = await axiosAuth.post<ApiSuccessResponse<AccountDeletionStatusData>>(
+				apiRoutes.users.ME_DELETION_REQUEST,
+			);
+			return data.data;
+		},
+		onSuccess: (status) => {
+			queryClient.setQueryData<ProfileData | undefined>(PROFILE_KEY, (profile) =>
+				profile
+					? {
+							...profile,
+							deletionRequestedAt: status.deletionRequestedAt,
+							deletionScheduledAt: status.deletionScheduledAt,
+						}
+					: profile,
+			);
+		},
+	});
+}
+
+function useCancelAccountDeletion() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async () => {
+			const { data } = await axiosAuth.delete<ApiSuccessResponse<AccountDeletionStatusData>>(
+				apiRoutes.users.ME_DELETION_REQUEST,
+			);
+			return data.data;
+		},
+		onSuccess: (status) => {
+			queryClient.setQueryData<ProfileData | undefined>(PROFILE_KEY, (profile) =>
+				profile
+					? {
+							...profile,
+							deletionRequestedAt: status.deletionRequestedAt,
+							deletionScheduledAt: status.deletionScheduledAt,
+						}
+					: profile,
+			);
+		},
 	});
 }
 
@@ -59,4 +150,12 @@ function useDisable2fa() {
 	});
 }
 
-export { useUpdateProfile, useEnroll2fa, useConfirm2fa, useDisable2fa };
+export {
+	useProfile,
+	useUpdateProfile,
+	useRequestAccountDeletion,
+	useCancelAccountDeletion,
+	useEnroll2fa,
+	useConfirm2fa,
+	useDisable2fa,
+};

@@ -47,6 +47,17 @@ export default function AccountPage() {
 					Logout
 				</button>
 			</LogoutConfirmDialog>
+
+			{/* No Sidebar equivalent exists for this one (unlike the plain
+			    Logout above) — visible on both breakpoints. */}
+			<LogoutConfirmDialog all>
+				<button
+					type="button"
+					className="self-center text-c1 font-medium text-muted-foreground hover:text-destructive hover:underline"
+				>
+					Log out of every device
+				</button>
+			</LogoutConfirmDialog>
 		</div>
 	);
 }

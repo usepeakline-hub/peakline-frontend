@@ -348,6 +348,31 @@ function useLogout() {
 	};
 }
 
+/** `POST /auth/logout-all` — revokes every refresh token on the account,
+ * not just this device's. Access tokens already issued elsewhere stay
+ * valid until they naturally expire (the docs say so explicitly), so this
+ * clears the local session the same way `useLogout` does rather than
+ * implying every other device is instantly signed out too. */
+function useLogoutAll() {
+	const router = useRouter();
+	const queryClient = useQueryClient();
+	const axiosAuth = useAxiosAuth();
+
+	return async function logoutAll() {
+		const { clear } = useAuthStore.getState();
+		try {
+			await axiosAuth.post(apiRoutes.auth.LOGOUT_ALL);
+		} catch (error) {
+			toast.error(getApiErrorMessage(error, "Couldn't sign out of other devices"));
+			return;
+		}
+		clear();
+		queryClient.clear();
+		toast.success("Signed out of every device");
+		router.push("/auth/sign-in");
+	};
+}
+
 export {
 	useSignIn,
 	useSignUp,
@@ -360,4 +385,5 @@ export {
 	useForgotPassword,
 	useResetPassword,
 	useLogout,
+	useLogoutAll,
 };
