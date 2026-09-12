@@ -20,6 +20,7 @@ import type {
 	CustomerType,
 	ProfileData,
 	StellarWalletData,
+	MerchantOnboardingReviewData,
 } from "@/lib/api/types";
 import type {
 	SignInValues,
@@ -253,16 +254,33 @@ function useSubmitAccountType() {
 }
 
 /**
- * Review's final submit — `POST /onboarding/individual` (serves both
- * individual and merchant account types), then, for a merchant account,
- * `POST /businesses` right after — both real now. `businessName` is only
- * ever present when `usePersonalInfoFlowStore`'s `businessInfo` was
- * non-null (i.e. the account type is merchant, per that store's own
- * typing), so its presence alone decides whether the second call runs,
- * without this hook needing its own `accountType` param. By this point
- * `customerType` on the account is already "merchant" (set back in
- * `useSubmitAccountType`, a step earlier), satisfying `POST /businesses`'
- * own "merchant only" requirement.
+ * Review's final submit. `businessName` is only ever present when
+ * `usePersonalInfoFlowStore`'s `businessInfo` was non-null (i.e. the account
+ * type is merchant, per that store's own typing), so its presence alone
+ * decides which branch runs, without this hook needing its own
+ * `accountType` param.
+ *
+ * Individual: `POST /onboarding/individual` alone.
+ *
+ * Merchant: `POST /onboarding/merchant` — a dedicated endpoint, not
+ * `/onboarding/individual` (which also technically "serves" merchant per its
+ * own docs, but only saves the personal-details half). This one atomically
+ * sets `customerType=merchant`, saves those same personal fields, AND
+ * registers the business in a single call, idempotent on
+ * (ownerId, businessName) — safer than this hook's old approach (separate
+ * `/onboarding/individual` then `POST /businesses` calls), which had no
+ * idempotency of its own: retrying after the first call succeeded but the
+ * second failed could register a duplicate business.
+ *
+ * `OnboardMerchantDto` has no `phone` field for the business (unlike
+ * `CreateBusinessDto`, which does), and its own response is `data: null` —
+ * no business id to act on straight away. So the merchant setup form's
+ * `phone` is set with a follow-up `GET /onboarding/merchant` (to recover the
+ * new business's id) + `PATCH /businesses/{id}`, best-effort: the account
+ * and business are already fully created by the time this runs, so a
+ * failure here (or skipping it, if `phone` wasn't filled in) shouldn't fail
+ * sign-up over one field that can still be added later from Account
+ * Settings' Business Information tab.
  */
 function useCompleteSignUp() {
 	const axiosAuth = useAxiosAuth();
@@ -271,25 +289,48 @@ function useCompleteSignUp() {
 		mutationFn: async (
 			values: PersonalDetailsValues & Partial<MerchantSetupValues>,
 		) => {
+			if (!values.businessName) {
+				const { data } = await axiosAuth.post<ApiSuccessResponse<null>>(
+					apiRoutes.onboarding.INDIVIDUAL,
+					{
+						dateOfBirth: values.dateOfBirth,
+						nationality: values.nationality,
+						residentialAddress: values.residentialAddress,
+						city: values.city,
+					},
+				);
+				return data;
+			}
+
 			const { data } = await axiosAuth.post<ApiSuccessResponse<null>>(
-				apiRoutes.onboarding.INDIVIDUAL,
+				apiRoutes.onboarding.MERCHANT,
 				{
 					dateOfBirth: values.dateOfBirth,
 					nationality: values.nationality,
 					residentialAddress: values.residentialAddress,
 					city: values.city,
+					businessName: values.businessName,
+					businessCategory: values.businessCategory,
+					businessCountry: values.country,
+					businessCity: values.businessCity,
+					businessAddress: values.businessAddress || undefined,
 				},
 			);
 
-			if (values.businessName) {
-				await axiosAuth.post(apiRoutes.businesses.BASE, {
-					name: values.businessName,
-					category: values.businessCategory,
-					country: values.country,
-					city: values.businessCity,
-					address: values.businessAddress || undefined,
-					phone: values.phone,
-				});
+			if (values.phone) {
+				try {
+					const { data: review } = await axiosAuth.get<
+						ApiSuccessResponse<MerchantOnboardingReviewData>
+					>(apiRoutes.onboarding.MERCHANT);
+					if (review.data.business) {
+						await axiosAuth.patch(
+							apiRoutes.businesses.byId(review.data.business.id),
+							{ phone: values.phone },
+						);
+					}
+				} catch {
+					// Best-effort — see this hook's own doc comment.
+				}
 			}
 
 			return data;

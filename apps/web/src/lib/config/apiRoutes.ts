@@ -36,12 +36,21 @@ export const apiRoutes = {
 		RECOVER: "/api/v1/auth/2fa/recover",
 	},
 
-	// Personal Information's real counterpart — serves both individual and
-	// merchant account types (Business Information still has no endpoint of
-	// its own). GET is there for "review before submission" but isn't used
-	// yet — Review already has the values from the form itself.
+	// Personal Information's real counterpart. `INDIVIDUAL` technically
+	// "serves both individual and merchant account types" per its own docs
+	// (just dateOfBirth/nationality/residentialAddress/city), but a merchant
+	// account uses `MERCHANT` instead — one atomic call that sets
+	// `customerType=merchant`, saves those same personal fields, AND
+	// registers the business, idempotent on (ownerId, businessName). See
+	// `useCompleteSignUp`'s own note for why that matters over the old
+	// two-call (INDIVIDUAL then `POST /businesses`) approach. Each GET is
+	// there for "review before submission" but isn't used yet — Review
+	// already has the values from the form itself; `useCompleteSignUp` does
+	// use `MERCHANT`'s GET, but only as a post-submit follow-up to recover
+	// the new business's id (see there).
 	onboarding: {
 		INDIVIDUAL: "/api/v1/onboarding/individual",
+		MERCHANT: "/api/v1/onboarding/merchant",
 	},
 
 	users: {

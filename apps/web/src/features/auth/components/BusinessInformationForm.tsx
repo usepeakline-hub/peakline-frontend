@@ -31,16 +31,19 @@ import { getOnboardingSteps } from "@/features/auth/onboardingSteps";
  * Step 2 of 3 — merchant accounts only (Individual skips straight from
  * Personal Information to Review). Stored locally like Personal
  * Information is, not submitted on its own — the whole onboarding payload
- * goes to the backend together on Review's final confirm, which now also
- * calls the real `POST /businesses` for merchant accounts (see
- * `useCompleteSignUp`).
+ * goes to the backend together on Review's final confirm, which for a
+ * merchant account calls the real `POST /onboarding/merchant` (see
+ * `useCompleteSignUp` for why that's a dedicated endpoint, not
+ * `/onboarding/individual` + `POST /businesses`).
  *
- * Fields match `CreateBusinessDto` directly: a fixed category enum instead
+ * Fields mostly match `OnboardMerchantDto`: a fixed category enum instead
  * of free text, and Country/City/Address split out instead of one
  * "Business Location" field (that used to be a single free-text field with
  * no real backend to match against). Country is a plain display name here
- * (`POST /businesses`' own convention), not the ISO code Personal
- * Information's nationality field uses.
+ * (matching that DTO's `businessCountry`), not the ISO code Personal
+ * Information's nationality field uses. `phone` is the one field with no
+ * home in `OnboardMerchantDto` — see `useCompleteSignUp`'s own note on how
+ * it's still saved, via a follow-up `PATCH /businesses/{id}`.
  */
 function BusinessInformationForm() {
 	const router = useRouter();

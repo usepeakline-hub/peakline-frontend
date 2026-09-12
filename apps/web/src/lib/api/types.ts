@@ -256,6 +256,20 @@ export interface BusinessData {
 	updatedAt: string;
 }
 
+/** `GET /onboarding/merchant` — the merchant onboarding review screen's own
+ * data: the profile plus whichever business onboarding registered ("the
+ * oldest live business owned by the user", per the endpoint's own
+ * description). `business` is `null` until `POST /onboarding/merchant` has
+ * actually run at least once. `useCompleteSignUp` calls this GET right after
+ * that POST purely to recover the new business's `id` — the POST's own
+ * response is `data: null`, and the merchant setup form's `phone` field has
+ * no home in `OnboardMerchantDto`, so it's set with a follow-up
+ * `PATCH /businesses/{id}` once the id is known. */
+export interface MerchantOnboardingReviewData {
+	profile: ProfileData;
+	business: BusinessData | null;
+}
+
 /** `GET /transactions/balances` — one entry per currency the account has
  * ever held (not necessarily both USDC and GHS present). `balance` is a
  * decimal string (Stellar/ledger precision), not a number — parse with
