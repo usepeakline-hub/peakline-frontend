@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
-import { ComingSoonPage } from "@/components/layouts/ComingSoonPage";
+import { BusinessesList } from "@/features/businesses/components/BusinessesList";
 
 export const metadata: Metadata = { title: "Businesses — Peakline Admin" };
 
 export default function BusinessesPage() {
-	return <ComingSoonPage title="Businesses" phase="Phase 1" />;
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="flex flex-col gap-1">
+				<h1 className="text-h4 text-foreground">Businesses</h1>
+				<p className="text-b3 text-muted-foreground">Every registered merchant business.</p>
+			</div>
+			<BusinessesList />
+		</div>
+	);
 }

@@ -57,9 +57,8 @@ export function isMfaRequired(data: LoginResponseData): data is MfaRequiredData 
  * only kind of account this app should ever let in (see `useStaffGate`). */
 export type StaffRole = "admin" | "super_admin" | "support" | "compliance" | "operations";
 
-/** Trimmed to the fields this app actually reads — the real `AdminUserDto`
- * carries far more (lock/pin/session metadata), added here once a screen
- * needs it. */
+/** Trimmed to the fields `useStaffGate` actually reads — see `AdminUserData`
+ * below (Phase 1's Users screen) for the full `AdminUserDto`. */
 export interface AdminSelfData {
 	id: string;
 	firstName: string;
@@ -67,6 +66,166 @@ export interface AdminSelfData {
 	email: string;
 	role: "staff" | "customer";
 	staffRole: StaffRole | null;
+}
+
+export type CustomerType = "individual" | "merchant";
+
+/** `GET /admin/users` / `GET /admin/users/{id}` — confirmed live against
+ * `/docs-json`. Every timestamp field is nullable — `null` reads as "never
+ * happened" (never locked, never deleted, never verified), not "unknown". */
+export interface AdminUserData {
+	id: string;
+	firstName: string;
+	lastName: string;
+	otherName: string | null;
+	email: string;
+	phoneNumber: string;
+	countryCode: string;
+	username: string | null;
+	avatarUrl: string | null;
+	role: "staff" | "customer";
+	staffRole: StaffRole | null;
+	customerType: CustomerType | null;
+	kycTier: number;
+	emailVerifiedAt: string | null;
+	phoneVerifiedAt: string | null;
+	kycVerifiedAt: string | null;
+	suspendedAt: string | null;
+	suspendedReason: string | null;
+	deletionRequestedAt: string | null;
+	deletedAt: string | null;
+	pinAttempts: number | null;
+	pinLockedUntil: string | null;
+	loginAttempts: number | null;
+	lockedAt: string | null;
+	lockedUntil: string | null;
+	lastLoginAt: string | null;
+	lastLoginIp: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface AdminUsersQuery {
+	q?: string;
+	role?: "staff" | "customer";
+	customerType?: CustomerType;
+	kycTier?: number;
+	isLocked?: 0 | 1;
+	from?: string;
+	to?: string;
+	order?: "asc" | "desc";
+}
+
+/** `GET /admin/businesses` / `GET /admin/businesses/{id}` — the response
+ * schema names this `BusinessDto` (not `AdminBusinessDto`), confirmed live —
+ * same shape apps/web's own `BusinessData` carries, since it's the same
+ * underlying record; this app just isn't scoped to "mine" like that one is. */
+export interface AdminBusinessData {
+	id: string;
+	ownerId: string;
+	name: string;
+	category: string;
+	status: "active" | "suspended" | "pending_verification";
+	country: string;
+	city: string | null;
+	address: string | null;
+	phone: string | null;
+	website: string | null;
+	logoUrl: string | null;
+	description: string | null;
+	registrationNumber: string | null;
+	taxId: string | null;
+	verifiedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface AdminBusinessesQuery {
+	q?: string;
+	status?: AdminBusinessData["status"];
+	ownerId?: string;
+	from?: string;
+	to?: string;
+}
+
+export type TransactionType =
+	| "deposit"
+	| "withdrawal"
+	| "internal_transfer"
+	| "conversion"
+	| "withdrawal_ghs";
+export type TransactionLedgerStatus = "pending" | "processing" | "completed" | "failed" | "reversed";
+export type TransactionDirection = "incoming" | "outgoing";
+
+/** `GET /admin/transactions` / `GET /admin/transactions/{id}` — the real
+ * spec's response schema for both is a documentation bug on the backend's
+ * side (`{id}` resolves to a bare `nullable: true` with no ref at all, and
+ * the list resolves to `AdminReverseTransactionDto` — a `{ reason: string }`
+ * request body, clearly not a transaction). Modeled here on apps/web's own
+ * confirmed `TransactionData` instead, since this is almost certainly the
+ * same underlying ledger entity just unscoped from "my own account" — but
+ * unverified against a real response. `AdminTransactionDetail`'s own render
+ * stays defensive (optional chaining, a raw-JSON fallback) rather than
+ * trusting this shape completely. */
+export interface AdminTransactionData {
+	id: string;
+	userId: string;
+	businessId?: string | null;
+	type: TransactionType;
+	status: TransactionLedgerStatus;
+	amount: string;
+	currency: string;
+	fee?: string;
+	fxRate?: string | null;
+	toCurrency?: string | null;
+	toAmount?: string | null;
+	stellarTxHash?: string | null;
+	externalAddress?: string | null;
+	metadata?: Record<string, unknown> | null;
+	completedAt?: string | null;
+	createdAt: string;
+	updatedAt?: string;
+	direction?: TransactionDirection;
+}
+
+export interface AdminTransactionsQuery {
+	q?: string;
+	userId?: string;
+	businessId?: string;
+	type?: TransactionType;
+	status?: TransactionLedgerStatus;
+	currency?: "USDC" | "GHS";
+	direction?: TransactionDirection;
+	from?: string;
+	to?: string;
+	order?: "asc" | "desc";
+}
+
+/** `GET /admin/audit-log` / `GET /admin/audit-log/{id}` — same documentation
+ * bug as transactions above (`{id}` is a bare `nullable: true`; the list
+ * resolves to `AdminListAuditLogsQueryDto`, the *query params'* own DTO, not
+ * a response item). Modeled defensively on the query params' own field
+ * names (`actorId`/`action`/`resourceType`/`resourceId`) plus the timestamp
+ * every audit trail needs — unverified against a real response, same
+ * caveat as `AdminTransactionData`. */
+export interface AdminAuditLogEntryData {
+	id: string;
+	actorId: string;
+	actorEmail?: string | null;
+	action: string;
+	resourceType: string;
+	resourceId: string | null;
+	metadata?: Record<string, unknown> | null;
+	createdAt: string;
+}
+
+export interface AdminAuditLogQuery {
+	actorId?: string;
+	action?: string;
+	resourceType?: string;
+	resourceId?: string;
+	from?: string;
+	to?: string;
 }
 
 export interface PaginationMeta {

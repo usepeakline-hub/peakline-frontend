@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
-import { ComingSoonPage } from "@/components/layouts/ComingSoonPage";
+import { TransactionsList } from "@/features/transactions/components/TransactionsList";
 
 export const metadata: Metadata = { title: "Transactions — Peakline Admin" };
 
 export default function TransactionsPage() {
-	return <ComingSoonPage title="Transactions" phase="Phase 1" />;
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="flex flex-col gap-1">
+				<h1 className="text-h4 text-foreground">Transactions</h1>
+				<p className="text-b3 text-muted-foreground">Every ledger transaction, platform-wide.</p>
+			</div>
+			<TransactionsList />
+		</div>
+	);
 }
