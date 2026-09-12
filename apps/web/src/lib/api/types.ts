@@ -144,10 +144,12 @@ export interface WalletBusinessData {
 /** One entry per currency this wallet actually holds — confirmed live
  * (`GET /wallets/stellar`'s own response): "USDC is live from Horizon; GHS
  * from internal ledger." Not the same endpoint/shape as the dashboard's own
- * balance display (`useWalletBalance`, `GET /transactions/balances` ->
- * `BalanceData` — a `balance` field, not `amount`) — that one stays the
- * source of truth for the Overview/Wallet balance cards; this is just the
- * wallet object's own, separate copy of the same information. */
+ * balance source (`useWalletBalance`, `GET /transactions/balances` ->
+ * `BalanceData` — a `balance` field, not `amount`, and used for spendable-
+ * balance checks on Send/Pay, where a ledger-derived total is the more
+ * meaningful number). `WalletBalanceCard` (the Wallet page's own display,
+ * not the dashboard's) reads *this* array instead — see that component's
+ * own doc comment. */
 export interface WalletBalanceItemData {
 	currency: string;
 	amount: string;
