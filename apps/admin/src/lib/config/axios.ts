@@ -3,7 +3,12 @@ import axios, {
 	AxiosInstance,
 	InternalAxiosRequestConfig,
 } from "axios";
-import { useAuthStore } from "@/lib/stores/authStore";
+import Cookies from "js-cookie";
+import {
+	useAuthStore,
+	ACCESS_TOKEN_COOKIE,
+	REFRESH_TOKEN_COOKIE,
+} from "@/lib/stores/authStore";
 import { apiRoutes } from "@/lib/config/apiRoutes";
 import type { ApiSuccessResponse, AuthTokensData } from "@/lib/api/types";
 
@@ -128,14 +133,79 @@ axiosAuth.interceptors.request.use((config) => {
 	return config;
 });
 
-// Shared across concurrent 401s so a burst of requests triggers one refresh
-// call instead of one per request.
+// Shared across concurrent 401s *in this tab* so a burst of requests
+// triggers one refresh call instead of one per request. Doesn't help across
+// tabs — see the localStorage lock below for that half.
 let refreshPromise: Promise<string | null> | null = null;
 
-const refreshAccessToken = async () => {
-	const refreshToken = useAuthStore.getState().refreshToken;
+// `AuthTokensData.refreshToken` is long-lived and single-use — reusing a
+// consumed one revokes the whole token family (all devices). A single tab
+// already can't violate that (`refreshPromise` above dedupes concurrent
+// callers onto one request), but *two tabs* share the same cookie jar with
+// no way to know about each other otherwise: if both tabs' access tokens
+// expire around the same time (typical — they usually logged in together),
+// each tab independently reads its own in-memory `refreshToken`, and
+// whichever one refreshes second sends a token the other tab has already
+// rotated away — a guaranteed "theft" reuse that takes *both* tabs' staff
+// sessions down together. Reported live on apps/web's own equivalent code
+// as "logged out for no reason, the cookie disappears": that's this, not a
+// real security event. A staff console is if anything more likely to have
+// several tabs open at once (a list view plus a couple of detail pages) than
+// a customer-facing app, so this mirrors the same fix there.
+//
+// A plain `localStorage` key as a cross-tab mutex fixes it — `localStorage`
+// (unlike cookies) is also just a same-origin, synchronously-readable
+// key/value store, so it works fine as a lock even though it's carrying no
+// actual auth data. Short TTL so a tab that crashed mid-refresh can't wedge
+// every other tab out indefinitely.
+const REFRESH_LOCK_KEY = "peakline-admin-refresh-lock";
+const REFRESH_LOCK_TTL_MS = 10_000;
+
+function acquireRefreshLock(): boolean {
+	if (typeof window === "undefined") return true;
+	try {
+		const held = localStorage.getItem(REFRESH_LOCK_KEY);
+		if (held && Date.now() - Number(held) < REFRESH_LOCK_TTL_MS) return false;
+		localStorage.setItem(REFRESH_LOCK_KEY, String(Date.now()));
+		return true;
+	} catch {
+		// localStorage unavailable (private browsing, quota, disabled) —
+		// fall back to no cross-tab coordination rather than blocking the
+		// refresh a single tab still needs to do.
+		return true;
+	}
+}
+
+function releaseRefreshLock() {
+	if (typeof window === "undefined") return;
+	try {
+		localStorage.removeItem(REFRESH_LOCK_KEY);
+	} catch {
+		// Non-fatal — the lock just expires on its own via the TTL above.
+	}
+}
+
+const refreshAccessToken = async (): Promise<string | null> => {
+	// The live cookie, not `useAuthStore.getState().refreshToken` — cookies
+	// are the one piece of storage every tab actually shares, so this is
+	// the newest value regardless of which tab last rotated it.
+	const refreshToken = Cookies.get(REFRESH_TOKEN_COOKIE) ?? null;
 
 	if (!refreshToken) return null;
+
+	if (!acquireRefreshLock()) {
+		// Another tab is refreshing right now with (as far as this tab can
+		// tell) the same token — wait for it to finish rather than racing
+		// it with a second call, then adopt whatever it wrote.
+		await new Promise((resolve) => setTimeout(resolve, 700));
+		const rotatedAccessToken = Cookies.get(ACCESS_TOKEN_COOKIE) ?? null;
+		if (rotatedAccessToken) {
+			useAuthStore.getState().initializeAuth();
+			return rotatedAccessToken;
+		}
+		// It didn't finish (or it failed) in time — fall through and try
+		// this tab's own request rather than giving up.
+	}
 
 	try {
 		const { data } = await axiosPublic.post<ApiSuccessResponse<AuthTokensData>>(
@@ -146,14 +216,28 @@ const refreshAccessToken = async () => {
 		useAuthStore.getState().setTokens(data.data);
 		return data.data.accessToken;
 	} catch {
-		// The refresh token itself was rejected — expired, or already
-		// consumed by a previous rotation, which the backend treats as a
-		// theft signal and revokes the whole family. Nothing left to retry
-		// with.
+		// The refresh token itself was rejected — genuinely expired, or
+		// (now that reuse is guarded against above) actually revoked
+		// server-side for some other reason. Nothing left to retry with.
 		useAuthStore.getState().clear();
 		return null;
+	} finally {
+		releaseRefreshLock();
 	}
 };
+
+/** Same dedupe the 401 handler below uses, exposed for `AuthProvider` to
+ * call proactively right after `initializeAuth` — if the access-token
+ * cookie has already expired (it's set to die at the same moment the JWT
+ * does, see `authStore`'s `persistTokens`) but a refresh token is still
+ * around, there's no reason to wait for a lazy 401 on whatever request
+ * happens to fire first. */
+export function refreshSession() {
+	refreshPromise ??= refreshAccessToken().finally(() => {
+		refreshPromise = null;
+	});
+	return refreshPromise;
+}
 
 axiosAuth.interceptors.response.use(
 	(response) => response,
@@ -169,11 +253,7 @@ axiosAuth.interceptors.response.use(
 		) {
 			originalRequest._retry = true;
 
-			refreshPromise ??= refreshAccessToken().finally(() => {
-				refreshPromise = null;
-			});
-
-			const newToken = await refreshPromise;
+			const newToken = await refreshSession();
 
 			if (newToken) {
 				originalRequest.headers.Authorization = `Bearer ${newToken}`;

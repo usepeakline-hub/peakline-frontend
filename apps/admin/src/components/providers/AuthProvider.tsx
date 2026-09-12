@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useStaffGate } from "@/features/auth/hooks";
+import { refreshSession } from "@/lib/config/axios";
 
 /**
  * Hydrates the session from cookies on mount, then re-runs the real
@@ -12,6 +13,12 @@ import { useStaffGate } from "@/features/auth/hooks";
  * `isStaffVerified` only ever comes from a real backend call). Mirrors
  * apps/web's own `AuthProvider`, which does the equivalent reconciliation
  * for `customerType`.
+ *
+ * Also proactively refreshes when the access-token cookie has already
+ * expired (it's set to die at the same moment the JWT does) but a refresh
+ * token is still around — otherwise this mounts with `isAuthenticated:
+ * false` purely because of *when* the tab reloaded, not because the session
+ * is actually gone, and gets bounced to the login screen for no reason.
  */
 function AuthProvider({ children }: { children: React.ReactNode }) {
 	const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -21,6 +28,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		initializeAuth();
+		const { accessToken, refreshToken } = useAuthStore.getState();
+		if (!accessToken && refreshToken) {
+			refreshSession();
+		}
 		// Runs once, on mount — `initializeAuth` is a stable zustand reference.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);

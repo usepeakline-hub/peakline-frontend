@@ -2,8 +2,12 @@ import { create } from "zustand";
 import Cookies from "js-cookie";
 import type { AuthTokensData, CustomerType, UserRole } from "@/lib/api/types";
 
-const ACCESS_TOKEN_COOKIE = "pl_access_token";
-const REFRESH_TOKEN_COOKIE = "pl_refresh_token";
+// Exported (unlike the other cookie names below) so `lib/config/axios.ts`
+// can read them straight off `document.cookie` itself — see that file's
+// own note on why the refresh flow needs the *live* cookie value rather
+// than whatever this module's in-memory state last cached.
+export const ACCESS_TOKEN_COOKIE = "pl_access_token";
+export const REFRESH_TOKEN_COOKIE = "pl_refresh_token";
 const EMAIL_COOKIE = "pl_email";
 const CUSTOMER_TYPE_COOKIE = "pl_customer_type";
 const USER_ROLE_COOKIE = "pl_user_role";
