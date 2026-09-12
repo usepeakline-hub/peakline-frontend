@@ -8,10 +8,10 @@ import { maskWalletAddress } from "@/lib/wallet";
 
 /** Plain outlined card (unlike the wallet-created page's gold-tinted
  * version of the same address) — a persistent, mundane info display rather
- * than a one-time reveal. Real wallet now (`useMyWallet` — the merchant's
- * own business wallet, not their personal one; see that hook's own note) —
- * previously a fixed fake address shown regardless of what account was
- * actually signed in. */
+ * than a one-time reveal. Real wallet now (`useMyWallet` — always the
+ * account's own `GET /wallets/stellar`, individual or merchant alike; see
+ * that hook's own note) — previously a fixed fake address shown regardless
+ * of what account was actually signed in. */
 function WalletAddressCard() {
 	const { data: wallet, isLoading } = useMyWallet();
 

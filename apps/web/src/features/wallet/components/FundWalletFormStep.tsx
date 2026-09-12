@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Wallet } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +7,6 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Skeleton } from "@repo/ui/skeleton";
 import { EmptyState } from "@repo/ui/empty-state";
-import { toast } from "@repo/ui/sonner";
 import {
 	Form,
 	FormField,
@@ -18,10 +16,7 @@ import {
 	FormMessage,
 } from "@repo/ui/form";
 import { fundWalletSchema, type FundWalletValues } from "@/lib/validations/walletValidations";
-import { useMyWallet, useCreateBusinessWallet } from "@/features/wallet/hooks";
-import { useMyBusiness } from "@/features/business/hooks";
-import { useAuthStore } from "@/lib/stores/authStore";
-import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import { useMyWallet } from "@/features/wallet/hooks";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
@@ -29,74 +24,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 		<div className="flex items-center justify-between gap-4 text-c1 sm:text-b3">
 			<span className="text-muted-foreground">{label}</span>
 			<span className="font-semibold text-foreground">{value}</span>
-		</div>
-	);
-}
-
-/**
- * A merchant's own wallet is their BUSINESS's wallet (see `useMyWallet`'s
- * own note) — not automatically provisioned, same "no way to add one" gap
- * Business Information itself had before its own empty-state fix. Shown in
- * place of the amount form until a business (and its wallet) exists.
- */
-function MerchantWalletPrompt() {
-	const { data: business, isLoading } = useMyBusiness();
-
-	if (isLoading) {
-		return (
-			<div className="flex flex-col gap-4">
-				<Skeleton className="h-32 w-full rounded-2xl" />
-			</div>
-		);
-	}
-
-	if (!business) {
-		return (
-			<div className="rounded-2xl border border-border bg-background">
-				<EmptyState
-					icon={Wallet}
-					title="No business yet"
-					description="Add your business information before funding a wallet."
-					action={
-						<Button asChild size="large">
-							<Link href="/account">Go to Account</Link>
-						</Button>
-					}
-				/>
-			</div>
-		);
-	}
-
-	return <CreateBusinessWalletPrompt businessId={business.id} />;
-}
-
-function CreateBusinessWalletPrompt({ businessId }: { businessId: string }) {
-	const createWallet = useCreateBusinessWallet(businessId);
-
-	function handleCreate() {
-		createWallet.mutate(undefined, {
-			onError: (error) =>
-				toast.error(getApiErrorMessage(error, "Couldn't create your business wallet")),
-		});
-	}
-
-	return (
-		<div className="rounded-2xl border border-border bg-background">
-			<EmptyState
-				icon={Wallet}
-				title="No business wallet yet"
-				description="Your business doesn't have a wallet yet — create one to start funding it."
-				action={
-					<Button
-						type="button"
-						size="large"
-						loading={createWallet.isPending}
-						onClick={handleCreate}
-					>
-						Create Business Wallet
-					</Button>
-				}
-			/>
 		</div>
 	);
 }
@@ -109,12 +36,12 @@ interface FundWalletFormStepProps {
 /** Step 1 — an amount only now (no funding-method picker; the real backend
  * has no fiat on-ramp, so the earlier Mobile Money/Bank/Card picker was
  * fake from the start — see `walletValidations.ts`). Shared by the desktop
- * modal and the mobile /wallet/fund page. Gates on `useMyWallet` first: a
- * merchant with no business, or a business with no wallet yet, has nothing
- * to fund.
+ * modal and the mobile /wallet/fund page. Gates on `useMyWallet` first —
+ * same fallback for every account type now that it's always the account's
+ * own `GET /wallets/stellar` (no more merchant-specific "no business" /
+ * "no business wallet" prompts; see that hook's own note).
  */
 function FundWalletFormStep({ defaultValues, onContinue }: FundWalletFormStepProps) {
-	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 	const { data: wallet, isLoading: isLoadingWallet } = useMyWallet();
 	const form = useForm<FundWalletValues>({
 		resolver: zodResolver(fundWalletSchema),
@@ -135,9 +62,8 @@ function FundWalletFormStep({ defaultValues, onContinue }: FundWalletFormStepPro
 	}
 
 	if (!wallet) {
-		if (isMerchant) return <MerchantWalletPrompt />;
 		// Shouldn't normally happen — sign-up's own `SetPinForm` already
-		// creates the individual's wallet — but the type allows it.
+		// creates the account's wallet — but the type allows it.
 		return (
 			<EmptyState
 				icon={Wallet}

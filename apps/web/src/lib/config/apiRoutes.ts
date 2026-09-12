@@ -53,9 +53,12 @@ export const apiRoutes = {
 
 	wallets: {
 		STELLAR: "/api/v1/wallets/stellar",
-		// Personal wallet + every business wallet you own (merchant) — the
-		// only way to find a *business's* wallet, since there's no
-		// `GET /businesses/{id}/wallet`.
+		// Personal wallet + every business wallet you own (merchant) — was
+		// briefly how a merchant's own business wallet was found (matching
+		// on `business.id`), since there's no `GET /businesses/{id}/wallet`.
+		// Not called anywhere right now — reverted to `STELLAR` alone for
+		// every account type on request, no wallet listing for now (see
+		// `useMyWallet`'s own note). Kept defined in case listing comes back.
 		LIST: "/api/v1/wallets/stellar/list",
 		// Testnet faucet — sends free test USDC straight to any address, no
 		// real funding source involved. This, not the intent flow below, is
@@ -104,8 +107,8 @@ export const apiRoutes = {
 	businesses: {
 		BASE: "/api/v1/businesses",
 		byId: (id: string) => `/api/v1/businesses/${id}`,
-		// Provisions the business's own wallet — no GET counterpart; find an
-		// existing one via `wallets.LIST` instead, matching on `business.id`.
+		// Provisions the business's own wallet — no GET counterpart. Not
+		// called anywhere right now; see `wallets.LIST`'s own note.
 		byIdWallet: (id: string) => `/api/v1/businesses/${id}/wallet`,
 	},
 

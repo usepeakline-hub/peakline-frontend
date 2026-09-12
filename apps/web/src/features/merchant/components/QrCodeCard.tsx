@@ -15,8 +15,10 @@ import { useMyBusiness } from "@/features/business/hooks";
 
 /**
  * Two states, per the mock: a plain "Generate" prompt, then the actual QR
- * once requested. The QR encodes the business's own real Stellar wallet
- * address (`useMyWallet`) — there's no generic "pay this business any
+ * once requested. The QR encodes the account's own real Stellar wallet
+ * address (`useMyWallet` — always `GET /wallets/stellar` now, not a
+ * business-specific one; see that hook's own note) — there's no generic
+ * "pay this business any
  * amount" endpoint, only fixed-amount Payment Links, so this is a raw
  * wallet-address QR (any Stellar wallet can send USDC to it directly),
  * not a scannable stand-in for a real payment flow this app's own Pay
@@ -71,12 +73,15 @@ function QrCodeCard() {
 	}
 
 	if (!wallet) {
+		// Shouldn't normally happen — sign-up's own `SetPinForm` already
+		// creates the account's wallet (see `useMyWallet`'s own note) — but
+		// the type allows it.
 		return (
 			<div className="max-w-xl rounded-2xl border border-border bg-background">
 				<EmptyState
 					icon={Wallet}
-					title="No business wallet yet"
-					description="Your business doesn't have a wallet yet — set one up from the Wallet page before generating a QR code."
+					title="No wallet yet"
+					description="Your wallet hasn't been set up yet — check the Wallet page before generating a QR code."
 					action={
 						<Button asChild size="large">
 							<Link href="/wallet">Go to Wallet</Link>
