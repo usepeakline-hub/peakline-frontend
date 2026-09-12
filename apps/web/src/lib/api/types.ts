@@ -141,13 +141,30 @@ export interface WalletBusinessData {
 	name: string;
 }
 
+/** One entry per currency this wallet actually holds — confirmed live
+ * (`GET /wallets/stellar`'s own response): "USDC is live from Horizon; GHS
+ * from internal ledger." Not the same endpoint/shape as the dashboard's own
+ * balance display (`useWalletBalance`, `GET /transactions/balances` ->
+ * `BalanceData` — a `balance` field, not `amount`) — that one stays the
+ * source of truth for the Overview/Wallet balance cards; this is just the
+ * wallet object's own, separate copy of the same information. */
+export interface WalletBalanceItemData {
+	currency: string;
+	amount: string;
+}
+
 /** `POST/GET /wallets/stellar`, `GET /wallets/stellar/list`. `business` is
  * only ever attached by the list endpoint — present (non-null) on a
  * business's own wallet, omitted entirely on the single get/create
- * endpoints (which only ever return the caller's personal wallet). */
+ * endpoints (which only ever return the caller's personal wallet).
+ * `ownerType`/`balances` confirmed live — not in `walletType`/`network`/
+ * `publicKey`/`createdAt`'s own required set per the spec, but present on
+ * every real response seen so far; kept optional to match the documented
+ * contract rather than assume they're always there. */
 export interface StellarWalletData {
 	id: string;
 	walletType: CustomerType;
+	ownerType?: CustomerType;
 	network: "mainnet" | "testnet";
 	publicKey: string;
 	label?: string | null;
@@ -155,6 +172,7 @@ export interface StellarWalletData {
 	deactivatedAt?: string | null;
 	createdAt: string;
 	business?: WalletBusinessData | null;
+	balances?: WalletBalanceItemData[];
 }
 
 export type FundCurrency = "USDC" | "GHS";
