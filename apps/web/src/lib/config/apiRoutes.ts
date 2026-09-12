@@ -128,9 +128,16 @@ export const apiRoutes = {
 	// entirely.
 	transactions: {
 		LIST: "/api/v1/transactions",
-		BALANCES: "/api/v1/transactions/balances",
 		EXPORT_CSV: "/api/v1/transactions/export.csv",
 		byId: (id: string) => `/api/v1/transactions/${id}`,
+		// `BALANCES` ("/transactions/balances") used to be `useWalletBalance`'s
+		// own source — dropped after a live report that it could show less
+		// than the wallet genuinely held (misses funds added outside a
+		// recorded transaction, e.g. the testnet faucet). `wallets.STELLAR`'s
+		// own `balances` field is what every real balance display reads now
+		// (see `WalletBalanceItemData`'s doc comment). Not redefined here
+		// since nothing calls it — add it back if a future feature genuinely
+		// needs the ledger-derived rollup instead of the wallet's own number.
 	},
 
 	// STREAM (SSE) isn't wired — the notifications panel polls/refetches

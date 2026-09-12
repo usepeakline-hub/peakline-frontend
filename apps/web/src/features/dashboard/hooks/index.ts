@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
-import { usdcToGhs } from "@/lib/currency";
-import type { ApiSuccessResponse, BalanceData, TransactionData } from "@/lib/api/types";
+import { useMyWallet } from "@/features/wallet/hooks";
+import type { ApiSuccessResponse, TransactionData } from "@/lib/api/types";
 
 interface WalletBalanceSummary {
 	amount: number;
@@ -11,37 +11,42 @@ interface WalletBalanceSummary {
 	localCurrency: string;
 }
 
-/** Real as of `GET /transactions/balances` — an array with one entry per
- * currency the account has ever held, not a fixed USDC+GHS pair. Reshaped
- * into the single-object "primary + local estimate" shape every consumer
- * (`BalanceCard`, `WalletBalanceCard`, Send/Fund/Pay's own success steps)
- * already expects, so none of them need to change. A GHS entry not being
- * present yet (an account that's never held any) falls back to the same
- * fixed-rate `usdcToGhs` estimate the rest of the app already shows
- * elsewhere (transaction/payment detail's own "~ GHS" line) rather than
- * showing nothing. */
+function findWalletAmount(
+	balances: { currency: string; amount: string }[] | undefined,
+	currency: string,
+) {
+	return Number(balances?.find((b) => b.currency === currency)?.amount ?? 0);
+}
+
+/** The account's real, single balance display — reads the wallet's own
+ * `balances` (`GET /wallets/stellar`, via `useMyWallet`), the same source
+ * `WalletBalanceCard` uses (see that component's own note). Previously this
+ * called `GET /transactions/balances` instead — a ledger-derived rollup
+ * that can miss funds added outside a recorded transaction (reported live:
+ * the individual dashboard's own balance card showed nothing/zero for an
+ * account that had genuinely been funded via the testnet faucet). The
+ * wallet's own balances are "live from Horizon" for USDC per the backend
+ * team, so they're the authoritative number every consumer here actually
+ * wants — `BalanceCard`, and the Send/Fund/Pay success + validation steps
+ * that all read this same hook.
+ *
+ * Reshaped into the same "primary + local" `WalletBalanceSummary` shape
+ * those consumers already expect, so none of them need to change beyond
+ * this. No separate loading branch needed for "no wallet yet" — same as
+ * `WalletBalanceCard`, that's a real `0.00`, not an error. */
 function useWalletBalance() {
-	const axiosAuth = useAxiosAuth();
+	const { data: wallet, isLoading } = useMyWallet();
 
-	return useQuery({
-		queryKey: ["dashboard", "balance"],
-		queryFn: async (): Promise<WalletBalanceSummary> => {
-			const { data } = await axiosAuth.get<ApiSuccessResponse<BalanceData[]>>(
-				apiRoutes.transactions.BALANCES,
-			);
-			const balances = data.data;
-			const usdc = balances.find((b) => b.currency === "USDC");
-			const ghs = balances.find((b) => b.currency === "GHS");
-			const amount = usdc ? Number(usdc.balance) : 0;
+	if (isLoading) return { data: undefined, isLoading: true };
 
-			return {
-				amount,
-				currency: "USDC",
-				localAmount: ghs ? Number(ghs.balance) : usdcToGhs(amount),
-				localCurrency: "GHS",
-			};
-		},
-	});
+	const data: WalletBalanceSummary = {
+		amount: findWalletAmount(wallet?.balances, "USDC"),
+		currency: "USDC",
+		localAmount: findWalletAmount(wallet?.balances, "GHS"),
+		localCurrency: "GHS",
+	};
+
+	return { data, isLoading: false };
 }
 
 /** The dashboard's abbreviated "Recent Transactions" — the same real

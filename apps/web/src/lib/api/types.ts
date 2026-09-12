@@ -143,13 +143,15 @@ export interface WalletBusinessData {
 
 /** One entry per currency this wallet actually holds — confirmed live
  * (`GET /wallets/stellar`'s own response): "USDC is live from Horizon; GHS
- * from internal ledger." Not the same endpoint/shape as the dashboard's own
- * balance source (`useWalletBalance`, `GET /transactions/balances` ->
- * `BalanceData` — a `balance` field, not `amount`, and used for spendable-
- * balance checks on Send/Pay, where a ledger-derived total is the more
- * meaningful number). `WalletBalanceCard` (the Wallet page's own display,
- * not the dashboard's) reads *this* array instead — see that component's
- * own doc comment. */
+ * from internal ledger." This is what `useWalletBalance` (the Dashboard's
+ * `BalanceCard`, `WalletBalanceCard`, and the Send/Fund/Pay success +
+ * validation steps that all share that hook) actually reads — not the same
+ * shape as `GET /transactions/balances` (`BalanceData` — a `balance` field,
+ * not `amount`), which `useWalletBalance` used to read instead, until a
+ * live report that the individual dashboard showed no balance for an
+ * account genuinely funded via the testnet faucet: that ledger-derived
+ * rollup can miss funds added outside a recorded transaction, where this
+ * array is "live from Horizon" and authoritative. */
 export interface WalletBalanceItemData {
 	currency: string;
 	amount: string;
@@ -272,14 +274,11 @@ export interface MerchantOnboardingReviewData {
 	business: BusinessData | null;
 }
 
-/** `GET /transactions/balances` — one entry per currency the account has
- * ever held (not necessarily both USDC and GHS present). `balance` is a
- * decimal string (Stellar/ledger precision), not a number — parse with
- * `Number()` before formatting. */
-export interface BalanceData {
-	currency: string;
-	balance: string;
-}
+// `BalanceData` (`GET /transactions/balances`'s own shape — a `balance`
+// field, one entry per currency ever held) used to live here. Removed along
+// with the route that returned it — see `apiRoutes.transactions`'s own
+// note on why `useWalletBalance` moved to `StellarWalletData.balances`
+// instead.
 
 export type TransactionType =
 	| "deposit"
