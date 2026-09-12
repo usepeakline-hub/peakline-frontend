@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Select } from "@repo/ui/select";
+import { DateOfBirthInput } from "@repo/ui/date-of-birth-input";
 import { Stepper } from "@repo/ui/stepper";
 import { COUNTRY_NAMES } from "@repo/ui/lib/country-names";
 import {
@@ -93,7 +94,12 @@ function PersonalDetailsForm() {
 							<FormItem>
 								<FormLabel>Date of Birth</FormLabel>
 								<FormControl>
-									<Input type="date" {...field} />
+									<DateOfBirthInput
+										name={field.name}
+										value={field.value}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>

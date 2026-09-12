@@ -306,6 +306,19 @@ function useCompleteSignUp() {
  * attempt (409 PIN_ALREADY_SET) or the wallet already exists (409
  * WALLET_ALREADY_EXISTS, in which case the existing one is fetched instead),
  * neither is treated as a hard error.
+ *
+ * `pinAlreadySet` surfaces that first case to the caller instead of staying
+ * silent about it. Reported live: a completed sign-up (PIN set, wallet
+ * created) later got routed back through this same screen — the
+ * `useRouteAfterLogin` "no wallet yet" fallback re-triggers it whenever
+ * `GET /wallets/stellar` 404s for any reason, not only genuine drop-off —
+ * and `POST /users/pin` has no way to *check* whether a PIN already exists
+ * ahead of time, only to attempt setting one. Without this flag, a user
+ * retyping a *different* PIN on that second pass would see the same
+ * "Wallet created" success and believe that new PIN is now theirs, when the
+ * 409 actually left their original PIN untouched — a mismatch that would
+ * only surface later, confusingly, the first time they tried to authorize
+ * something.
  */
 function useSetupWallet() {
 	const axiosAuth = useAxiosAuth();
@@ -313,26 +326,28 @@ function useSetupWallet() {
 
 	return useMutation({
 		mutationFn: async (values: Pick<SetPinValues, "pin">) => {
+			let pinAlreadySet = false;
 			try {
 				await axiosAuth.post(apiRoutes.users.PIN, { pin: values.pin });
 			} catch (error) {
 				if (!isAxiosError(error) || error.response?.status !== 409) throw error;
+				pinAlreadySet = true;
 			}
 
 			try {
 				const { data } = await axiosAuth.post<
 					ApiSuccessResponse<StellarWalletData>
 				>(apiRoutes.wallets.STELLAR);
-				return data.data;
+				return { wallet: data.data, pinAlreadySet };
 			} catch (error) {
 				if (!isAxiosError(error) || error.response?.status !== 409) throw error;
 				const { data } = await axiosAuth.get<
 					ApiSuccessResponse<StellarWalletData>
 				>(apiRoutes.wallets.STELLAR);
-				return data.data;
+				return { wallet: data.data, pinAlreadySet };
 			}
 		},
-		onSuccess: (wallet) => {
+		onSuccess: ({ wallet }) => {
 			setWalletAddress(wallet.publicKey);
 		},
 	});

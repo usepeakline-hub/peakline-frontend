@@ -56,8 +56,16 @@ function SetPinForm() {
 		setupWallet.mutate(
 			{ pin: values.pin },
 			{
-				onSuccess: () => {
-					toast.success("Wallet created");
+				onSuccess: ({ pinAlreadySet }) => {
+					// A PIN was already on file (this screen re-run after the
+					// original sign-up already set one — see `useSetupWallet`'s
+					// own note) — say so plainly instead of implying the PIN just
+					// typed is now the active one, since it isn't.
+					toast.success(
+						pinAlreadySet
+							? "Wallet ready — your existing PIN is still active"
+							: "Wallet created",
+					);
 					router.push("/auth/sign-up/success");
 				},
 				onError: (error) => {
