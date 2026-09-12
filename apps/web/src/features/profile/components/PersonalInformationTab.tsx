@@ -16,7 +16,7 @@ import {
 	FormMessage,
 } from "@repo/ui/form";
 import { toast } from "@repo/ui/sonner";
-import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
+import { AvatarUploadButton } from "@/features/profile/components/AvatarUploadButton";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
 import { useProfile, useUpdateProfile } from "@/features/profile/hooks";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
@@ -164,23 +164,9 @@ function PersonalInformationFields() {
  * screens).
  */
 function PersonalInformationTab() {
-	const { data: profile } = useProfile();
-
-	function handleChangeProfile() {
-		toast.info("Photo upload isn't available yet");
-	}
-
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="flex flex-col items-center gap-3 sm:items-start">
-				<UserAvatar
-					name={profile ? `${profile.firstName} ${profile.lastName}`.trim() : ""}
-					className="size-20 text-h5"
-				/>
-				<Button type="button" size="small" onClick={handleChangeProfile}>
-					Change Profile
-				</Button>
-			</div>
+			<AvatarUploadButton className="flex flex-col items-center gap-3 sm:items-start" />
 
 			<WalletAddressCard />
 

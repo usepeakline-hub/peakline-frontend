@@ -2,9 +2,8 @@
 
 import { User, Store, HelpCircle, Headphones } from "lucide-react";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
-import { Button } from "@repo/ui/button";
 import { AccountTabs, type AccountTab } from "@/components/layouts/AccountTabs";
-import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
+import { AvatarUploadButton } from "@/features/profile/components/AvatarUploadButton";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
 import {
 	PersonalInformationTab,
@@ -16,9 +15,7 @@ import { PendingDeletionBanner } from "@/features/profile/components/PendingDele
 import { InstallAppCard } from "@/features/profile/components/InstallAppCard";
 import { SettingsRow } from "@/features/profile/components/SettingsRow";
 import { MobileInfoSheet } from "@/features/profile/components/MobileInfoSheet";
-import { useProfile } from "@/features/profile/hooks";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { toast } from "@repo/ui/sonner";
 
 /**
  * Two genuinely different layouts, not one responsively-scaled page — same
@@ -47,7 +44,6 @@ import { toast } from "@repo/ui/sonner";
  */
 export default function AccountPage() {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
-	const { data: profile } = useProfile();
 
 	const tabs: AccountTab[] = [
 		{ key: "personal", label: "Personal Information", content: <PersonalInformationTab /> },
@@ -62,10 +58,6 @@ export default function AccountPage() {
 			: []),
 		{ key: "settings", label: "Account Settings", content: <AccountSettingsTab /> },
 	];
-
-	function handleChangeProfile() {
-		toast.info("Photo upload isn't available yet");
-	}
 
 	return (
 		<div className="flex flex-1 flex-col gap-6">
@@ -84,15 +76,7 @@ export default function AccountPage() {
 
 			{/* Mobile */}
 			<div className="flex flex-col gap-6 lg:hidden">
-				<div className="flex flex-col items-center gap-3">
-					<UserAvatar
-						name={profile ? `${profile.firstName} ${profile.lastName}`.trim() : ""}
-						className="size-20 text-h5"
-					/>
-					<Button type="button" size="small" onClick={handleChangeProfile}>
-						Change Profile
-					</Button>
-				</div>
+				<AvatarUploadButton className="flex flex-col items-center gap-3" />
 
 				<WalletAddressCard />
 

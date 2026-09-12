@@ -58,6 +58,13 @@ export const apiRoutes = {
 		ME_DELETION_REQUEST: "/api/v1/users/me/deletion-request",
 		PIN: "/api/v1/users/pin",
 		PIN_CONFIRM: "/api/v1/users/pin/confirm",
+		// `multipart/form-data`, field `file` — image/jpeg or image/png, max
+		// 5MB (confirmed live). Response is `data: null` despite the
+		// endpoint's own description mentioning a returned `avatarUrl` — same
+		// "description says one thing, schema says null" gap seen elsewhere
+		// this session, so `useUpdateAvatar` refetches the profile instead of
+		// trusting this response body.
+		AVATAR: "/api/v1/users/me/avatar",
 	},
 
 	wallets: {
@@ -74,6 +81,10 @@ export const apiRoutes = {
 		// what Fund Wallet actually uses.
 		FUND: "/api/v1/wallets/stellar/fund",
 		FUND_QUOTE: "/api/v1/wallets/stellar/fund/quote",
+		// Confirmed live — resolves a user id to `{name, publicKey}` for the
+		// receive-via-QR/link flow (`useWalletLookup`), no balance/key
+		// material included.
+		lookupByUserId: (userId: string) => `/api/v1/wallets/lookup/${userId}`,
 		// `fund/intent` + `fund/intent/{id}` (announce you're about to send
 		// USDC from an external wallet, then poll until it's matched) exist
 		// on the backend but aren't wired here — nothing in this app can
@@ -128,16 +139,9 @@ export const apiRoutes = {
 	// entirely.
 	transactions: {
 		LIST: "/api/v1/transactions",
+		BALANCES: "/api/v1/transactions/balances",
 		EXPORT_CSV: "/api/v1/transactions/export.csv",
 		byId: (id: string) => `/api/v1/transactions/${id}`,
-		// `BALANCES` ("/transactions/balances") used to be `useWalletBalance`'s
-		// own source — dropped after a live report that it could show less
-		// than the wallet genuinely held (misses funds added outside a
-		// recorded transaction, e.g. the testnet faucet). `wallets.STELLAR`'s
-		// own `balances` field is what every real balance display reads now
-		// (see `WalletBalanceItemData`'s doc comment). Not redefined here
-		// since nothing calls it — add it back if a future feature genuinely
-		// needs the ledger-derived rollup instead of the wallet's own number.
 	},
 
 	// STREAM (SSE) isn't wired — the notifications panel polls/refetches

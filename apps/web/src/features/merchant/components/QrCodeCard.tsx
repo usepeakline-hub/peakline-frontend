@@ -12,17 +12,25 @@ import { toast } from "@repo/ui/sonner";
 import { downloadSvgAsPng } from "@/lib/qrImage";
 import { useMyWallet } from "@/features/wallet/hooks";
 import { useMyBusiness } from "@/features/business/hooks";
+import { useProfile } from "@/features/profile/hooks";
+import { buildReceiveLink } from "@/lib/wallet";
 
 /**
  * Two states, per the mock: a plain "Generate" prompt, then the actual QR
- * once requested. The QR encodes the account's own real Stellar wallet
- * address (`useMyWallet` — always `GET /wallets/stellar` now, not a
- * business-specific one; see that hook's own note) — there's no generic
- * "pay this business any
- * amount" endpoint, only fixed-amount Payment Links, so this is a raw
- * wallet-address QR (any Stellar wallet can send USDC to it directly),
- * not a scannable stand-in for a real payment flow this app's own Pay
- * screen could look up. Both cards stay at a fixed max width and hug the
+ * once requested. The QR encodes a same-origin link (`buildReceiveLink`)
+ * wrapping the account's own user id (the business owner's, per
+ * `GET /wallets/lookup/{userId}`'s own description — it resolves to the
+ * business name automatically for a merchant account), not a wallet
+ * address — scanning it with an ordinary phone camera (or Peakline's own
+ * "Scan QR" on `/pay`) opens straight into this app's `/send` flow, which
+ * resolves that id into the business name + wallet address to pay, then
+ * it's the same real `POST /transfers/send` this app's own Send flow
+ * already uses. Trades away raw interop with non-Peakline Stellar wallets
+ * (they'd see a URL, not a payable address) for a one-scan path straight
+ * into this app's own Send flow with the business name already confirmed —
+ * this same page's own "Copy Wallet Address"/"Copy Link" rows (see
+ * `QrCodeReceiveInfo`) still offer the bare address for anyone who
+ * genuinely needs that. Both cards stay at a fixed max width and hug the
  * left edge of the page (not stretched full-width, not centered in the
  * leftover space) — the mock's own card is visibly narrower than the page
  * around it, same treatment either state. "Download QR" is real (see
@@ -36,6 +44,7 @@ function QrCodeCard() {
 	const qrContainerRef = useRef<HTMLDivElement>(null);
 	const { data: business, isLoading: isLoadingBusiness } = useMyBusiness();
 	const { data: wallet, isLoading: isLoadingWallet } = useMyWallet();
+	const { data: profile } = useProfile();
 
 	function handleDownload() {
 		const svg = qrContainerRef.current?.querySelector("svg");
@@ -72,10 +81,11 @@ function QrCodeCard() {
 		);
 	}
 
-	if (!wallet) {
+	if (!wallet || !profile) {
 		// Shouldn't normally happen — sign-up's own `SetPinForm` already
-		// creates the account's wallet (see `useMyWallet`'s own note) — but
-		// the type allows it.
+		// creates the account's wallet (see `useMyWallet`'s own note), and
+		// `useProfile` is fetched app-wide well before this page — but the
+		// types allow it.
 		return (
 			<div className="max-w-xl rounded-2xl border border-border bg-background">
 				<EmptyState
@@ -113,7 +123,7 @@ function QrCodeCard() {
 		<div className="flex max-w-xl flex-col items-center gap-4 rounded-2xl border border-border bg-background p-6 sm:p-8">
 			<span className="text-h5 text-foreground">{business.name}</span>
 			<div ref={qrContainerRef} className="rounded-xl bg-white p-4">
-				<QRCodeSvg value={wallet.publicKey} size={200} />
+				<QRCodeSvg value={buildReceiveLink(profile.id)} size={200} />
 			</div>
 			<Logo size="sm" />
 			<p className="text-b3 text-muted-foreground">

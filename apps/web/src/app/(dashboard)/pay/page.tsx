@@ -9,6 +9,7 @@ import { PaymentLinkPreviewCard } from "@/features/pay/components/PaymentLinkPre
 import { usePaymentLinkLookup } from "@/features/pay/hooks";
 import { usePayFlowStore } from "@/features/pay/store/payFlowStore";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import { parseReceiveLink, WALLET_ADDRESS_REGEX } from "@/lib/wallet";
 import type { PublicPaymentLinkData } from "@/lib/api/types";
 
 export default function PayPage() {
@@ -20,6 +21,26 @@ export default function PayPage() {
 
 	function handleLookup(input: string) {
 		setError(null);
+
+		// A merchant Payment Link's own code/URL is the only thing
+		// `usePaymentLinkLookup` actually knows how to resolve — but this same
+		// scan-or-paste box is also the obvious place someone lands after
+		// scanning a *person's* Receive QR (a `buildReceiveLink` URL carrying
+		// their user id, or a bare wallet address pasted directly from "Copy
+		// Wallet Address"), which is a different flow entirely (straight to
+		// `/send`, see `lib/wallet.ts`'s own notes). Both checked first so
+		// neither ever gets treated as an unrecognized payment code.
+		const userId = parseReceiveLink(input);
+		if (userId) {
+			router.push(`/send?userId=${encodeURIComponent(userId)}`);
+			return;
+		}
+		const trimmed = input.trim();
+		if (WALLET_ADDRESS_REGEX.test(trimmed)) {
+			router.push(`/send?wallet=${encodeURIComponent(trimmed)}`);
+			return;
+		}
+
 		lookup.mutate(input, {
 			onSuccess: (result) => setLink(result),
 			onError: (err) => {

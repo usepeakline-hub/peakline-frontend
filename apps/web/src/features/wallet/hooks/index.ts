@@ -8,6 +8,7 @@ import type {
 	FundQuoteData,
 	FundWalletResultData,
 	StellarWalletData,
+	WalletLookupData,
 } from "@/lib/api/types";
 
 const MY_WALLET_KEY = ["wallet", "mine"];
@@ -75,4 +76,34 @@ function useFundWallet() {
 	});
 }
 
-export { useMyWallet, useFundQuote, useFundWallet };
+/**
+ * `GET /wallets/lookup/{userId}` — the "receive via QR/link" flow's other
+ * half: the QR/link (`buildReceiveLink`) only ever carries the recipient's
+ * user id, and this is what turns that into a name + wallet address to
+ * actually pay (see `WalletLookupData`'s own note). `null` on a 404 ("no
+ * active individual wallet found for this user") rather than an error —
+ * same "not found is a real, expected state" treatment as `useMyWallet`.
+ * Disabled with no `userId` so `/send` can call this unconditionally
+ * without an extra guard at every call site.
+ */
+function useWalletLookup(userId: string | null) {
+	const axiosAuth = useAxiosAuth();
+
+	return useQuery({
+		queryKey: ["wallet", "lookup", userId],
+		queryFn: async (): Promise<WalletLookupData | null> => {
+			try {
+				const { data } = await axiosAuth.get<ApiSuccessResponse<WalletLookupData>>(
+					apiRoutes.wallets.lookupByUserId(userId!),
+				);
+				return data.data;
+			} catch (error) {
+				if (isAxiosError(error) && error.response?.status === 404) return null;
+				throw error;
+			}
+		},
+		enabled: Boolean(userId),
+	});
+}
+
+export { useMyWallet, useFundQuote, useFundWallet, useWalletLookup };

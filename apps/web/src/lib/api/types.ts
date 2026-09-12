@@ -143,15 +143,17 @@ export interface WalletBusinessData {
 
 /** One entry per currency this wallet actually holds — confirmed live
  * (`GET /wallets/stellar`'s own response): "USDC is live from Horizon; GHS
- * from internal ledger." This is what `useWalletBalance` (the Dashboard's
- * `BalanceCard`, `WalletBalanceCard`, and the Send/Fund/Pay success +
- * validation steps that all share that hook) actually reads — not the same
- * shape as `GET /transactions/balances` (`BalanceData` — a `balance` field,
- * not `amount`), which `useWalletBalance` used to read instead, until a
- * live report that the individual dashboard showed no balance for an
- * account genuinely funded via the testnet faucet: that ledger-derived
- * rollup can miss funds added outside a recorded transaction, where this
- * array is "live from Horizon" and authoritative. */
+ * from internal ledger." `useWalletBalance` (the Dashboard's `BalanceCard`,
+ * `WalletBalanceCard`, and the Send/Fund/Pay success + validation steps
+ * that all share that hook) reads this ALONGSIDE `GET /transactions/
+ * balances` (`BalanceData`, below) and takes the higher of the two per
+ * currency — see that hook's own note on why neither source is complete by
+ * itself: this one is on-chain/Horizon-live for USDC, so it can miss a
+ * purely-internal transfer from another Peakline user (settled through the
+ * ledger with no on-chain movement at all, confirmed live on
+ * `SendMoneyResponseDto`'s own `stellarTxHash: null` for that case); the
+ * ledger rollup can just as easily miss funds added outside any recorded
+ * transaction (e.g. the testnet faucet). */
 export interface WalletBalanceItemData {
 	currency: string;
 	amount: string;
@@ -177,6 +179,20 @@ export interface StellarWalletData {
 	createdAt: string;
 	business?: WalletBusinessData | null;
 	balances?: WalletBalanceItemData[];
+}
+
+/** `GET /wallets/lookup/{userId}` — confirmed live. Resolves any user id to
+ * just enough to pay them: a display `name` ("business name for merchants
+ * with a registered business, or firstName + lastName for individuals",
+ * per the endpoint's own description) and the wallet's `publicKey` to send
+ * to. Deliberately excludes balance and any key material. This is the
+ * lookup the receive-via-QR/link flow needed (see `lib/wallet.ts`'s
+ * `buildReceiveLink` and `useWalletLookup`) — the live spec documents its
+ * 401/404 but not the 200 body; `name`/`publicKey` are the two fields the
+ * description explicitly promises, so those are what's typed here. */
+export interface WalletLookupData {
+	name: string;
+	publicKey: string;
 }
 
 export type FundCurrency = "USDC" | "GHS";
@@ -274,11 +290,18 @@ export interface MerchantOnboardingReviewData {
 	business: BusinessData | null;
 }
 
-// `BalanceData` (`GET /transactions/balances`'s own shape — a `balance`
-// field, one entry per currency ever held) used to live here. Removed along
-// with the route that returned it — see `apiRoutes.transactions`'s own
-// note on why `useWalletBalance` moved to `StellarWalletData.balances`
-// instead.
+/** `GET /transactions/balances` — one entry per currency the account has
+ * ever held (not necessarily both USDC and GHS present). `balance` is a
+ * decimal string (Stellar/ledger precision), not a number — parse with
+ * `Number()` before formatting. Briefly removed (along with the route that
+ * returns it) when `useWalletBalance` moved to `StellarWalletData.balances`
+ * alone, then restored once that switch turned out to trade one gap for
+ * another — see `WalletBalanceItemData`'s own note and `useWalletBalance`'s
+ * for why the hook now reads both. */
+export interface BalanceData {
+	currency: string;
+	balance: string;
+}
 
 export type TransactionType =
 	| "deposit"

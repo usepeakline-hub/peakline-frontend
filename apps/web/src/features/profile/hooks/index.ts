@@ -40,6 +40,36 @@ function useProfile(options?: { enabled?: boolean }) {
 	});
 }
 
+/**
+ * `POST /users/me/avatar` — `multipart/form-data`, field `file` (image/jpeg
+ * or image/png, max 5MB, both enforced client-side too via
+ * `AVATAR_MAX_BYTES`/`AVATAR_ACCEPTED_TYPES` before the request ever goes
+ * out, matching the endpoint's own real limits rather than letting the
+ * backend be the first to reject an oversized/wrong-type file). The
+ * instance's own default `Content-Type: application/json` header would
+ * break multipart parsing server-side if it stuck on this one request —
+ * explicitly unset (not just left as `FormData`) so the browser sets its
+ * own boundary-bearing header instead, the only way that boundary can be
+ * generated correctly. Refetches the profile on success since the response
+ * itself is `data: null` (see `apiRoutes.users.AVATAR`'s own note) — the
+ * new `avatarUrl` only shows up once `GET /users/me` is re-fetched.
+ */
+function useUpdateAvatar() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (file: File) => {
+			const formData = new FormData();
+			formData.append("file", file);
+			await axiosAuth.post(apiRoutes.users.AVATAR, formData, {
+				headers: { "Content-Type": undefined },
+			});
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: PROFILE_KEY }),
+	});
+}
+
 /** `PATCH /users/me` — only firstName/lastName/username actually go out
  * (see `profileSchema`'s own note on why email/phone aren't here).
  * `fullName` is split back into firstName/lastName here (`splitFullName`);
@@ -248,6 +278,7 @@ function useChangePassword() {
 export {
 	useProfile,
 	useUpdateProfile,
+	useUpdateAvatar,
 	useRequestAccountDeletion,
 	useCancelAccountDeletion,
 	useEnroll2fa,

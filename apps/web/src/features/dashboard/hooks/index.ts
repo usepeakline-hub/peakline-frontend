@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
 import { useMyWallet } from "@/features/wallet/hooks";
-import type { ApiSuccessResponse, TransactionData } from "@/lib/api/types";
+import type { ApiSuccessResponse, BalanceData, TransactionData } from "@/lib/api/types";
 
 interface WalletBalanceSummary {
 	amount: number;
@@ -18,31 +18,66 @@ function findWalletAmount(
 	return Number(balances?.find((b) => b.currency === currency)?.amount ?? 0);
 }
 
-/** The account's real, single balance display — reads the wallet's own
- * `balances` (`GET /wallets/stellar`, via `useMyWallet`), the same source
- * `WalletBalanceCard` uses (see that component's own note). Previously this
- * called `GET /transactions/balances` instead — a ledger-derived rollup
- * that can miss funds added outside a recorded transaction (reported live:
- * the individual dashboard's own balance card showed nothing/zero for an
- * account that had genuinely been funded via the testnet faucet). The
- * wallet's own balances are "live from Horizon" for USDC per the backend
- * team, so they're the authoritative number every consumer here actually
- * wants — `BalanceCard`, and the Send/Fund/Pay success + validation steps
- * that all read this same hook.
+function findLedgerAmount(balances: BalanceData[] | undefined, currency: string) {
+	return Number(balances?.find((b) => b.currency === currency)?.balance ?? 0);
+}
+
+/**
+ * The account's real, single balance display — combined from BOTH real
+ * sources on purpose, after each turned out to be individually incomplete
+ * in opposite directions, reported live both ways:
+ *
+ * - `GET /wallets/stellar`'s own `balances` (via `useMyWallet`) is "live
+ *   from Horizon" for USDC — accurate for anything that actually moved on
+ *   the Stellar network (the testnet faucet, an external wallet sending
+ *   USDC in) — but a purely-internal transfer from another Peakline user
+ *   settles through the ledger with NO on-chain movement at all (confirmed
+ *   live: `SendMoneyResponseDto.stellarTxHash` is null for that case), so
+ *   this alone can show nothing for money just received from another
+ *   Peakline account.
+ * - `GET /transactions/balances` is the ledger's own rollup, which does
+ *   capture internal transfers, but can just as easily miss funds added
+ *   outside any recorded transaction row (the testnet faucet is a raw
+ *   Friendbot call, not something that creates one).
+ *
+ * These are two views of the *same* real balance, not additive deltas, so
+ * taking the higher of the two per currency is what actually covers both
+ * cases: the higher figure is never wrong, only the lower one risks being
+ * stale relative to whichever source hasn't caught up yet.
  *
  * Reshaped into the same "primary + local" `WalletBalanceSummary` shape
- * those consumers already expect, so none of them need to change beyond
- * this. No separate loading branch needed for "no wallet yet" — same as
- * `WalletBalanceCard`, that's a real `0.00`, not an error. */
+ * every consumer (`BalanceCard`, `WalletBalanceCard`, the Send/Fund/Pay
+ * success + validation steps) already expects. No separate branch for "no
+ * wallet yet" — same as `WalletBalanceCard`, that's a real `0.00`, not an
+ * error, and a failed/erroring source just contributes `0` rather than
+ * blocking the other one from showing.
+ */
 function useWalletBalance() {
-	const { data: wallet, isLoading } = useMyWallet();
+	const axiosAuth = useAxiosAuth();
+	const { data: wallet, isLoading: isLoadingWallet } = useMyWallet();
 
-	if (isLoading) return { data: undefined, isLoading: true };
+	const { data: ledgerBalances, isLoading: isLoadingLedger } = useQuery({
+		queryKey: ["dashboard", "balance", "ledger"],
+		queryFn: async (): Promise<BalanceData[]> => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<BalanceData[]>>(
+				apiRoutes.transactions.BALANCES,
+			);
+			return data.data;
+		},
+	});
+
+	if (isLoadingWallet || isLoadingLedger) return { data: undefined, isLoading: true };
 
 	const data: WalletBalanceSummary = {
-		amount: findWalletAmount(wallet?.balances, "USDC"),
+		amount: Math.max(
+			findWalletAmount(wallet?.balances, "USDC"),
+			findLedgerAmount(ledgerBalances, "USDC"),
+		),
 		currency: "USDC",
-		localAmount: findWalletAmount(wallet?.balances, "GHS"),
+		localAmount: Math.max(
+			findWalletAmount(wallet?.balances, "GHS"),
+			findLedgerAmount(ledgerBalances, "GHS"),
+		),
 		localCurrency: "GHS",
 	};
 

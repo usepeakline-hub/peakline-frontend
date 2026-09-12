@@ -26,10 +26,11 @@ function WalletBalanceCardSkeleton() {
 /**
  * The Wallet page's balance display — `useWalletBalance` (shared with the
  * Dashboard's own `BalanceCard` and the Send/Fund/Pay success steps), which
- * reads straight off the wallet's own `balances` array (`GET
- * /wallets/stellar`, via `useMyWallet` — see that hook's own doc comment).
- * Both USDC and GHS come back as real balances on the wallet itself, not an
- * FX-converted estimate.
+ * combines the wallet's own `balances` (`GET /wallets/stellar`) with the
+ * ledger's rollup (`GET /transactions/balances`) and takes the higher of
+ * the two per currency — see that hook's own doc comment for why neither
+ * one alone is reliably complete. Both USDC and GHS are real balances
+ * either way, not an FX-converted estimate.
  *
  * The mock's own second "Pending Balance" section was fake data with no
  * real endpoint behind it and the user asked for it gone rather than left
