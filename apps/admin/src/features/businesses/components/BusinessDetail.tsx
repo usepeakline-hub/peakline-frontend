@@ -6,6 +6,10 @@ import { EmptyState } from "@repo/ui/empty-state";
 import { Badge } from "@repo/ui/badge";
 import { DetailCard, FieldRow } from "@/components/data/DetailCard";
 import { useAdminBusiness } from "@/features/businesses/hooks";
+import { BusinessActions } from "@/features/businesses/components/BusinessActions";
+import { BusinessStatusHistoryCard } from "@/features/businesses/components/BusinessStatusHistoryCard";
+import { BusinessWalletsCard } from "@/features/businesses/components/BusinessWalletsCard";
+import { BusinessPaymentLinksCard } from "@/features/businesses/components/BusinessPaymentLinksCard";
 import { formatDateTime } from "@/lib/format";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
 import type { AdminBusinessData } from "@/lib/api/types";
@@ -47,36 +51,47 @@ function BusinessDetail({ id }: { id: string }) {
 	}
 
 	return (
-		<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-			<DetailCard title="Business">
-				<FieldRow label="Name" value={business.name} />
-				<FieldRow label="Category" value={business.category} />
-				<FieldRow
-					label="Status"
-					value={
-						<Badge variant={STATUS_VARIANT[business.status]}>
-							{STATUS_LABEL[business.status]}
-						</Badge>
-					}
-				/>
-				<FieldRow label="Owner ID" value={business.ownerId} />
-				<FieldRow label="Country" value={business.country} />
-				{business.city && <FieldRow label="City" value={business.city} />}
-				{business.address && <FieldRow label="Address" value={business.address} />}
-				{business.phone && <FieldRow label="Phone" value={business.phone} />}
-				{business.website && <FieldRow label="Website" value={business.website} />}
-			</DetailCard>
+		<div className="flex flex-col gap-4">
+			<BusinessActions business={business} />
 
-			<DetailCard title="Verification & Records">
-				<FieldRow label="Verified" value={formatDateTime(business.verifiedAt, "Not verified")} />
-				{business.registrationNumber && (
-					<FieldRow label="Registration number" value={business.registrationNumber} />
-				)}
-				{business.taxId && <FieldRow label="Tax ID" value={business.taxId} />}
-				{business.description && <FieldRow label="Description" value={business.description} />}
-				<FieldRow label="Created" value={formatDateTime(business.createdAt)} />
-				<FieldRow label="Last updated" value={formatDateTime(business.updatedAt)} />
-			</DetailCard>
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+				<DetailCard title="Business">
+					<FieldRow label="Name" value={business.name} />
+					<FieldRow label="Category" value={business.category} />
+					<FieldRow
+						label="Status"
+						value={
+							<Badge variant={STATUS_VARIANT[business.status]}>
+								{STATUS_LABEL[business.status]}
+							</Badge>
+						}
+					/>
+					<FieldRow label="Owner ID" value={business.ownerId} />
+					<FieldRow label="Country" value={business.country} />
+					{business.city && <FieldRow label="City" value={business.city} />}
+					{business.address && <FieldRow label="Address" value={business.address} />}
+					{business.phone && <FieldRow label="Phone" value={business.phone} />}
+					{business.website && <FieldRow label="Website" value={business.website} />}
+				</DetailCard>
+
+				<DetailCard title="Verification & Records">
+					<FieldRow label="Verified" value={formatDateTime(business.verifiedAt, "Not verified")} />
+					{business.registrationNumber && (
+						<FieldRow label="Registration number" value={business.registrationNumber} />
+					)}
+					{business.taxId && <FieldRow label="Tax ID" value={business.taxId} />}
+					{business.description && <FieldRow label="Description" value={business.description} />}
+					<FieldRow label="Created" value={formatDateTime(business.createdAt)} />
+					<FieldRow label="Last updated" value={formatDateTime(business.updatedAt)} />
+				</DetailCard>
+			</div>
+
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+				<BusinessWalletsCard businessId={business.id} />
+				<BusinessPaymentLinksCard businessId={business.id} />
+			</div>
+
+			<BusinessStatusHistoryCard businessId={business.id} />
 		</div>
 	);
 }

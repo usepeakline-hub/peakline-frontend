@@ -8,20 +8,11 @@ import { Pagination } from "@/components/data/Pagination";
 import { DataTable, type Column } from "@/components/data/DataTable";
 import { UsersFilters } from "@/features/users/components/UsersFilters";
 import { useAdminUsers } from "@/features/users/hooks";
+import { isCurrentlyLocked } from "@/features/users/utils";
 import { formatDateTime } from "@/lib/format";
 import type { AdminUserData, AdminUsersQuery } from "@/lib/api/types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-/** No documented "is this user currently locked" boolean on `AdminUserData`
- * itself — derived from `lockedAt`/`lockedUntil` (an indefinite lock has
- * `lockedUntil: null`; a timed one has already lifted once that timestamp
- * passes). Flagged since it's an inference, not a confirmed field. */
-function isCurrentlyLocked(user: AdminUserData): boolean {
-	if (!user.lockedAt) return false;
-	if (!user.lockedUntil) return true;
-	return new Date(user.lockedUntil).getTime() > Date.now();
-}
 
 function ListSkeleton() {
 	return (
@@ -152,4 +143,4 @@ function UsersList() {
 	);
 }
 
-export { UsersList, isCurrentlyLocked };
+export { UsersList };

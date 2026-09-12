@@ -260,3 +260,91 @@ export interface AdminOverviewData {
 	pendingFundingIntents: number;
 	totalFeeIncome: string;
 }
+
+// ---------------------------------------------------------------------
+// Phase 2 — user & business moderation actions
+// ---------------------------------------------------------------------
+
+/** `PATCH /admin/users/{id}/lock` request body — confirmed live. */
+export interface AdminLockUserPayload {
+	reason: string;
+}
+
+/** `PATCH /admin/users/{id}/kyc-tier` — confirmed live. */
+export interface AdminSetKycTierPayload {
+	tier: 0 | 1 | 2 | 3;
+	reason?: string;
+}
+
+/** `PATCH /admin/users/{id}/role` (super_admin only) — confirmed live.
+ * `staffRole` only makes sense (and is presumably required by the backend)
+ * when `role: "staff"`; omitted when demoting back to `"customer"`. */
+export interface AdminSetRolePayload {
+	role: "staff" | "customer";
+	staffRole?: StaffRole;
+	reason: string;
+}
+
+/** `GET /admin/users/{id}/sessions` — confirmed live. `revokedAt: null`
+ * means still active. */
+export interface AdminUserSessionData {
+	id: string;
+	userId: string;
+	revokedAt: string | null;
+	expiresAt: string;
+	createdAt: string;
+}
+
+/** `GET /admin/users/{id}/2fa` — confirmed live. */
+export interface AdminUser2faStatusData {
+	enabled: boolean;
+	verifiedAt: string | null;
+	createdAt: string | null;
+}
+
+/** `GET /admin/businesses/{id}/status-history` — confirmed live.
+ * `fromStatus` is nullable (the business's very first status event has
+ * nothing to transition *from*). */
+export interface BusinessStatusEventData {
+	id: string;
+	businessId: string;
+	fromStatus: AdminBusinessData["status"] | null;
+	toStatus: AdminBusinessData["status"];
+	changedBy: string;
+	reason: string | null;
+	createdAt: string;
+}
+
+/** `GET /admin/businesses/{id}/wallets` — real response schema is another
+ * of the same documentation bugs (`nullable: true`, no ref) as transactions/
+ * audit-log above. Modeled on the confirmed `AdminWalletDto` (the same
+ * shape `GET /admin/wallets/{id}` returns) since this is almost certainly
+ * that same entity, just pre-filtered to one business — unverified. */
+export interface AdminBusinessWalletData {
+	id: string;
+	userId?: string | null;
+	businessId?: string | null;
+	walletType: "individual" | "merchant";
+	network: "mainnet" | "testnet";
+	publicKey: string;
+	label?: string | null;
+	deactivatedAt?: string | null;
+	createdAt: string;
+}
+
+/** `GET /admin/businesses/{id}/payment-links` — same documentation bug
+ * (resolves to `BusinessDto`, clearly wrong). Modeled on apps/web's own
+ * confirmed `PaymentLinkData`, minus the nested `business` object (already
+ * scoped to one business here) — unverified. */
+export interface AdminBusinessPaymentLinkData {
+	id: string;
+	title: string;
+	amount: string;
+	currency: "USDC";
+	status: "active" | "expired" | "cancelled";
+	publicCode: string;
+	url: string;
+	expiresAt: string;
+	cancelledAt?: string | null;
+	createdAt: string;
+}
