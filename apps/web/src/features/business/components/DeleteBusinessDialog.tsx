@@ -22,9 +22,9 @@ interface DeleteBusinessDialogProps {
 	onDeleted: () => void;
 }
 
-/** A real delete this time (unlike `PersonalInformationCard`'s own "Delete",
- * still an honest stub with no backend) — worth an actual confirm step
- * first, matching how consequential/irreversible this one is. Controlled
+/** An immediate, irreversible delete — unlike `DeleteAccountDialog`'s own
+ * "Delete Account" (a 7-day cancellable grace period under the hood), this
+ * one has no undo, so it's worth its own confirm step first. Controlled
  * (not just a `DialogTrigger`-wrapped Cancel) so a successful delete can
  * close it itself rather than leaving it open behind the toast. */
 function DeleteBusinessDialog({

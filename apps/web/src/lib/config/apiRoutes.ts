@@ -15,6 +15,11 @@ export const apiRoutes = {
 		CUSTOMER_TYPE: "/api/v1/auth/customer-type",
 		LOGOUT: "/api/v1/auth/logout",
 		LOGOUT_ALL: "/api/v1/auth/logout-all",
+		// Real as of this writing — confirmed live against /docs-json.
+		// forgot-password/reset-password (the logged-out flow) exist too but
+		// are a separate, already-built form elsewhere (ForgotPasswordForm/
+		// ResetPasswordForm) not yet wired to them; out of scope here.
+		CHANGE_PASSWORD: "/api/v1/auth/change-password",
 	},
 
 	// TOTP (authenticator-app) 2FA — account-settings enroll/confirm/disable

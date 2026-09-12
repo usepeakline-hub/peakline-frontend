@@ -84,11 +84,14 @@ function CardSkeleton() {
 }
 
 /**
- * Business Information's own settings-page counterpart to
- * `PersonalInformationCard` — same inline-edit shape (read-only inputs
- * until "Edit", Cancel/Save vs Edit/Delete), but real end to end
- * (`GET/POST/PATCH/DELETE /businesses`) rather than a stub, and a fuller
- * field set than onboarding's own form collects (website/description/
+ * Business Information's own real end-to-end CRUD
+ * (`GET/POST/PATCH/DELETE /businesses`), unlike `PersonalInformationTab`'s
+ * always-editable Cancel/Update shape — this keeps its own inline-edit
+ * toggle (read-only inputs until "Edit", Cancel/Save vs Edit/Delete) since
+ * no mock ever specified this screen directly (see
+ * `BusinessInformationTab`, which now hosts this inside the Account page's
+ * own Business Information tab). A fuller field set than onboarding's own
+ * form collects (website/description/
  * registration number/tax ID are only editable from here).
  *
  * Doubles as the *only* place to add a business outside of sign-up now —

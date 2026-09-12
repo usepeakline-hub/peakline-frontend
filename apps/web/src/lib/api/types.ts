@@ -52,6 +52,15 @@ export interface OtpSentData {
 	ttlSeconds: number;
 }
 
+/** `PATCH /users/pin` — step 1 of changing an existing PIN. Doesn't apply
+ * the new PIN yet: `requiresTwoFa` says whether the confirmation step
+ * (`POST /users/pin/confirm`) needs a TOTP code instead of the email OTP
+ * this always sends otherwise. */
+export interface PinChangeInitiatedData {
+	requiresTwoFa: boolean;
+	ttlSeconds: number;
+}
+
 export type OtpPurpose =
 	| "email_verification"
 	| "phone_verification"

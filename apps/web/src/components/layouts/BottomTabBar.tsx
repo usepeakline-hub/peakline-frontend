@@ -16,7 +16,7 @@ const INDIVIDUAL_TABS = [
 		icon: ArrowLeftRight,
 		elevated: false,
 	},
-	{ label: "Account", href: "/account", icon: User, elevated: false },
+	{ label: "Profile", href: "/account", icon: User, elevated: false },
 ] as const;
 
 function isActive(pathname: string, href: string) {

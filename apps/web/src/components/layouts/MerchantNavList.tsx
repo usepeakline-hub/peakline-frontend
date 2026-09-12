@@ -27,7 +27,7 @@ export const MERCHANT_NAV_ITEMS = [
 	{ label: "Payment Links", href: "/payment-links", icon: Link2 },
 	{ label: "My QR Code", href: "/qr-code", icon: QrCode },
 	{ label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
-	{ label: "Account", href: "/account", icon: User },
+	{ label: "Accounts", href: "/account", icon: User },
 ] as const;
 
 /** True for the item's own route, and (except the root Overview item) any

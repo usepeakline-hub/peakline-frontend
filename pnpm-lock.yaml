@@ -154,6 +154,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.9.1(@standard-schema/spec@1.1.0)(react-hook-form@7.87.0(react@19.2.8))(zod@3.25.76)
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.15
+        version: 1.1.23(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui

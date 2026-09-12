@@ -28,7 +28,7 @@ const INDIVIDUAL_NAV_ITEMS = [
 	{ label: "Receive", href: "/receive", icon: ArrowDownLeft },
 	{ label: "Pay", href: "/pay", icon: ScanLine },
 	{ label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
-	{ label: "Account", href: "/account", icon: User },
+	{ label: "Accounts", href: "/account", icon: User },
 ] as const;
 
 /** True for the item's own route, and (except the root Dashboard item) any

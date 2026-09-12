@@ -1,19 +1,27 @@
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAxiosAuth } from "@/hooks/useAxiosAuth";
 import { apiRoutes } from "@/lib/config/apiRoutes";
+import { useAuthStore } from "@/lib/stores/authStore";
 import type {
 	AccountDeletionStatusData,
 	ApiSuccessResponse,
 	EnrollTotpData,
+	PinChangeInitiatedData,
 	ProfileData,
 } from "@/lib/api/types";
-import type { ProfileValues } from "@/lib/validations/profileValidations";
+import { splitFullName, type ProfileValues } from "@/lib/validations/profileValidations";
+import type {
+	ChangePasswordValues,
+	ChangePinValues,
+} from "@/lib/validations/accountSettingsValidations";
+import type { PersonalDetailsValues } from "@/lib/validations/authValidations";
 
 const PROFILE_KEY = ["profile", "me"];
 
-/** `GET /users/me` — the real account record `PersonalInformationCard`
+/** `GET /users/me` — the real account record `PersonalInformationTab`
  * reads from (previously a hardcoded fake `DEFAULT_VALUES` object). Also
- * carries `deletionRequestedAt`/`deletionScheduledAt` for that same card's
+ * carries `deletionRequestedAt`/`deletionScheduledAt` for `AccountSettingsTab`'s
  * pending-deletion banner, and `customerType`/`kycTier`/verification
  * timestamps not used yet but worth having typed for whoever needs them
  * next. */
@@ -32,22 +40,27 @@ function useProfile(options?: { enabled?: boolean }) {
 	});
 }
 
-/** `PATCH /users/me` — only firstName/lastName/otherName/username actually
- * go out (see `profileSchema`'s own note on why email/phone aren't here).
- * Refetches the profile on success rather than trusting the (data: null)
- * response body to reflect the change. */
+/** `PATCH /users/me` — only firstName/lastName/username actually go out
+ * (see `profileSchema`'s own note on why email/phone aren't here).
+ * `fullName` is split back into firstName/lastName here (`splitFullName`);
+ * `otherName` isn't sent at all — there's no field left to edit it from,
+ * and the endpoint only changes fields actually included in the body, so
+ * omitting it leaves whatever the account already had untouched. Refetches
+ * the profile on success rather than trusting the (data: null) response
+ * body to reflect the change. */
 function useUpdateProfile() {
 	const axiosAuth = useAxiosAuth();
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (values: ProfileValues) =>
-			axiosAuth.patch(apiRoutes.users.ME, {
-				firstName: values.firstName,
-				lastName: values.lastName,
-				otherName: values.otherName || undefined,
+		mutationFn: (values: ProfileValues) => {
+			const { firstName, lastName } = splitFullName(values.fullName);
+			return axiosAuth.patch(apiRoutes.users.ME, {
+				firstName,
+				lastName,
 				username: values.username,
-			}),
+			});
+		},
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: PROFILE_KEY }),
 	});
 }
@@ -151,6 +164,87 @@ function useDisable2fa() {
 	});
 }
 
+/** Step 1 of Change Transaction PIN — `PATCH /users/pin`. Doesn't apply the
+ * new PIN by itself; see `ChangePinDialog` for the confirmation step this
+ * kicks off (`useConfirmChangePin`). */
+function useChangePin() {
+	const axiosAuth = useAxiosAuth();
+
+	return useMutation({
+		mutationFn: async (values: ChangePinValues) => {
+			const { data } = await axiosAuth.patch<ApiSuccessResponse<PinChangeInitiatedData>>(
+				apiRoutes.users.PIN,
+				{ currentPin: values.oldPin, newPin: values.newPin },
+			);
+			return data.data;
+		},
+	});
+}
+
+/** Step 2 — `POST /users/pin/confirm` with the emailed OTP (or a TOTP code,
+ * if `useChangePin`'s response said `requiresTwoFa`). Actually applies the
+ * PIN change. */
+function useConfirmChangePin() {
+	const axiosAuth = useAxiosAuth();
+
+	return useMutation({
+		mutationFn: async (code: string) => {
+			await axiosAuth.post(apiRoutes.users.PIN_CONFIRM, { code });
+		},
+	});
+}
+
+/**
+ * Updates dateOfBirth/nationality/residentialAddress/city — reuses
+ * `POST /onboarding/individual`, the *only* endpoint that accepts these
+ * fields at all (confirmed live against `/docs-json`; there's no separate
+ * "edit after onboarding" endpoint). Unverified whether the real backend
+ * treats a second call as an update or rejects it as "already onboarded" —
+ * worth confirming with the backend team; this is the only option either
+ * way. Refetches the profile on success, same reasoning as
+ * `useUpdateProfile`.
+ */
+function useUpdatePersonalDetails() {
+	const axiosAuth = useAxiosAuth();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (values: PersonalDetailsValues) =>
+			axiosAuth.post(apiRoutes.onboarding.INDIVIDUAL, values),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: PROFILE_KEY }),
+	});
+}
+
+/**
+ * `POST /auth/change-password` — real as of this writing (confirmed live).
+ * Unlike Change PIN, this is one step (no OTP/2FA confirmation) but comes
+ * with its own real consequence the mock's plain Old/New Password form
+ * gives no hint of: "All existing sessions are revoked on success — the
+ * user must log in again on all devices." That includes the very session
+ * making this request, so a bare success toast would leave the UI looking
+ * fine for a moment before the next authenticated call 401s out from under
+ * it — instead this clears the local session and redirects to sign-in
+ * immediately, same shape `useLogout` already uses.
+ */
+function useChangePassword() {
+	const axiosAuth = useAxiosAuth();
+	const router = useRouter();
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (values: ChangePasswordValues) =>
+			axiosAuth.post(apiRoutes.auth.CHANGE_PASSWORD, {
+				currentPassword: values.oldPassword,
+				newPassword: values.newPassword,
+			}),
+		onSuccess: () => {
+			useAuthStore.getState().clear();
+			queryClient.clear();
+			router.push("/auth/sign-in");
+		},
+	});
+}
+
 export {
 	useProfile,
 	useUpdateProfile,
@@ -159,4 +253,8 @@ export {
 	useEnroll2fa,
 	useConfirm2fa,
 	useDisable2fa,
+	useChangePin,
+	useConfirmChangePin,
+	useUpdatePersonalDetails,
+	useChangePassword,
 };

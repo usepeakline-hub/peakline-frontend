@@ -50,6 +50,15 @@ const PERIOD_OPTIONS: { value: ReceivedTrendPeriod; label: string }[] = [
 	{ value: "year", label: "This year" },
 ];
 
+// Enough room per point that a tick label (a month name, "Week 3", etc.)
+// never has to shrink or overlap its neighbors — "This year" (12 points)
+// or a long "This month" (30+ daily points) used to all force-fit into
+// whatever width the card had, compressing every label into an unreadable
+// smear. Below this floor, the chart still fills the card's own width
+// exactly (see `minWidth` below) rather than leaving dead space for a
+// short "This week" (7 points).
+const MIN_PX_PER_POINT = 56;
+
 /**
  * Overview's new "Total Received" section — a real area chart (`recharts`)
  * with a period selector, per the update. No outer card on mobile — the
@@ -88,50 +97,55 @@ function TotalReceivedChart() {
 				</Select>
 			</div>
 
-			<div className="h-56 w-full sm:h-64">
+			<div className="h-56 w-full overflow-x-auto sm:h-64">
 				{!data ? (
 					<Skeleton className="h-full w-full" />
 				) : (
-					<ResponsiveContainer width="100%" height="100%">
-						<AreaChart data={data.points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-							<defs>
-								<linearGradient id="totalReceivedFill" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="0%" stopColor="var(--color-primary-500)" stopOpacity={0.25} />
-									<stop offset="100%" stopColor="var(--color-primary-500)" stopOpacity={0} />
-								</linearGradient>
-							</defs>
-							<CartesianGrid vertical={false} strokeDasharray="4 4" stroke="var(--color-border)" />
-							<XAxis
-								dataKey="label"
-								axisLine={false}
-								tickLine={false}
-								interval={0}
-								tick={<MonthTick selectedLabel={data.selectedLabel} />}
-							/>
-							<YAxis
-								axisLine={false}
-								tickLine={false}
-								tickFormatter={formatYAxisTick}
-								width={40}
-								tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-							/>
-							<Tooltip
-								formatter={(value) => [`${formatUsdc(Number(value))} USDC`, "Received"]}
-								contentStyle={{
-									borderRadius: 8,
-									borderColor: "var(--color-border)",
-									fontSize: 13,
-								}}
-							/>
-							<Area
-								type="monotone"
-								dataKey="amount"
-								stroke="var(--color-primary-600)"
-								strokeWidth={2}
-								fill="url(#totalReceivedFill)"
-							/>
-						</AreaChart>
-					</ResponsiveContainer>
+					<div
+						className="h-full min-w-full"
+						style={{ width: data.points.length * MIN_PX_PER_POINT }}
+					>
+						<ResponsiveContainer width="100%" height="100%">
+							<AreaChart data={data.points} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+								<defs>
+									<linearGradient id="totalReceivedFill" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="0%" stopColor="var(--color-primary-500)" stopOpacity={0.25} />
+										<stop offset="100%" stopColor="var(--color-primary-500)" stopOpacity={0} />
+									</linearGradient>
+								</defs>
+								<CartesianGrid vertical={false} strokeDasharray="4 4" stroke="var(--color-border)" />
+								<XAxis
+									dataKey="label"
+									axisLine={false}
+									tickLine={false}
+									interval={0}
+									tick={<MonthTick selectedLabel={data.selectedLabel} />}
+								/>
+								<YAxis
+									axisLine={false}
+									tickLine={false}
+									tickFormatter={formatYAxisTick}
+									width={40}
+									tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
+								/>
+								<Tooltip
+									formatter={(value) => [`${formatUsdc(Number(value))} USDC`, "Received"]}
+									contentStyle={{
+										borderRadius: 8,
+										borderColor: "var(--color-border)",
+										fontSize: 13,
+									}}
+								/>
+								<Area
+									type="monotone"
+									dataKey="amount"
+									stroke="var(--color-primary-600)"
+									strokeWidth={2}
+									fill="url(#totalReceivedFill)"
+								/>
+							</AreaChart>
+						</ResponsiveContainer>
+					</div>
 				)}
 			</div>
 		</div>
