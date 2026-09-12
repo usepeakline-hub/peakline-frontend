@@ -348,3 +348,87 @@ export interface AdminBusinessPaymentLinkData {
 	cancelledAt?: string | null;
 	createdAt: string;
 }
+
+// ---------------------------------------------------------------------
+// Phase 3 — wallets & ledger ops
+// ---------------------------------------------------------------------
+
+/** `GET /admin/wallets`, `GET /admin/wallets/{id}` — confirmed live
+ * (correctly-referenced `AdminWalletDto` both places, unlike most of this
+ * phase). */
+export interface AdminWalletData {
+	id: string;
+	userId: string;
+	businessId?: string | null;
+	walletType: "individual" | "merchant";
+	network: "mainnet" | "testnet";
+	publicKey: string;
+	label?: string | null;
+	federationAddress?: string | null;
+	deactivatedAt?: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface AdminWalletsQuery {
+	userId?: string;
+	businessId?: string;
+	walletType?: "individual" | "merchant";
+	network?: "mainnet" | "testnet";
+	isDeactivated?: 0 | 1;
+}
+
+/** `PATCH /admin/wallets/{id}/deactivate` body — confirmed live (reason
+ * required). Reactivate (super_admin only) takes no body at all. */
+export interface AdminWalletActionPayload {
+	reason: string;
+}
+
+/** `GET /admin/wallets/{id}/funding-intents` — another of this phase's
+ * documentation bugs (resolves to `AdminWalletDto[]`, clearly wrong — a
+ * funding intent isn't a wallet). Modeled on the real, correctly-documented
+ * customer-facing `FundingIntentDto` (`POST/GET /wallets/stellar/fund/
+ * intent`) instead, since this is almost certainly the same entity, just
+ * listed admin-side across everyone's intents for one wallet — unverified
+ * against a real admin response. */
+export interface AdminFundingIntentData {
+	id: string;
+	memo: string;
+	destinationAddress: string;
+	expectedAmount: string;
+	asset: string;
+	status: "pending" | "completed" | "expired" | "failed";
+	stellarTxHash?: string | null;
+	transactionId?: string | null;
+	expiresAt: string;
+	completedAt?: string | null;
+	createdAt: string;
+}
+
+export interface AdminFundingIntentsQuery {
+	status?: AdminFundingIntentData["status"];
+	from?: string;
+	to?: string;
+}
+
+/** `PATCH /admin/transactions/{id}/reverse` / `.../status` — both
+ * confirmed live with `reason` present but NOT in either DTO's own
+ * `required` array, unlike most other reason-bearing actions in this app —
+ * genuinely optional on both. */
+export interface AdminReasonOptionalPayload {
+	reason?: string;
+}
+
+/**
+ * The Ledger group (`GET /admin/ledger/accounts`, `.../accounts/{id}`,
+ * `.../system-accounts`, `.../balances`) has no confirmed response schema
+ * at all — every one of these resolves to either a bare `null` or the
+ * wrong (query-param) DTO in the real spec, and unlike Phase 1/2's own
+ * documentation bugs, there's no customer-facing sibling endpoint to model
+ * these on either (ledger internals are never exposed to a customer).
+ * Rather than invent specific fields with confident-looking labels that
+ * may not match reality, every Ledger screen renders whatever comes back
+ * as a generic key/value or column view (see `components/data/Dynamic*`) —
+ * genuinely unknown shape, typed `unknown` end to end on purpose.
+ */
+export type UnknownRecord = Record<string, unknown>;

@@ -6,6 +6,8 @@ import { EmptyState } from "@repo/ui/empty-state";
 import { StatusBadge } from "@repo/ui/badge";
 import { DetailCard, FieldRow } from "@/components/data/DetailCard";
 import { useAdminTransaction } from "@/features/transactions/hooks";
+import { TransactionActions } from "@/features/transactions/components/TransactionActions";
+import { TransactionLedgerEntriesCard } from "@/features/transactions/components/TransactionLedgerEntriesCard";
 import { formatDateTime } from "@/lib/format";
 import { formatUsdc } from "@/lib/currency";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
@@ -50,6 +52,8 @@ function TransactionDetail({ id }: { id: string }) {
 
 	return (
 		<div className="flex flex-col gap-4">
+			<TransactionActions transaction={tx} />
+
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				<DetailCard title="Transaction">
 					<FieldRow label="Type" value={TYPE_LABEL[tx.type] ?? tx.type ?? "—"} />
@@ -84,6 +88,8 @@ function TransactionDetail({ id }: { id: string }) {
 					</pre>
 				</DetailCard>
 			)}
+
+			<TransactionLedgerEntriesCard transactionId={tx.id} />
 		</div>
 	);
 }
