@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Send, QrCode, ArrowDownLeft, Link2, ListChecks } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { appUrl } from "@/lib/appUrl";
+import { Reveal } from "@/components/Reveal";
 
 const CHECKLIST = [
 	{ icon: ArrowDownLeft, label: "Send & receive" },
@@ -81,13 +82,15 @@ function AboutSection() {
 					</p>
 
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						{CHECKLIST.map(({ icon: Icon, label }) => (
-							<div key={label} className="flex items-center gap-3">
-								<span className="flex size-10 items-center justify-center rounded-full bg-neutral-50">
-									<Icon className="size-4 text-neutral-600" aria-hidden="true" />
-								</span>
-								<span className="text-b1 text-neutral-600">{label}</span>
-							</div>
+						{CHECKLIST.map(({ icon: Icon, label }, i) => (
+							<Reveal key={label} delay={i * 80}>
+								<div className="flex items-center gap-3">
+									<span className="flex size-10 items-center justify-center rounded-full bg-neutral-50">
+										<Icon className="size-4 text-neutral-600" aria-hidden="true" />
+									</span>
+									<span className="text-b1 text-neutral-600">{label}</span>
+								</div>
+							</Reveal>
 						))}
 					</div>
 				</div>

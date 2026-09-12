@@ -45,8 +45,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
 	return (
-		<html data-scroll-behavior="smooth" lang="en" className={`${dmSans.variable} h-full antialiased`}>
-			<body className="min-h-full flex flex-col">
+		<html
+			data-scroll-behavior="smooth"
+			lang="en"
+			className={`${dmSans.variable} h-full overflow-x-hidden antialiased`}
+		>
+			{/* overflow-x-hidden here too, not just on <main> (LandingPage.tsx):
+			 * Navbar is `position: fixed` (Hero.tsx) so it's positioned against
+			 * the viewport directly, escaping <main>'s own overflow clipping
+			 * entirely — only the root scrolling element can contain a fixed
+			 * descendant that overflows horizontally. */}
+			<body className="min-h-full flex flex-col overflow-x-hidden">
 				<ReactQueryProvider>
 					{children}
 					<Toaster />

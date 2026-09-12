@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { appUrl } from "@/lib/appUrl";
+import { Reveal } from "@/components/Reveal";
 import { Navbar } from "./Navbar";
 
 /** Fraction of hero-img.svg's natural height (910) that's actually visible
@@ -37,21 +38,29 @@ function Hero() {
 				className="object-cover object-top"
 			/>
 
-			<div className="custom-container relative flex flex-col items-center pt-8">
-				<Navbar />
+			{/* Fixed, not in-flow: stays pinned through the whole page, not just
+			 * the hero. Its old flow-slot is gone, so the content column below
+			 * makes up the difference with its own top padding instead of the
+			 * `mt-16` that used to sit right after the in-flow navbar. */}
+			<div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 sm:top-6 sm:px-6 lg:px-8">
+				<div className="w-full max-w-7xl">
+					<Navbar />
+				</div>
 			</div>
 
-			<div className="custom-container relative mt-16 flex flex-col items-center gap-16 text-center">
+			<div className="custom-container relative flex flex-col items-center gap-16 pt-32 text-center sm:pt-36 lg:pt-40">
 				<div className="flex flex-col items-center gap-6">
 					<div className="flex flex-col items-center gap-3">
-						<span className="inline-flex items-center gap-2 rounded-full bg-neutral-100 py-1 pr-3 pl-1 text-b4 text-neutral-900">
-							<span className="flex size-8 items-center justify-center rounded-full bg-background">
-								<ShieldCheck className="size-4 text-primary-500" aria-hidden="true" />
+						<Reveal mode="mount">
+							<span className="inline-flex items-center gap-2 rounded-full bg-neutral-100 py-1 pr-3 pl-1 text-b4 text-neutral-900">
+								<span className="flex size-8 items-center justify-center rounded-full bg-background">
+									<ShieldCheck className="size-4 text-primary-500" aria-hidden="true" />
+								</span>
+								One Wallet, Simple Payments
 							</span>
-							One Wallet, Simple Payments
-						</span>
+						</Reveal>
 
-						<div className="flex max-w-4xl flex-col gap-4">
+						<Reveal mode="mount" delay={100} className="flex max-w-4xl flex-col gap-4">
 							{/* Figma's H1 style is textCase: TITLE — `capitalize`
 							 * renders that without changing the copy's actual case. */}
 							<h1 className="text-h2 capitalize text-foreground sm:text-[3.375rem] sm:leading-[1.24]">
@@ -62,10 +71,14 @@ function Hero() {
 								businesses in Ghana. Send money, receive payments, pay with QR
 								codes and collect with payment links — all from one platform.
 							</p>
-						</div>
+						</Reveal>
 					</div>
 
-					<div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row sm:justify-center">
+					<Reveal
+						mode="mount"
+						delay={200}
+						className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row sm:justify-center"
+					>
 						<Button
 							asChild
 							variant="primary"
@@ -82,7 +95,7 @@ function Hero() {
 						>
 							<Link href="#how-it-works">Explore how it works</Link>
 						</Button>
-					</div>
+					</Reveal>
 				</div>
 
 				{/* Deliberately not `w-full`/contained — on mobile the reference
@@ -102,7 +115,9 @@ function Hero() {
 				 * small on purpose — enough to read as an intentional overlap,
 				 * not so much that it swallows the "Available Balance" card the
 				 * crop is supposed to end on. */}
-				<div
+				<Reveal
+					mode="mount"
+					delay={300}
 					className="relative -mb-3 w-[560px] max-w-none overflow-hidden sm:-mb-4 sm:w-[680px] lg:-mb-6 lg:w-[760px]"
 					style={{ aspectRatio: HERO_IMG_VISIBLE_RATIO }}
 				>
@@ -131,7 +146,7 @@ function Hero() {
 								"linear-gradient(180deg, rgba(243,243,245,0) 0%, rgba(243,243,245,0.3) 48%, rgba(243,243,245,1) 100%)",
 						}}
 					/>
-				</div>
+				</Reveal>
 			</div>
 		</section>
 	);

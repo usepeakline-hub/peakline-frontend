@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { Send, ArrowDown, HandCoins } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
+import { Reveal } from "@/components/Reveal";
 
 type Audience = "individuals" | "businesses";
 
@@ -77,16 +78,18 @@ function HowItWorks() {
 					</div>
 
 					<div className="flex flex-col gap-8">
-						{FEATURES[audience].map(({ icon: Icon, title, description }) => (
-							<div key={title} className="flex items-start gap-4">
-								<span className="flex size-13 shrink-0 items-center justify-center rounded-xl bg-[#CEE5DE]/30">
-									<Icon className="size-6 text-primary-500" aria-hidden="true" />
-								</span>
-								<div className="flex flex-col gap-1">
-									<p className="text-s1 text-foreground">{title}</p>
-									<p className="text-b1 text-neutral-500">{description}</p>
+						{FEATURES[audience].map(({ icon: Icon, title, description }, i) => (
+							<Reveal key={title} delay={i * 80}>
+								<div className="flex items-start gap-4">
+									<span className="flex size-13 shrink-0 items-center justify-center rounded-xl bg-[#CEE5DE]/30">
+										<Icon className="size-6 text-primary-500" aria-hidden="true" />
+									</span>
+									<div className="flex flex-col gap-1">
+										<p className="text-s1 text-foreground">{title}</p>
+										<p className="text-b1 text-neutral-500">{description}</p>
+									</div>
 								</div>
-							</div>
+							</Reveal>
 						))}
 					</div>
 				</div>

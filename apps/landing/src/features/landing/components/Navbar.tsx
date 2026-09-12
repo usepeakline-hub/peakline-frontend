@@ -5,17 +5,20 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { Logo } from "@repo/ui/logo";
 import { Button } from "@repo/ui/button";
+import { cn } from "@repo/ui/lib/utils";
 import { appUrl } from "@/lib/appUrl";
 
 /** Figma's exact hamburger glyph (3 unequal-width bars) — not lucide's
- * `Menu` (3 equal bars), per the asset the user provided. */
+ * `Menu` (3 equal bars). Matches apps/landing/public/images/ham-menu-icon.svg
+ * (inlined, not an <img>, so `currentColor` can follow the button's text
+ * color instead of being baked in as a fixed white fill). */
 function HamburgerIcon(props: React.SVGProps<SVGSVGElement>) {
 	return (
-		<svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+		<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
 			<path
 				fillRule="evenodd"
 				clipRule="evenodd"
-				d="M6 1C6 0.447715 6.44771 0 7 0H15C15.5523 0 16 0.447715 16 1C16 1.55228 15.5523 2 15 2H7C6.44771 2 6 1.55228 6 1ZM0 6C0 5.44771 0.447715 5 1 5H15C15.5523 5 16 5.44771 16 6C16 6.55228 15.5523 7 15 7H1C0.447715 7 0 6.55228 0 6ZM0 11C0 10.4477 0.447715 10 1 10H9C9.55228 10 10 10.4477 10 11C10 11.5523 9.55228 12 9 12H1C0.447715 12 0 11.5523 0 11Z"
+				d="M10 7C10 6.44772 10.4477 6 11 6H19C19.5523 6 20 6.44772 20 7C20 7.55228 19.5523 8 19 8H11C10.4477 8 10 7.55228 10 7ZM4 12C4 11.4477 4.44772 11 5 11H19C19.5523 11 20 11.4477 20 12C20 12.5523 19.5523 13 19 13H5C4.44772 13 4 12.5523 4 12ZM4 17C4 16.4477 4.44772 16 5 16H13C13.5523 16 14 16.4477 14 17C14 17.5523 13.5523 18 13 18H5C4.44772 18 4 17.5523 4 17Z"
 				fill="currentColor"
 			/>
 		</svg>
@@ -88,16 +91,31 @@ function Navbar() {
 					onClick={() => setOpen((v) => !v)}
 					className="rounded-full lg:hidden"
 				>
-					{open ? <X className="size-5" aria-hidden="true" /> : <HamburgerIcon className="size-4" aria-hidden="true" />}
+					{open ? <X className="size-5" aria-hidden="true" /> : <HamburgerIcon className="size-5" aria-hidden="true" />}
 				</Button>
 			</div>
 
-			{open && (
-				<div className="absolute inset-x-0 top-[calc(100%+8px)] z-20 flex flex-col gap-1 rounded-3xl bg-neutral-900 p-4 lg:hidden">
+			{/* Always mounted, not `{open && ...}` — that would unmount instantly
+			 * on close and skip the closing half of the animation entirely. A
+			 * plain `transition` (not a tw-animate-css `animate-in`/`animate-out`
+			 * keyframe) is what makes that safe: transitions only fire on a
+			 * *change* from the already-rendered state, so this sits inert at
+			 * max-h-0/opacity-0 through the initial render with nothing playing
+			 * — a keyframe animation would instead fire its "closed" pose the
+			 * moment the class first appears, flashing on every page load. */}
+			<div
+				className={cn(
+					"absolute inset-x-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-3xl bg-neutral-900 transition-[max-height,opacity] duration-300 ease-out lg:hidden",
+					open ? "max-h-[26rem] opacity-100" : "pointer-events-none max-h-0 opacity-0",
+				)}
+				aria-hidden={!open}
+			>
+				<div className="flex flex-col gap-1 p-4">
 					{NAV_LINKS.map((link) => (
 						<Link
 							key={link.label}
 							href={link.href}
+							tabIndex={open ? undefined : -1}
 							onClick={() => setOpen(false)}
 							className="rounded-xl px-4 py-3 text-b1 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
 						>
@@ -109,16 +127,23 @@ function Navbar() {
 							asChild
 							variant="outline"
 							size="medium"
+							tabIndex={open ? undefined : -1}
 							className="rounded-full border-secondary-500 bg-transparent text-white hover:bg-white/10"
 						>
 							<Link href={appUrl("/auth/sign-in")}>Log in</Link>
 						</Button>
-						<Button asChild variant="primary" size="medium" className="rounded-full">
+						<Button
+							asChild
+							variant="primary"
+							size="medium"
+							tabIndex={open ? undefined : -1}
+							className="rounded-full"
+						>
 							<Link href={appUrl("/auth/sign-up")}>Get Started</Link>
 						</Button>
 					</div>
 				</div>
-			)}
+			</div>
 		</nav>
 	);
 }
