@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "@repo/ui/sonner";
 import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -14,6 +15,7 @@ const SITE_DESCRIPTION =
 	"A simple, secure digital wallet for Ghana — send, receive and pay with USDC on Stellar, for individuals and merchants alike.";
 
 export const metadata: Metadata = {
+	metadataBase: SITE_URL,
 	title: `${SITE_NAME} — Pay. Receive. Grow.`,
 	description: SITE_DESCRIPTION,
 	manifest: "/favicon/site.webmanifest",
@@ -28,9 +30,12 @@ export const metadata: Metadata = {
 	openGraph: {
 		title: `${SITE_NAME} — Pay. Receive. Grow.`,
 		description: SITE_DESCRIPTION,
+		url: "/",
 		siteName: SITE_NAME,
 		locale: "en_US",
 		type: "website",
+		// opengraph-image.tsx (this directory) supplies the image itself —
+		// Next.js wires it into these tags automatically.
 	},
 	twitter: {
 		card: "summary_large_image",
