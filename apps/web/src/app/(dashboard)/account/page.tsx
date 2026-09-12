@@ -3,7 +3,6 @@
 import { User, Store, HelpCircle, Headphones } from "lucide-react";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { Button } from "@repo/ui/button";
-import { Separator } from "@repo/ui/separator";
 import { AccountTabs, type AccountTab } from "@/components/layouts/AccountTabs";
 import { UserAvatar } from "@/features/dashboard/components/UserAvatar";
 import { WalletAddressCard } from "@/features/wallet/components/WalletAddressCard";
@@ -12,7 +11,9 @@ import {
 	PersonalInformationFields,
 } from "@/features/profile/components/PersonalInformationTab";
 import { BusinessInformationTab } from "@/features/business/components/BusinessInformationTab";
-import { AccountSettingsTab } from "@/features/profile/components/AccountSettingsTab";
+import { AccountSettingsTab, AccountSettingsRows } from "@/features/profile/components/AccountSettingsTab";
+import { PendingDeletionBanner } from "@/features/profile/components/PendingDeletionBanner";
+import { InstallAppCard } from "@/features/profile/components/InstallAppCard";
 import { SettingsRow } from "@/features/profile/components/SettingsRow";
 import { MobileInfoSheet } from "@/features/profile/components/MobileInfoSheet";
 import { useProfile } from "@/features/profile/hooks";
@@ -26,13 +27,18 @@ import { toast } from "@repo/ui/sonner";
  * [Business Information, merchant only], and Account Settings, each its
  * own panel — no page-level heading above it, matching the mock (every
  * desktop reference screen goes straight from the topbar into the tabs).
+ *
  * Mobile: one scrolling "Profile" page — avatar/wallet header once at the
- * top (not repeated inside each sheet), then Personal Information/Business
- * Information as rows opening a bottom sheet (`MobileInfoSheet`) instead of
- * a separate route, then Help & Support (FAQ/Contact Support — mobile-only,
- * no desktop equivalent in any reference screen), then the same
- * `AccountSettingsTab` content desktop's own tab shows, reused as a plain
- * section here rather than duplicated.
+ * top (not repeated inside each sheet), then ONE continuous bordered card
+ * holding every group in sequence (Personal Information/[Business
+ * Information] -> Help & Support -> Account Settings), separated from each
+ * other only by a plain rule between groups, not a divider between every
+ * individual row (matching the mock exactly — reported live after an
+ * earlier pass used three separately-gapped, separately-bordered blocks
+ * instead of the one continuous card the mock actually shows). Personal/
+ * Business Information open a bottom sheet (`MobileInfoSheet`) instead of
+ * a separate route; `PendingDeletionBanner`/`InstallAppCard` render outside
+ * that shared card, same as they visually did before this fix.
  *
  * Nav labels differ from this page's own title deliberately — desktop's
  * sidebar item reads "Accounts", the mobile bottom tab reads "Profile"
@@ -90,44 +96,46 @@ export default function AccountPage() {
 
 				<WalletAddressCard />
 
-				<div className="flex flex-col divide-y divide-border">
-					<MobileInfoSheet
-						title="Personal Information"
-						trigger={<SettingsRow icon={User} label="Personal Information" />}
-					>
-						<PersonalInformationFields />
-					</MobileInfoSheet>
+				<PendingDeletionBanner />
 
-					{isMerchant && (
+				<div className="flex flex-col rounded-2xl border border-border bg-background px-5">
+					<div className="flex flex-col py-2">
 						<MobileInfoSheet
-							title="Business Information"
-							trigger={<SettingsRow icon={Store} label="Business Information" />}
+							title="Personal Information"
+							trigger={<SettingsRow icon={User} label="Personal Information" />}
 						>
-							<BusinessInformationTab />
+							<PersonalInformationFields />
 						</MobileInfoSheet>
-					)}
-				</div>
 
-				<Separator />
+						{isMerchant && (
+							<MobileInfoSheet
+								title="Business Information"
+								trigger={<SettingsRow icon={Store} label="Business Information" />}
+							>
+								<BusinessInformationTab />
+							</MobileInfoSheet>
+						)}
+					</div>
 
-				<div className="flex flex-col gap-2">
-					<span className="text-c1 font-semibold text-muted-foreground uppercase">
-						Help &amp; Support
-					</span>
-					<div className="flex flex-col divide-y divide-border">
-						<SettingsRow href="/support/faq" icon={HelpCircle} label="FAQ" />
-						<SettingsRow href="/support/contact" icon={Headphones} label="Contact Support" />
+					<div className="flex flex-col gap-2 border-t border-border py-4">
+						<span className="text-c1 font-semibold text-muted-foreground uppercase">
+							Help &amp; Support
+						</span>
+						<div className="flex flex-col">
+							<SettingsRow href="/support/faq" icon={HelpCircle} label="FAQ" />
+							<SettingsRow href="/support/contact" icon={Headphones} label="Contact Support" />
+						</div>
+					</div>
+
+					<div className="flex flex-col gap-2 border-t border-border py-4">
+						<span className="text-c1 font-semibold text-muted-foreground uppercase">
+							Account Settings
+						</span>
+						<AccountSettingsRows />
 					</div>
 				</div>
 
-				<Separator />
-
-				<div className="flex flex-col gap-2">
-					<span className="text-c1 font-semibold text-muted-foreground uppercase">
-						Account Settings
-					</span>
-					<AccountSettingsTab />
-				</div>
+				<InstallAppCard />
 			</div>
 		</div>
 	);
