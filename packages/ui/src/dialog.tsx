@@ -39,7 +39,16 @@ interface DialogContentProps
 	 * bottom-sheet treatment several mobile mocks use for a modal-editing
 	 * flow (e.g. Personal Information, Change PIN/Password) that's a plain
 	 * centered dialog on desktop. `sm` and up are completely unaffected —
-	 * same centered treatment as always. */
+	 * same centered treatment as always.
+	 *
+	 * Prefer `ResponsiveDialogContent` (`./responsive-dialog`) over setting
+	 * this directly for a new modal-on-desktop/drawer-on-mobile flow — it
+	 * renders a real `Drawer` (`vaul`) below `sm` instead of this CSS-only
+	 * approximation, which was never built for a bottom sheet's actual
+	 * mobile interactions (see that file's own note). This prop still
+	 * exists because `ResponsiveDialogContent` uses it internally for its
+	 * *desktop* half (`sm` and up, where this component's own mobile-only
+	 * CSS/behavior never actually renders). */
 	mobileSheet?: boolean;
 }
 

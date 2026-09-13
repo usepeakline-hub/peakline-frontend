@@ -6,13 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { PasswordInput } from "@repo/ui/password-input";
 import {
-	Dialog,
-	DialogTrigger,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-} from "@repo/ui/dialog";
+	ResponsiveDialog,
+	ResponsiveDialogTrigger,
+	ResponsiveDialogContent,
+	ResponsiveDialogHeader,
+	ResponsiveDialogTitle,
+	ResponsiveDialogDescription,
+} from "@repo/ui/responsive-dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/form";
 import { toast } from "@repo/ui/sonner";
 import { useChangePassword } from "@/features/profile/hooks";
@@ -54,15 +54,15 @@ function ChangePasswordDialog({ children }: ChangePasswordDialogProps) {
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent mobileSheet>
-				<DialogHeader>
-					<DialogTitle>Change Password</DialogTitle>
-					<DialogDescription>
+		<ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
+			<ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+			<ResponsiveDialogContent>
+				<ResponsiveDialogHeader>
+					<ResponsiveDialogTitle>Change Password</ResponsiveDialogTitle>
+					<ResponsiveDialogDescription>
 						You&apos;ll be signed out of every device once this is changed.
-					</DialogDescription>
-				</DialogHeader>
+					</ResponsiveDialogDescription>
+				</ResponsiveDialogHeader>
 				<Form {...form}>
 					<form
 						noValidate
@@ -110,8 +110,8 @@ function ChangePasswordDialog({ children }: ChangePasswordDialogProps) {
 						</div>
 					</form>
 				</Form>
-			</DialogContent>
-		</Dialog>
+			</ResponsiveDialogContent>
+		</ResponsiveDialog>
 	);
 }
 

@@ -6,13 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@repo/ui/button";
 import { OtpInput } from "@repo/ui/otp-input";
 import {
-	Dialog,
-	DialogTrigger,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-} from "@repo/ui/dialog";
+	ResponsiveDialog,
+	ResponsiveDialogTrigger,
+	ResponsiveDialogContent,
+	ResponsiveDialogHeader,
+	ResponsiveDialogTitle,
+	ResponsiveDialogDescription,
+} from "@repo/ui/responsive-dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/form";
 import { toast } from "@repo/ui/sonner";
 import { useChangePin, useConfirmChangePin } from "@/features/profile/hooks";
@@ -78,14 +78,14 @@ function ChangePinDialog({ children }: ChangePinDialogProps) {
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent mobileSheet>
+		<ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
+			<ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+			<ResponsiveDialogContent>
 				{step === "form" ? (
 					<>
-						<DialogHeader>
-							<DialogTitle>Change Transaction PIN</DialogTitle>
-						</DialogHeader>
+						<ResponsiveDialogHeader>
+							<ResponsiveDialogTitle>Change Transaction PIN</ResponsiveDialogTitle>
+						</ResponsiveDialogHeader>
 						<Form {...form}>
 							<form
 								noValidate
@@ -136,14 +136,14 @@ function ChangePinDialog({ children }: ChangePinDialogProps) {
 					</>
 				) : (
 					<>
-						<DialogHeader>
-							<DialogTitle>Confirm PIN change</DialogTitle>
-							<DialogDescription>
+						<ResponsiveDialogHeader>
+							<ResponsiveDialogTitle>Confirm PIN change</ResponsiveDialogTitle>
+							<ResponsiveDialogDescription>
 								{requiresTwoFa
 									? "Enter the 6-digit code from your authenticator app."
 									: "Enter the 6-digit code we emailed you to confirm this change."}
-							</DialogDescription>
-						</DialogHeader>
+							</ResponsiveDialogDescription>
+						</ResponsiveDialogHeader>
 						<div className="flex flex-col gap-5">
 							<OtpInput value={code} onChange={setCode} />
 							<div className="flex gap-3">
@@ -168,8 +168,8 @@ function ChangePinDialog({ children }: ChangePinDialogProps) {
 						</div>
 					</>
 				)}
-			</DialogContent>
-		</Dialog>
+			</ResponsiveDialogContent>
+		</ResponsiveDialog>
 	);
 }
 

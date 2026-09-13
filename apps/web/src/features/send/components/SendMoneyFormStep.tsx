@@ -55,19 +55,33 @@ interface SendMoneyFormStepProps {
  * runtime behavior — showing only the field for the chosen method is both
  * cleaner and avoids validating two empty fields no one is filling in.
  *
- * Two ways this now verifies who's actually being paid before the transfer
+ * Two ways this verifies who's actually being paid before the transfer
  * fires, both backed by the real `GET /wallets/search` (`useWalletSearch`)
- * — reported live as missing: previously a manually-typed identifier just
- * went straight to `POST /transfers/send` with zero confirmation.
- * - Phone: once the typed number is syntactically complete, this silently
- *   searches for an exact match and shows who it resolved to (or that it
- *   didn't) below the field — the send itself still uses `mode: "phone"`
- *   either way, this is purely a confirmation.
+ * — reported live as missing, "just like in bank apps": previously a
+ * manually-typed identifier just went straight to `POST /transfers/send`
+ * with zero confirmation.
+ * - Phone: once the typed number is syntactically complete, this searches
+ *   for an exact match — Continue stays disabled until one's found (see
+ *   `canContinue`), same as a bank app refusing to move forward on an
+ *   account number it can't resolve to a name. This is the one method that
+ *   actually *can* be verified this way, since it's the one identifier
+ *   `GET /wallets/search` accepts directly.
  * - "Find by name" is a separate discovery box, not a fourth transfer
  *   method — `name` was never a valid `SendMoneyDto.mode`. Picking a
  *   result switches the form to a normal `wallet`-mode entry under the
  *   hood (`method`/`recipient` set to that person's own address), the
- *   same as a QR/link-resolved recipient.
+ *   same as a QR/link-resolved recipient — already fully verified by
+ *   construction, since it only ever came from a real search result.
+ *
+ * Username and a manually-typed wallet address have no equivalent
+ * verification path — confirmed against a fresh pull of `/docs-json`,
+ * there's no endpoint that resolves a username, and a wallet address is
+ * deliberately allowed to be any valid Stellar account (an external,
+ * non-Peakline wallet is a legitimate `mode: "wallet"` recipient too, per
+ * `SendMoneyDto`'s own description), not something "existing as a Peakline
+ * user" would even mean. Both stay format-validated only, with an explicit
+ * note in the UI saying so rather than silently pretending the same
+ * confidence phone verification offers.
  */
 function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps) {
 	const { data: balance } = useWalletBalance();
@@ -101,6 +115,12 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 		phoneSearchParams ? { phone: phoneSearchParams } : null,
 	);
 	const phoneMatch = phoneMatches?.[0] ?? null;
+	// Phone is the one method with a real "does this exist" check — blocked
+	// until it passes, same as a bank app. Username/wallet have no
+	// equivalent endpoint to check against (see this component's own doc
+	// comment), so they're never blocked here, only format-validated by
+	// `sendMoneySchema` itself.
+	const canContinue = method !== "phone" || Boolean(phoneMatch);
 
 	// Debounced — without this, every keystroke while typing a name fired its
 	// own `GET /wallets/search` request (react-query has no built-in
@@ -128,6 +148,7 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 	}
 
 	function handleSubmit(values: SendMoneyValues) {
+		if (!canContinue) return;
 		if (balance && values.amount > balance.amount) {
 			form.setError("amount", { message: "Insufficient balance" });
 			return;
@@ -267,14 +288,20 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 												? "text-c1 text-muted-foreground"
 												: phoneMatch
 													? "text-c1 text-success-600"
-													: "text-c1 text-muted-foreground"
+													: "text-c1 text-destructive"
 										}
 									>
 										{isVerifyingPhone
 											? "Checking…"
 											: phoneMatch
 												? `✓ ${phoneMatch.name}`
-												: "No Peakline account found for this number — you can still send to it."}
+												: "No Peakline account found for this number."}
+									</p>
+								)}
+								{(method === "username" || method === "wallet") && (
+									<p className="text-c1 text-muted-foreground">
+										We can&apos;t confirm who this belongs to before sending — double-check it&apos;s
+										correct.
 									</p>
 								)}
 								<FormMessage />
@@ -337,7 +364,7 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 					)}
 				/>
 
-				<Button type="submit" size="large" className="w-full">
+				<Button type="submit" size="large" className="w-full" disabled={!canContinue}>
 					Continue
 				</Button>
 			</form>
