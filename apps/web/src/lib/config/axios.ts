@@ -148,8 +148,19 @@ const attachApiLogging = (instance: AxiosInstance, label: string) => {
 	);
 };
 
-attachApiLogging(axiosPublic, "public");
-attachApiLogging(axiosAuth, "auth");
+// Dev-only — this was previously attached unconditionally, meaning every
+// real user, on every single request, paid for building these
+// console.group/console.log calls (redacting fields, formatting duration
+// strings, etc.) with zero benefit, since production users never have
+// devtools open to read them. Reported live as general input/keyboard lag
+// on mobile ("i tap the input, the keyboard delays... when i type nothing
+// reflects") — this alone isn't provably the whole story, but it's real,
+// measurable per-request overhead that was always there for nothing outside
+// dev, so removing it there is a safe, unambiguous win either way.
+if (process.env.NODE_ENV !== "production") {
+	attachApiLogging(axiosPublic, "public");
+	attachApiLogging(axiosAuth, "auth");
+}
 
 axiosAuth.interceptors.request.use((config) => {
 	const token = useAuthStore.getState().accessToken;

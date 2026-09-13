@@ -120,8 +120,13 @@ const attachApiLogging = (instance: AxiosInstance, label: string) => {
 	);
 };
 
-attachApiLogging(axiosPublic, "public");
-attachApiLogging(axiosAuth, "auth");
+// Dev-only — see apps/web's own copy of this same interceptor for why
+// (unconditional console logging on every request cost every real user
+// something for zero benefit outside dev).
+if (process.env.NODE_ENV !== "production") {
+	attachApiLogging(axiosPublic, "public");
+	attachApiLogging(axiosAuth, "auth");
+}
 
 axiosAuth.interceptors.request.use((config) => {
 	const token = useAuthStore.getState().accessToken;

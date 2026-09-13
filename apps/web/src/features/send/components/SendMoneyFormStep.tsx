@@ -24,6 +24,7 @@ import {
 } from "@/lib/validations/sendValidations";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { useWalletSearch } from "@/features/wallet/hooks";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { ResolvedRecipientCard } from "@/features/send/components/ResolvedRecipientCard";
 import { splitPhoneForSearch } from "@/lib/phone";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
@@ -101,8 +102,13 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 	);
 	const phoneMatch = phoneMatches?.[0] ?? null;
 
+	// Debounced — without this, every keystroke while typing a name fired its
+	// own `GET /wallets/search` request (react-query has no built-in
+	// debounce of its own), which is wasted work for anything but the
+	// final, settled query the person actually meant to search for.
+	const debouncedNameQuery = useDebouncedValue(nameQuery, 300);
 	const { data: nameResults, isFetching: isSearchingName } = useWalletSearch(
-		nameSearchOpen ? { name: nameQuery } : null,
+		nameSearchOpen ? { name: debouncedNameQuery } : null,
 	);
 
 	function handleMethodChange(nextMethod: string) {
