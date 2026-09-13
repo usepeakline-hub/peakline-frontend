@@ -3,9 +3,22 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, Store } from "lucide-react";
+import { cn } from "@repo/ui/lib/utils";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { MerchantMobileNav } from "@/components/layouts/MerchantMobileNav";
 import { MERCHANT_NAV_ITEMS } from "@/components/layouts/MerchantNavList";
+
+/** Same `sticky top-0` + edge-bleeding treatment as individual's own
+ * `MobileStepHeader` — reported live as missing here specifically ("the
+ * merchant header should be fixed like that of individuals, so users will
+ * always know where they are"). See that component's own note on why the
+ * negative margins/padding are exactly what they are: `DashboardLayout`'s
+ * mobile content column (the actual scrolling area) has `p-4`, so this
+ * cancels that to bleed to the true viewport edges once stuck, then puts
+ * the same space back as this element's own padding; the extra top padding
+ * clears a notch/status bar when installed as a PWA. */
+const HEADER_WRAPPER_CLASS =
+	"sticky top-0 z-30 -mx-4 -mt-4 border-b border-border bg-background px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 lg:hidden";
 
 /** The nav item whose `href` exactly matches this route — excluding
  * Overview's own `href: "/"`, which gets the plain Merchant badge instead
@@ -72,12 +85,12 @@ function MerchantMobileTopBar() {
 	);
 
 	if (isSubRoute) {
-		return <div className="flex justify-end lg:hidden">{hamburger}</div>;
+		return <div className={cn(HEADER_WRAPPER_CLASS, "flex justify-end")}>{hamburger}</div>;
 	}
 
 	if (isOverview) {
 		return (
-			<div className="flex items-center justify-between lg:hidden">
+			<div className={cn(HEADER_WRAPPER_CLASS, "flex items-center justify-between")}>
 				<span className="flex items-center gap-2 rounded-lg bg-primary-500/10 px-3 py-2 text-b3 font-medium text-primary-700">
 					<Store className="size-4" aria-hidden="true" />
 					Merchant
@@ -88,7 +101,7 @@ function MerchantMobileTopBar() {
 	}
 
 	return (
-		<div className="relative flex items-center justify-center lg:hidden">
+		<div className={cn(HEADER_WRAPPER_CLASS, "relative flex items-center justify-center")}>
 			<h1 className="text-s1 text-foreground">{match?.label}</h1>
 			<div className="absolute right-0">{hamburger}</div>
 		</div>
