@@ -62,7 +62,9 @@ function PaymentSuccessStep({
 				<span className="text-b3 font-semibold text-foreground sm:text-b2">
 					{link.businessName}
 				</span>
-				<span className="text-c1 text-muted-foreground sm:text-b3">Merchant</span>
+				<span className="text-c1 text-muted-foreground sm:text-b3">
+					{link.recipientRoleLabel ?? "Merchant"}
+				</span>
 			</div>
 
 			<div className="flex w-full flex-col gap-1 rounded-xl border border-secondary-300 bg-secondary-100 p-4 sm:p-5">

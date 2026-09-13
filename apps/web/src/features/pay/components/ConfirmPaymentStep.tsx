@@ -51,7 +51,9 @@ function ConfirmPaymentStep({ link, onContinue }: ConfirmPaymentStepProps) {
 					<span className="text-b3 font-semibold text-foreground sm:text-b2">
 						{link.businessName}
 					</span>
-					<span className="text-c1 text-muted-foreground sm:text-b3">Merchant</span>
+					<span className="text-c1 text-muted-foreground sm:text-b3">
+						{link.recipientRoleLabel ?? "Merchant"}
+					</span>
 				</div>
 			</div>
 

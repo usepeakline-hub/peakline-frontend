@@ -496,6 +496,14 @@ export interface PublicPaymentLinkData {
 	businessName: string;
 	destinationAddress: string;
 	memo: string;
+	/** Not part of the real `GET /pay/{code}` response — that's always a
+	 * business, so `ConfirmPaymentStep`/`PaymentSuccessStep`'s own hardcoded
+	 * "Merchant" label is accurate there. Set explicitly only when `/pay`
+	 * synthesizes this same shape for a QR/link/wallet-address-resolved
+	 * *person* payment instead (see `buildPersonPayTarget`), so those same
+	 * components can show the right label without needing their own
+	 * separate "is this actually a business" branch. */
+	recipientRoleLabel?: string;
 }
 
 /** `internal` = pure ledger transfer between Peakline users, settled

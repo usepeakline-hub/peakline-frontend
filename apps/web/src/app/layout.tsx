@@ -54,8 +54,20 @@ export const metadata: Metadata = {
 // its own theme_color/background_color/icons) plus this, which is what
 // actually colors the OS/browser chrome (status bar, task switcher) around
 // the page itself.
+//
+// `interactiveWidget: "resizes-content"` (the CSS Viewport API's own
+// keyword, not a Next-specific one) tells the OS to shrink the layout
+// viewport when the on-screen keyboard opens instead of just overlaying it
+// — the default a standalone/installed PWA (no browser chrome of its own
+// to absorb the keyboard the way a normal browser tab does) is more likely
+// to get wrong, which can show up as the keyboard being slow to appear or
+// the focused input ending up hidden behind it. Reported live on the
+// installed app specifically ("my keyboard is not coming out on time when
+// i tap on inputs") — see `packages/ui`'s own `DialogContent` fix for the
+// other half of this (a bottom-sheet drawer's auto-focus timing).
 export const viewport: Viewport = {
 	themeColor: "#066649",
+	interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

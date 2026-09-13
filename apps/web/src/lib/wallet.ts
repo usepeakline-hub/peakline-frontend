@@ -23,10 +23,11 @@ export const WALLET_ADDRESS_REGEX = /^G[A-Z2-7]{55}$/;
  * by the real `GET /wallets/lookup/{userId}` (confirmed live — resolves any
  * user id to a display name + wallet address; see `WalletLookupData`'s own
  * note). The QR/link both just carry the account's own user id, wrapped in
- * a same-origin URL that opens straight into `/send` — `useWalletLookup`
- * resolves it there into a name + address, `SendMoneyFormStep` shows that
- * name and arrives with `method`/`recipient` pre-filled from the resolved
- * address, and paying is the exact same `POST /transfers/send`
+ * a same-origin URL that opens straight into `/pay` — reported live: this
+ * belongs in the Pay section, not a detour through the general-purpose
+ * Send flow. `PayPage` resolves it into a name + address and shows its own
+ * `PersonPaymentCard` (avatar, resolved name, payer-entered amount, Pay
+ * button), and paying is the exact same `POST /transfers/send`
  * (`mode: "wallet"`) flow as pasting an address in manually.
  * `window.location.origin` rather than a hardcoded domain so this keeps
  * working across dev/staging/production without an env var to keep in
@@ -34,7 +35,7 @@ export const WALLET_ADDRESS_REGEX = /^G[A-Z2-7]{55}$/;
  */
 export function buildReceiveLink(userId: string) {
 	if (typeof window === "undefined") return "";
-	const url = new URL("/send", window.location.origin);
+	const url = new URL("/pay", window.location.origin);
 	url.searchParams.set("userId", userId);
 	return url.toString();
 }
