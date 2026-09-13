@@ -40,11 +40,19 @@ function matchTopLevelItem(pathname: string) {
  *   account's home, nothing to go "back" to and no title needed either.
  * - **Any other top-level nav destination** (Wallet, Payments, Payment
  *   Links, My QR Code, Transactions, Account): that page's own title,
- *   centered — same as individual's own primary tab destinations (Wallet,
- *   Transactions, Account) never showing a back arrow either — paired with
- *   the hamburger (individual has no drawer to open, so has no equivalent
- *   button here at all). No back arrow: these are all siblings reachable
- *   from the drawer, not a linear stack you navigate "back" out of.
+ *   left-aligned, paired with the hamburger on the right — same as
+ *   individual's own primary tab destinations (Wallet, Transactions,
+ *   Account) never showing a back arrow either (individual has no drawer to
+ *   open, so has no equivalent button here at all). No back arrow: these are
+ *   all siblings reachable from the drawer, not a linear stack you navigate
+ *   "back" out of. (Previously centered the title via `relative` +
+ *   absolutely-positioned hamburger — that combination sets the CSS
+ *   `position` property twice on one element alongside `HEADER_WRAPPER_CLASS`'s
+ *   own `sticky`, and `cn()`'s tailwind-merge silently dropped `sticky` for
+ *   it, which is why this was the one branch NOT actually fixed to the top
+ *   despite looking identical to Overview's — reported live as "only the
+ *   overview page is fixed header". Plain `justify-between` needs no second
+ *   `position` value, so it can't recreate that conflict.)
  * - **Everything else** (a nested/detail route with no exact nav entry of
  *   its own — `/payments/[id]`, `/payment-links/create`, ...): just the
  *   hamburger, right-aligned. The back arrow lives on the page's own header
@@ -101,9 +109,9 @@ function MerchantMobileTopBar() {
 	}
 
 	return (
-		<div className={cn(HEADER_WRAPPER_CLASS, "relative flex items-center justify-center")}>
+		<div className={cn(HEADER_WRAPPER_CLASS, "flex items-center justify-between")}>
 			<h1 className="text-s1 text-foreground">{match?.label}</h1>
-			<div className="absolute right-0">{hamburger}</div>
+			{hamburger}
 		</div>
 	);
 }
