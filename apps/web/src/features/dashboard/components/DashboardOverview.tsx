@@ -15,15 +15,15 @@ import { RecentPaymentsSection } from "@/features/merchant/components/RecentPaym
  * living at two different URLs — merchant is a permission on this same
  * `apps/web`, not a separate app (see CLAUDE.md's Monorepo layout).
  *
- * Merchant's own hero further branches by *breakpoint*, per the updated
- * mock: desktop keeps the original 3 stat cards (Total Received/Today's
- * Payments/Pending), but mobile swaps them for the same "Available
- * Balance" card individual uses (without the Send action — see
- * `BalanceCard`'s own note) — a deliberate per-breakpoint content
- * difference, not just a responsive reflow of the same content. Both
- * breakpoints get the new "Total Received" trend chart and the paginated
- * "Recent Payments" table/cards below Quick Actions, replacing the plain
- * `RecentTransactions` reuse merchant had before.
+ * Merchant's own hero used to swap `MerchantStatsCards` out for the
+ * individual dashboard's "Available Balance" `BalanceCard` on mobile only
+ * — reported live as wrong (mobile showed "wallet" instead of the proper
+ * stat cards desktop already had): `MerchantStatsCards` is now the same on
+ * both breakpoints, its own `grid-cols-1 sm:grid-cols-3` already stacking
+ * cleanly into three full-width cards on a narrow screen with no separate
+ * mobile treatment needed. Both breakpoints still get the "Total Received"
+ * trend chart and the paginated "Recent Payments" table/cards below Quick
+ * Actions.
  */
 function DashboardOverview() {
 	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
@@ -34,10 +34,7 @@ function DashboardOverview() {
 
 			{isMerchant ? (
 				<>
-					<div className="hidden lg:block">
-						<MerchantStatsCards />
-					</div>
-					<BalanceCard className="lg:hidden" />
+					<MerchantStatsCards />
 
 					<div className="flex flex-col gap-3 sm:gap-4">
 						<h2 className="text-s1 text-foreground sm:text-h5">Quick Actions</h2>

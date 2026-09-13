@@ -5,10 +5,8 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
-import { cn } from "@repo/ui/lib/utils";
 import { useWalletBalance } from "@/features/dashboard/hooks";
 import { FundWalletDialog } from "@/features/wallet/components/FundWalletDialog";
-import { useAuthStore } from "@/lib/stores/authStore";
 
 function formatAmount(amount: number) {
 	return amount.toLocaleString(undefined, {
@@ -32,28 +30,22 @@ function BalanceCardSkeleton() {
 }
 
 /**
- * The individual dashboard's own balance display — also reused, mobile-only,
- * for merchant Overview's new "Available Balance" card (the updated mock
- * replaced merchant's 3 stat cards with this on mobile specifically; desktop
- * keeps the stat cards and never renders this). Individual gets a second
- * "Send" action; merchant gets "Add Money" alone — same as
- * `WalletBalanceCard`, its former "Withdraw" button removed for now (no
- * real withdrawal flow exists yet).
+ * The individual dashboard's own balance display — individual-only now.
+ * Used to also stand in, mobile-only, for merchant Overview's stat cards;
+ * reported live as wrong (mobile showed "wallet" instead of the same proper
+ * cards desktop had), so `DashboardOverview` renders `MerchantStatsCards`
+ * on both breakpoints now and this dropped its `isMerchant` branch — same
+ * former "Withdraw" button removed for now (no real withdrawal flow exists
+ * yet) as `WalletBalanceCard`.
  */
-function BalanceCard({ className }: { className?: string }) {
+function BalanceCard() {
 	const { data } = useWalletBalance();
 	const [visible, setVisible] = useState(true);
-	const isMerchant = useAuthStore((state) => state.customerType === "merchant");
 
 	if (!data) return <BalanceCardSkeleton />;
 
 	return (
-		<div
-			className={cn(
-				"flex w-full flex-col gap-6 rounded-2xl bg-linear-to-br from-primary-500 to-primary-800 p-6 text-primary-foreground sm:p-8",
-				className,
-			)}
-		>
+		<div className="flex w-full flex-col gap-6 rounded-2xl bg-linear-to-br from-primary-500 to-primary-800 p-6 text-primary-foreground sm:p-8">
 			<div className="flex items-start justify-between gap-4">
 				<div className="flex flex-col gap-2">
 					<span className="text-c1 text-primary-100 sm:text-b3">
@@ -103,15 +95,13 @@ function BalanceCard({ className }: { className?: string }) {
 						Add Money
 					</Button>
 				</FundWalletDialog>
-				{!isMerchant && (
-					<Button
-						asChild
-						variant="ghost"
-						className="bg-background text-foreground hover:bg-neutral-100"
-					>
-						<Link href="/send">Send</Link>
-					</Button>
-				)}
+				<Button
+					asChild
+					variant="ghost"
+					className="bg-background text-foreground hover:bg-neutral-100"
+				>
+					<Link href="/send">Send</Link>
+				</Button>
 			</div>
 		</div>
 	);
