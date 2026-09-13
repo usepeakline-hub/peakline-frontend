@@ -64,18 +64,27 @@ interface MerchantOverviewData {
 	totalReceived: number;
 	totalReceivedChangePct: number | null;
 	totalReceivedChangeLabel: string;
+	totalSent: number;
+	totalSentChangePct: number | null;
+	totalSentChangeLabel: string;
 	todaysPayments: number;
 	todaysPaymentsChangePct: number | null;
 	todaysPaymentsChangeLabel: string;
+	todaySent: number;
+	todaySentChangePct: number | null;
+	todaySentChangeLabel: string;
 	pending: number;
 	pendingCount: number;
 	currency: string;
 }
 
-/** Merchant Overview's three headline stats — a merchant-specific query,
- * distinct from the individual dashboard's `useWalletBalance` (a single
- * spendable balance means nothing to a merchant's own "how's business
- * going" view). Real as of `GET /merchant/dashboard/stats`. */
+/** Merchant Overview's headline stats — a merchant-specific query, distinct
+ * from the individual dashboard's `useWalletBalance` (a single spendable
+ * balance means nothing to a merchant's own "how's business going" view).
+ * Real as of `GET /merchant/dashboard/stats`. `totalSent`/`todaySent` are
+ * real as of 2026-09-13 — a merchant pays out too (refunds, supplier
+ * payments, etc.), not just receives, so Overview now shows both
+ * directions instead of only inflow. */
 function useMerchantOverview() {
 	const { data, ...rest } = useMerchantDashboardStats("month");
 
@@ -83,9 +92,15 @@ function useMerchantOverview() {
 		totalReceived: Number(data.totalReceived.amount),
 		totalReceivedChangePct: data.totalReceived.changePct,
 		totalReceivedChangeLabel: humanizeChangeLabel(data.totalReceived.changeVsLabel),
+		totalSent: Number(data.totalSent.amount),
+		totalSentChangePct: data.totalSent.changePct,
+		totalSentChangeLabel: humanizeChangeLabel(data.totalSent.changeVsLabel),
 		todaysPayments: Number(data.todaysPayments.amount),
 		todaysPaymentsChangePct: data.todaysPayments.changePct,
 		todaysPaymentsChangeLabel: humanizeChangeLabel(data.todaysPayments.changeVsLabel),
+		todaySent: Number(data.todaySent.amount),
+		todaySentChangePct: data.todaySent.changePct,
+		todaySentChangeLabel: humanizeChangeLabel(data.todaySent.changeVsLabel),
 		pending: Number(data.pending.amount),
 		pendingCount: data.pending.count,
 		currency: data.totalReceived.currency,
@@ -96,32 +111,38 @@ function useMerchantOverview() {
 
 interface ReceivedTrendPoint {
 	label: string;
-	amount: number;
+	inflow: number;
+	outflow: number;
 }
 
 interface ReceivedTrendData {
-	total: number;
+	totalInflow: number;
+	totalOutflow: number;
 	currency: string;
 	selectedLabel: string;
 	points: ReceivedTrendPoint[];
 }
 
-/** The trend chart under Overview's "Total Received" heading. Real as of
- * the same `GET /merchant/dashboard/stats` `useMerchantOverview` uses, just
- * reading `chart` instead — there's no "selected" bucket in the real
- * response (the mock's own highlighted "Apr" pill was never more than
- * decorative), so this highlights the most recent bucket instead, the
- * closest real equivalent to "the current period". */
+/** The cash-flow chart under Overview's stat cards. Real as of the same
+ * `GET /merchant/dashboard/stats` `useMerchantOverview` uses, just reading
+ * `chart` instead — there's no "selected" bucket in the real response (the
+ * mock's own highlighted "Apr" pill was never more than decorative), so
+ * this highlights the most recent bucket instead, the closest real
+ * equivalent to "the current period". Each bucket carries both `inflow`
+ * (received) and `outflow` (sent) as of 2026-09-13 — previously a single
+ * received-only `value`. */
 function useReceivedTrend(period: ReceivedTrendPeriod) {
 	const { data, ...rest } = useMerchantDashboardStats(period);
 
 	const trend: ReceivedTrendData | undefined = data && {
-		total: Number(data.chart.total),
+		totalInflow: Number(data.chart.totalInflow),
+		totalOutflow: Number(data.chart.totalOutflow),
 		currency: data.chart.currency,
 		selectedLabel: data.chart.buckets.at(-1)?.label ?? "",
 		points: data.chart.buckets.map((bucket) => ({
 			label: bucket.label,
-			amount: Number(bucket.value),
+			inflow: Number(bucket.inflow),
+			outflow: Number(bucket.outflow),
 		})),
 	};
 

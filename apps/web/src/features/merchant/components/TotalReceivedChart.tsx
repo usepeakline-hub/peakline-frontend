@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { cn } from "@repo/ui/lib/utils";
 import { Select } from "@repo/ui/select";
 import { Skeleton } from "@repo/ui/skeleton";
 import { useReceivedTrend, type ReceivedTrendPeriod } from "@/features/merchant/hooks";
@@ -59,12 +60,26 @@ const PERIOD_OPTIONS: { value: ReceivedTrendPeriod; label: string }[] = [
 // short "This week" (7 points).
 const MIN_PX_PER_POINT = 56;
 
+/** Small filled/outline dot + label used in both the header's inline
+ * legend and (implicitly, via color) the two `Area` series below — keeps
+ * the "which color means which direction" mapping in one place. */
+function LegendDot({ colorClassName, children }: { colorClassName: string; children: ReactNode }) {
+	return (
+		<span className="flex items-center gap-1.5 text-c1 text-muted-foreground">
+			<span className={cn("size-2 shrink-0 rounded-full", colorClassName)} aria-hidden="true" />
+			{children}
+		</span>
+	);
+}
+
 /**
- * Overview's new "Total Received" section — a real area chart (`recharts`)
- * with a period selector, per the update. No outer card on mobile — the
- * bordered/padded treatment is `lg`-only, so the chart itself gets the
- * full page width to work with there instead of losing it to a card's
- * padding.
+ * Overview's cash-flow section — a real area chart (`recharts`) with a
+ * period selector, per the update. Both directions now (real as of
+ * 2026-09-13, previously received-only): inflow in the app's primary
+ * green, outflow in a muted neutral so received still reads as the hero
+ * figure. No outer card on mobile — the bordered/padded treatment is
+ * `lg`-only, so the chart itself gets the full page width to work with
+ * there instead of losing it to a card's padding.
  */
 function TotalReceivedChart() {
 	const [period, setPeriod] = useState<ReceivedTrendPeriod>("month");
@@ -73,12 +88,18 @@ function TotalReceivedChart() {
 	return (
 		<div className="flex flex-col gap-4 lg:rounded-2xl lg:border lg:border-border lg:bg-background lg:p-6">
 			<div className="flex items-start justify-between gap-4">
-				<div className="flex min-w-0 flex-col gap-1">
-					<span className="text-c1 text-muted-foreground lg:text-b3">Total Received</span>
+				<div className="flex min-w-0 flex-col gap-1.5">
+					<span className="text-c1 text-muted-foreground lg:text-b3">Cash Flow</span>
 					{data ? (
-						<span className="text-h5 text-foreground lg:text-h4">
-							{formatUsdc(data.total)} {data.currency}
-						</span>
+						<div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+							<span className="text-h5 text-foreground lg:text-h4">
+								{formatUsdc(data.totalInflow)} {data.currency}
+							</span>
+							<LegendDot colorClassName="bg-primary-500">Received</LegendDot>
+							<LegendDot colorClassName="bg-neutral-400">
+								{formatUsdc(data.totalOutflow)} {data.currency} Sent
+							</LegendDot>
+						</div>
 					) : (
 						<Skeleton className="h-9 w-40" />
 					)}
@@ -112,6 +133,10 @@ function TotalReceivedChart() {
 										<stop offset="0%" stopColor="var(--color-primary-500)" stopOpacity={0.25} />
 										<stop offset="100%" stopColor="var(--color-primary-500)" stopOpacity={0} />
 									</linearGradient>
+									<linearGradient id="totalSentFill" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="0%" stopColor="var(--color-neutral-400)" stopOpacity={0.2} />
+										<stop offset="100%" stopColor="var(--color-neutral-400)" stopOpacity={0} />
+									</linearGradient>
 								</defs>
 								<CartesianGrid vertical={false} strokeDasharray="4 4" stroke="var(--color-border)" />
 								<XAxis
@@ -129,7 +154,10 @@ function TotalReceivedChart() {
 									tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
 								/>
 								<Tooltip
-									formatter={(value) => [`${formatUsdc(Number(value))} USDC`, "Received"]}
+									formatter={(value, name) => [
+										`${formatUsdc(Number(value))} USDC`,
+										name === "inflow" ? "Received" : "Sent",
+									]}
 									contentStyle={{
 										borderRadius: 8,
 										borderColor: "var(--color-border)",
@@ -138,10 +166,17 @@ function TotalReceivedChart() {
 								/>
 								<Area
 									type="monotone"
-									dataKey="amount"
+									dataKey="inflow"
 									stroke="var(--color-primary-600)"
 									strokeWidth={2}
 									fill="url(#totalReceivedFill)"
+								/>
+								<Area
+									type="monotone"
+									dataKey="outflow"
+									stroke="var(--color-neutral-400)"
+									strokeWidth={2}
+									fill="url(#totalSentFill)"
 								/>
 							</AreaChart>
 						</ResponsiveContainer>

@@ -397,12 +397,16 @@ export interface EnrollTotpData {
 	recoveryCodes: string[];
 }
 
-/** A single money-with-comparison figure — `totalReceived`/`todaysPayments`
- * on `MerchantDashboardStatsData`. `amount` is a decimal string; `changePct`
- * is `null` when the comparison baseline was 0. `changeVsLabel` is a
+/** A single money-with-comparison figure — `totalReceived`/`totalSent`/
+ * `todaysPayments`/`todaySent` on `MerchantDashboardStatsData`. `amount` is
+ * a decimal string; `changePct` is `null` when the comparison baseline was
+ * 0 (real, live-observed: a merchant with nothing sent yesterday but
+ * something sent today has no percentage to show). `changeVsLabel` is a
  * snake_case label ("previous_month", "yesterday") describing what it's
  * compared against — not an enum the docs pin down, so treated as an
- * arbitrary string and humanized at render time rather than mapped 1:1. */
+ * arbitrary string and humanized at render time rather than mapped 1:1.
+ * `changePct` can also be negative (a real drop day-over-day/month-over-month)
+ * — `ChangeIndicator` renders that as a down arrow, not a fake positive. */
 export interface DashboardMoneyData {
 	amount: string;
 	currency: string;
@@ -416,26 +420,35 @@ export interface DashboardPendingData {
 	count: number;
 }
 
+/** One point in the cash-flow chart — both directions per bucket now
+ * (real response as of 2026-09-13; previously a single `value`, received-only). */
 export interface DashboardBucketData {
 	label: string;
-	value: string;
+	inflow: string;
+	outflow: string;
 }
 
 export interface DashboardChartData {
 	period: "year" | "month" | "week";
 	currency: string;
-	total: string;
+	totalInflow: string;
+	totalOutflow: string;
 	buckets: DashboardBucketData[];
 }
 
-/** `GET /merchant/dashboard/stats` — one call covers both Overview's three
- * stat cards (`totalReceived`/`todaysPayments`/`pending`) and the Total
- * Received chart (`chart`, shaped by the `period` query param); the
- * `period` param only changes `chart` — the other three fields reflect the
- * same all-time/today/pending totals regardless of it. */
+/** `GET /merchant/dashboard/stats` — one call covers both Overview's stat
+ * cards (`totalReceived`/`totalSent`/`todaysPayments`/`todaySent`/`pending`)
+ * and the cash-flow chart (`chart`, shaped by the `period` query param); the
+ * `period` param only changes `chart` — the other fields reflect the same
+ * all-time/today/pending totals regardless of it. `totalSent`/`todaySent`
+ * are real as of 2026-09-13 — money the merchant has paid out, alongside
+ * the money it's received, so Overview shows both directions instead of
+ * just inflow. */
 export interface MerchantDashboardStatsData {
 	totalReceived: DashboardMoneyData;
+	totalSent: DashboardMoneyData;
 	todaysPayments: DashboardMoneyData;
+	todaySent: DashboardMoneyData;
 	pending: DashboardPendingData;
 	chart: DashboardChartData;
 }
