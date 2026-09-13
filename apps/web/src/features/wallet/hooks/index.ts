@@ -9,6 +9,7 @@ import type {
 	FundWalletResultData,
 	StellarWalletData,
 	WalletLookupData,
+	WalletSearchResultData,
 } from "@/lib/api/types";
 
 const MY_WALLET_KEY = ["wallet", "mine"];
@@ -106,4 +107,48 @@ function useWalletLookup(userId: string | null) {
 	});
 }
 
-export { useMyWallet, useFundQuote, useFundWallet, useWalletLookup };
+interface WalletSearchParams {
+	/** Exact match — `phoneNumber` is the national number (no country
+	 * code), `countryCode` the numeric calling code ("233", not "GH" —
+	 * see `splitPhoneForSearch`'s own note on why this can't reuse
+	 * `SendMoneyDto`'s convention). */
+	phone?: { phoneNumber: string; countryCode: string };
+	/** Prefix search across first/last/business name — the endpoint's own
+	 * minimum is 2 characters; shorter values are treated the same as no
+	 * search at all (`enabled: false`) rather than firing a request the
+	 * backend would reject anyway. */
+	name?: string;
+}
+
+/**
+ * `GET /wallets/search` — confirmed live, added specifically so a regular
+ * Send can verify who's actually being paid before the transfer fires
+ * (previously only the QR/link flow, via `useWalletLookup`, had any
+ * verification at all — a manually-typed phone/username/wallet just went
+ * straight to `POST /transfers/send` with no confirmation). Pass exactly
+ * one of `phone`/`name` — `enabled` is false with neither (or a too-short
+ * name), so `RecipientSearchField` can call this unconditionally as the
+ * person types rather than guarding at every call site.
+ */
+function useWalletSearch(params: WalletSearchParams | null) {
+	const axiosAuth = useAxiosAuth();
+	const trimmedName = params?.name?.trim() ?? "";
+
+	return useQuery({
+		queryKey: ["wallet", "search", params?.phone ?? null, trimmedName || null],
+		queryFn: async (): Promise<WalletSearchResultData[]> => {
+			const { data } = await axiosAuth.get<ApiSuccessResponse<WalletSearchResultData[]>>(
+				apiRoutes.wallets.SEARCH,
+				{
+					params: params?.phone
+						? { phone: params.phone.phoneNumber, countryCode: params.phone.countryCode }
+						: { name: trimmedName },
+				},
+			);
+			return data.data;
+		},
+		enabled: Boolean(params?.phone) || trimmedName.length >= 2,
+	});
+}
+
+export { useMyWallet, useFundQuote, useFundWallet, useWalletLookup, useWalletSearch };

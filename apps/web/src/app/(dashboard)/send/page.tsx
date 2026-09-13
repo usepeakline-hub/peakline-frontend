@@ -1,40 +1,38 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SendStepHeader } from "@/features/send/components/SendStepHeader";
 import { SendMoneyFormStep } from "@/features/send/components/SendMoneyFormStep";
+import { ResolvedSendAmountStep } from "@/features/send/components/ResolvedSendAmountStep";
 import { ResolvedRecipientCard } from "@/features/send/components/ResolvedRecipientCard";
 import { useSendMoneyFlowStore } from "@/features/send/store/sendMoneyFlowStore";
 import { useWalletLookup } from "@/features/wallet/hooks";
 import { WALLET_ADDRESS_REGEX } from "@/lib/wallet";
+import type { SendMoneyValues } from "@/lib/validations/sendValidations";
 
 /**
- * Two ways to arrive here pre-filled — the entire client side of "receive
- * via QR/link/wallet address" (see `lib/wallet.ts`'s own notes):
+ * Two ways to arrive here with the recipient already resolved — the entire
+ * client side of "receive via QR/link/wallet address" (see `lib/wallet.ts`'s
+ * own notes):
  *
  * - `?userId=<id>` — someone's Receive QR/link (`buildReceiveLink`).
  *   Resolved via the real `GET /wallets/lookup/{userId}` (`useWalletLookup`)
  *   into a name + wallet address; `ResolvedRecipientCard` shows who's about
- *   to get paid before the amount field even renders.
+ *   to get paid.
  * - `?wallet=<address>` — a bare address (from "Copy Wallet Address", or
  *   `/pay`'s own scan-or-paste box recognizing one directly) — no lookup,
- *   no name, just the address pre-filled, same as typing it in manually.
+ *   no name, just the address.
  *
- * Either way, `SendMoneyFormStep` supports arriving with `method`/
- * `recipient` pre-filled, same as resuming an in-progress manual entry from
- * the store — from there it's the exact same `POST /transfers/send`
- * (`mode: "wallet"`) flow either path leads to.
- *
- * The lookup is async, so `linkedRecipient` only exists a render or two
- * after this page's own first paint — react-hook-form's `defaultValues`
- * only ever applies once, at mount, so simply re-rendering with a new
- * `defaultValues` prop later (once the lookup resolves) wouldn't actually
- * update the already-mounted form. `key={formKey}` forces exactly one
- * remount the moment resolution completes (or fails), so the form always
- * mounts fresh with its real, final defaultValues — the same trick, same
- * reason, as `PersonalInformationFields` needing its own `form.reset`
- * effect for the equivalent "server data arrives after mount" gap.
+ * Either way, reported live: arriving with a recipient already known
+ * shouldn't still ask "how do you want to identify them" — unlike a
+ * regular Send (`SendMoneyFormStep`, still the plain "pick a method, type
+ * an identifier" form for a manual entry with no link), this renders
+ * `ResolvedSendAmountStep` instead: no method selector, no editable
+ * recipient field, just the amount. `linkedRecipient` is a plain prop on
+ * that component (not react-hook-form `defaultValues` resolved after
+ * mount), so there's no "arrives async" timing gap to work around here —
+ * the step itself doesn't render at all until the address is known.
  */
 function SendMoneyPageContent() {
 	const router = useRouter();
@@ -51,21 +49,16 @@ function SendMoneyPageContent() {
 		: walletParam && WALLET_ADDRESS_REGEX.test(walletParam)
 			? walletParam
 			: null;
-	const formKey = userId ? `lookup:${userId}:${linkedRecipient ?? "pending"}` : `wallet:${walletParam ?? "none"}`;
+	const isResolvingLink = Boolean(userId) && isLookingUp;
+	// A `?userId=` that didn't resolve to anything (bad/expired link) still
+	// falls through to the regular form below — `ResolvedRecipientCard`'s own
+	// `notFound` state already told them why, and manual entry is a
+	// reasonable fallback rather than a dead end.
 
-	useEffect(() => {
-		if (linkedRecipient) {
-			setValues({
-				method: "wallet",
-				recipient: linkedRecipient,
-				amount: "" as unknown as number,
-				note: "",
-			});
-		}
-		// Runs once per resolved link — re-seeding on every `values` change
-		// would wipe out the amount/note the person is actively typing.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [linkedRecipient]);
+	function handleContinue(submitted: SendMoneyValues) {
+		setValues(submitted);
+		router.push("/send/review");
+	}
 
 	return (
 		<div className="flex flex-col gap-6 sm:gap-8">
@@ -77,29 +70,16 @@ function SendMoneyPageContent() {
 					notFound={!isLookingUp && lookup === null}
 				/>
 			)}
-			{/* While a link's lookup is still in flight, `ResolvedRecipientCard`
-			    above is already the loading state — holding the form back too
-			    avoids showing its unrelated "Select Transfer Method" placeholder
-			    at the same time. */}
-			{!(userId && isLookingUp) && (
-				<SendMoneyFormStep
-					key={formKey}
-					defaultValues={
-						linkedRecipient
-							? {
-									method: "wallet",
-									recipient: linkedRecipient,
-									amount: "" as unknown as number,
-									note: "",
-								}
-							: values
-					}
-					onContinue={(submitted) => {
-						setValues(submitted);
-						router.push("/send/review");
-					}}
-				/>
-			)}
+			{!isResolvingLink &&
+				(linkedRecipient ? (
+					<ResolvedSendAmountStep
+						recipientAddress={linkedRecipient}
+						recipientName={lookup?.name}
+						onContinue={handleContinue}
+					/>
+				) : (
+					<SendMoneyFormStep defaultValues={values} onContinue={handleContinue} />
+				))}
 		</div>
 	);
 }

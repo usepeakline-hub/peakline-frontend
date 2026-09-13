@@ -20,6 +20,14 @@ export const sendMoneySchema = z
 		// method needs — validated per-method below rather than carrying three
 		// separate (mostly-empty) fields.
 		recipient: z.string().trim().min(1, "Enter recipient details"),
+		// A real name, only ever set once `GET /wallets/search` (a phone
+		// exact-match auto-verify, or a picked name-search result) or
+		// `GET /wallets/lookup/{userId}` (arriving via a Receive QR/link)
+		// actually resolved one — see `RecipientSearchField`/`SendMoneyPage`.
+		// Not itself sent to `POST /transfers/send`; purely a display label so
+		// Review can show a real name instead of the raw identifier for a
+		// verified recipient, same as it always could for a QR/link arrival.
+		recipientName: z.string().optional(),
 		amount: z.coerce
 			.number({ message: "Enter an amount" })
 			.positive("Enter an amount greater than 0"),

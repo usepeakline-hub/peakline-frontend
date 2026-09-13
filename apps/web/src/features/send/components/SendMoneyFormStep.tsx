@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Search, X } from "lucide-react";
+import { isValidPhoneNumber } from "libphonenumber-js/min";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Select } from "@repo/ui/select";
@@ -20,7 +23,11 @@ import {
 	type SendMoneyValues,
 } from "@/lib/validations/sendValidations";
 import { useWalletBalance } from "@/features/dashboard/hooks";
+import { useWalletSearch } from "@/features/wallet/hooks";
+import { ResolvedRecipientCard } from "@/features/send/components/ResolvedRecipientCard";
+import { splitPhoneForSearch } from "@/lib/phone";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
+import type { WalletSearchResultData } from "@/lib/api/types";
 
 const RECIPIENT_FIELD: Record<
 	SendMoneyValues["method"],
@@ -39,14 +46,35 @@ interface SendMoneyFormStepProps {
 	onContinue: (values: SendMoneyValues) => void;
 }
 
-/** Step 1 — transfer method + the single matching recipient field, amount,
+/**
+ * Step 1 — transfer method + the single matching recipient field, amount,
  * and an optional note. The reference mock's screenshot shows all three
  * recipient fields (Phone/Username/Wallet Address) stacked at once, which
  * reads as its unselected "kitchen sink" reference state rather than actual
  * runtime behavior — showing only the field for the chosen method is both
- * cleaner and avoids validating two empty fields no one is filling in. */
+ * cleaner and avoids validating two empty fields no one is filling in.
+ *
+ * Two ways this now verifies who's actually being paid before the transfer
+ * fires, both backed by the real `GET /wallets/search` (`useWalletSearch`)
+ * — reported live as missing: previously a manually-typed identifier just
+ * went straight to `POST /transfers/send` with zero confirmation.
+ * - Phone: once the typed number is syntactically complete, this silently
+ *   searches for an exact match and shows who it resolved to (or that it
+ *   didn't) below the field — the send itself still uses `mode: "phone"`
+ *   either way, this is purely a confirmation.
+ * - "Find by name" is a separate discovery box, not a fourth transfer
+ *   method — `name` was never a valid `SendMoneyDto.mode`. Picking a
+ *   result switches the form to a normal `wallet`-mode entry under the
+ *   hood (`method`/`recipient` set to that person's own address), the
+ *   same as a QR/link-resolved recipient.
+ */
 function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps) {
 	const { data: balance } = useWalletBalance();
+	const [nameSearchOpen, setNameSearchOpen] = useState(false);
+	const [nameQuery, setNameQuery] = useState("");
+	const [resolvedRecipientName, setResolvedRecipientName] = useState<string | undefined>(
+		defaultValues?.recipientName,
+	);
 	const form = useForm<SendMoneyValues>({
 		resolver: zodResolver(sendMoneySchema),
 		defaultValues: {
@@ -57,15 +85,52 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 		},
 	});
 	const method = form.watch("method");
+	const recipient = form.watch("recipient");
 	const amount = Number(form.watch("amount"));
 	const amountValid = amount > 0 && !form.formState.errors.amount;
+
+	// Only enabled once the typed value is a syntactically complete phone
+	// number — `useWalletSearch`'s own `enabled` gate would otherwise fire on
+	// every partial digit typed.
+	const phoneSearchParams =
+		method === "phone" && isValidPhoneNumber(recipient || "")
+			? splitPhoneForSearch(recipient)
+			: null;
+	const { data: phoneMatches, isFetching: isVerifyingPhone } = useWalletSearch(
+		phoneSearchParams ? { phone: phoneSearchParams } : null,
+	);
+	const phoneMatch = phoneMatches?.[0] ?? null;
+
+	const { data: nameResults, isFetching: isSearchingName } = useWalletSearch(
+		nameSearchOpen ? { name: nameQuery } : null,
+	);
+
+	function handleMethodChange(nextMethod: string) {
+		form.setValue("method", nextMethod as SendMoneyValues["method"]);
+		// Switching methods invalidates whatever was typed for the previous
+		// one, and any name-search/phone-verify confirmation that went with it.
+		form.resetField("recipient", { defaultValue: "" });
+		setResolvedRecipientName(undefined);
+	}
+
+	function handleSelectNameResult(result: WalletSearchResultData) {
+		form.setValue("method", "wallet");
+		form.setValue("recipient", result.publicKey, { shouldValidate: true });
+		setResolvedRecipientName(result.name);
+		setNameSearchOpen(false);
+		setNameQuery("");
+	}
 
 	function handleSubmit(values: SendMoneyValues) {
 		if (balance && values.amount > balance.amount) {
 			form.setError("amount", { message: "Insufficient balance" });
 			return;
 		}
-		onContinue(values);
+		onContinue({
+			...values,
+			recipientName:
+				values.method === "phone" ? (phoneMatch?.name ?? undefined) : resolvedRecipientName,
+		});
 	}
 
 	return (
@@ -75,6 +140,78 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 				onSubmit={form.handleSubmit(handleSubmit)}
 				className="flex flex-col gap-5"
 			>
+				<div className="flex flex-col gap-2">
+					<div className="flex items-center justify-between">
+						<span className="text-label text-foreground">Find a recipient</span>
+						<button
+							type="button"
+							onClick={() => {
+								setNameSearchOpen((open) => !open);
+								setNameQuery("");
+							}}
+							className="text-b4 font-medium text-primary hover:underline"
+						>
+							{nameSearchOpen ? "Cancel" : "Search by name"}
+						</button>
+					</div>
+
+					{nameSearchOpen && (
+						<div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+							<div className="relative">
+								<Search
+									className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+									aria-hidden="true"
+								/>
+								<Input
+									autoFocus
+									value={nameQuery}
+									onChange={(e) => setNameQuery(e.target.value)}
+									placeholder="Search by name"
+									className="pl-9"
+								/>
+							</div>
+
+							{nameQuery.trim().length >= 2 && (
+								<div className="flex flex-col gap-1">
+									{isSearchingName ? (
+										<p className="p-2 text-c1 text-muted-foreground">Searching…</p>
+									) : nameResults && nameResults.length > 0 ? (
+										nameResults.map((result) => (
+											<button
+												key={result.publicKey}
+												type="button"
+												onClick={() => handleSelectNameResult(result)}
+												className="flex items-center justify-between rounded-lg p-2 text-left text-b3 hover:bg-muted"
+											>
+												{result.name}
+											</button>
+										))
+									) : (
+										<p className="p-2 text-c1 text-muted-foreground">No matches found</p>
+									)}
+								</div>
+							)}
+						</div>
+					)}
+				</div>
+
+				{resolvedRecipientName && method === "wallet" && (
+					<div className="relative">
+						<ResolvedRecipientCard isLoading={false} name={resolvedRecipientName} notFound={false} />
+						<button
+							type="button"
+							aria-label="Clear selected recipient"
+							onClick={() => {
+								setResolvedRecipientName(undefined);
+								form.resetField("recipient", { defaultValue: "" });
+							}}
+							className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+						>
+							<X className="size-4" aria-hidden="true" />
+						</button>
+					</div>
+				)}
+
 				<FormField
 					control={form.control}
 					name="method"
@@ -82,16 +219,7 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 						<FormItem>
 							<FormLabel>Select Transfer Method</FormLabel>
 							<FormControl>
-								<Select
-									{...field}
-									value={field.value ?? ""}
-									onChange={(e) => {
-										field.onChange(e);
-										// Switching methods invalidates whatever was typed
-										// for the previous one.
-										form.resetField("recipient", { defaultValue: "" });
-									}}
-								>
+								<Select {...field} value={field.value ?? ""} onChange={(e) => handleMethodChange(e.target.value)}>
 									<option value="" disabled>
 										Phone, username, wallet address
 									</option>
@@ -107,7 +235,7 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 					)}
 				/>
 
-				{method && (
+				{method && !(method === "wallet" && resolvedRecipientName) && (
 					<FormField
 						control={form.control}
 						name="recipient"
@@ -126,6 +254,23 @@ function SendMoneyFormStep({ defaultValues, onContinue }: SendMoneyFormStepProps
 										<Input placeholder={RECIPIENT_FIELD[method].placeholder} {...field} />
 									)}
 								</FormControl>
+								{method === "phone" && phoneSearchParams && (
+									<p
+										className={
+											isVerifyingPhone
+												? "text-c1 text-muted-foreground"
+												: phoneMatch
+													? "text-c1 text-success-600"
+													: "text-c1 text-muted-foreground"
+										}
+									>
+										{isVerifyingPhone
+											? "Checking…"
+											: phoneMatch
+												? `✓ ${phoneMatch.name}`
+												: "No Peakline account found for this number — you can still send to it."}
+									</p>
+								)}
 								<FormMessage />
 							</FormItem>
 						)}

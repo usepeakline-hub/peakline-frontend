@@ -29,4 +29,19 @@ function splitPhoneForTransfer(
 	return { phoneNumber: parsed.nationalNumber, countryCode: parsed.country };
 }
 
-export { splitPhoneForApi, splitPhoneForTransfer };
+/** `GET /wallets/search`'s own `countryCode` wants the numeric
+ * international calling code (e.g. "233" for Ghana, per the endpoint's own
+ * example "234") — NOT the ISO 3166-1 alpha-2 code `SendMoneyDto` and
+ * `splitPhoneForTransfer` use ("GH"). Same field name, different
+ * convention between the two endpoints — easy to conflate, so this stays
+ * its own function rather than reusing that one, which would silently send
+ * the wrong value here. */
+function splitPhoneForSearch(
+	phone: string,
+): { phoneNumber: string; countryCode: string } | null {
+	const parsed = parsePhoneNumberFromString(phone);
+	if (!parsed || !parsed.countryCallingCode) return null;
+	return { phoneNumber: parsed.nationalNumber, countryCode: parsed.countryCallingCode };
+}
+
+export { splitPhoneForApi, splitPhoneForTransfer, splitPhoneForSearch };

@@ -85,6 +85,11 @@ export const apiRoutes = {
 		// receive-via-QR/link flow (`useWalletLookup`), no balance/key
 		// material included.
 		lookupByUserId: (userId: string) => `/api/v1/wallets/lookup/${userId}`,
+		// Confirmed live — `?phone=&countryCode=` (exact) or `?name=` (prefix
+		// search), never both. See `useWalletSearch`'s own note on the two
+		// very different `countryCode` conventions between this and
+		// `SendMoneyDto`.
+		SEARCH: "/api/v1/wallets/search",
 		// `fund/intent` + `fund/intent/{id}` (announce you're about to send
 		// USDC from an external wallet, then poll until it's matched) exist
 		// on the backend but aren't wired here — nothing in this app can

@@ -195,6 +195,24 @@ export interface WalletLookupData {
 	publicKey: string;
 }
 
+/** `GET /wallets/search` — confirmed live. Pass `phone`+`countryCode`
+ * (exact match) or `name` (case-insensitive prefix search across first
+ * name, last name, and business name, min 2 chars) — never both. Returns
+ * up to 20 matching active individual wallets, no balance or key material.
+ * The "verify who you're sending to" step ahead of a regular Send (see
+ * `useWalletSearch`, `RecipientSearchField`): a phone match confirms an
+ * exact `mode: "phone"` recipient before the transfer fires; a name match
+ * is a picker (multiple people can share a name), and whichever one gets
+ * picked sends as `mode: "wallet"` against their own `publicKey` instead,
+ * the same way a QR/link-resolved recipient does — "name" itself was never
+ * a valid `SendMoneyDto.mode`. Same shape as `WalletLookupData` (only
+ * `name`/`publicKey` confirmed by the endpoint's own description — no 200
+ * schema is documented, same gap as that one) plus nothing else assumed. */
+export interface WalletSearchResultData {
+	name: string;
+	publicKey: string;
+}
+
 export type FundCurrency = "USDC" | "GHS";
 
 /** `POST /wallets/stellar/fund/quote` — a preview, not an action. */

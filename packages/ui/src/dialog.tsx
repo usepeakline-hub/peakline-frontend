@@ -52,6 +52,7 @@ function DialogContent({
 	children,
 	showCloseButton = true,
 	mobileSheet = false,
+	onOpenAutoFocus,
 	...props
 }: DialogContentProps) {
 	return (
@@ -59,6 +60,26 @@ function DialogContent({
 			<DialogOverlay />
 			<DialogPrimitive.Content
 				data-slot="dialog-content"
+				onOpenAutoFocus={(event) => {
+					// Radix focuses the first focusable descendant (often a text/OTP
+					// input) the instant this mounts. For a `mobileSheet` that's
+					// still mid slide-up-from-bottom animation at that point — on
+					// mobile Safari/Chrome, a programmatic `.focus()` call that
+					// isn't the *direct, synchronous* result of the tap that opened
+					// the dialog no longer counts as a user gesture, so the on-screen
+					// keyboard never appears even though the input visibly has focus
+					// (reported live: "my keyboard is not coming out for all the
+					// drawers"). Skipping auto-focus below `sm` — real bottom-sheet
+					// territory — lets the person's own tap on the field do it
+					// instead, which is always a genuine gesture and always brings
+					// the keyboard up. `sm` and up (where this same content also
+					// renders as a plain centered dialog, no animation-timing issue,
+					// and a physical keyboard is the norm) keeps Radix's default.
+					if (mobileSheet && typeof window !== "undefined" && window.innerWidth < 640) {
+						event.preventDefault();
+					}
+					onOpenAutoFocus?.(event);
+				}}
 				className={cn(
 					"fixed z-50 grid gap-6 overflow-y-auto bg-background outline-none",
 					mobileSheet

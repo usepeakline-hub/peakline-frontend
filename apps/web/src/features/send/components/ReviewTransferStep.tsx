@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { UserRound } from "lucide-react";
 import { Button } from "@repo/ui/button";
-import { OtpInput } from "@repo/ui/otp-input";
+import { SendPinDialog } from "@/features/send/components/SendPinDialog";
 import {
 	TRANSFER_METHODS,
 	type SendMoneyValues,
 } from "@/lib/validations/sendValidations";
 import { formatUsdc, usdcToGhs } from "@/lib/currency";
-
-const PIN_LENGTH = 6;
 
 function DetailRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
 	return (
@@ -31,24 +29,24 @@ interface ReviewTransferStepProps {
 }
 
 /** Step 2 — mirrors `ConfirmFundingStep`'s shape (summary card + detail
- * card), plus a PIN entry at the bottom (same combined review+authorize
- * pattern as Pay's own `ConfirmPaymentStep` — a real send requires the
- * transaction PIN on every call). There's no "resolve this identifier to a
- * name" endpoint, so unlike an earlier version of this screen, the "To" row
- * shows the identifier as typed rather than a fabricated recipient name —
- * the real name/label (`recipientLabel`) only comes back once the transfer
- * actually completes (see `TransferSuccessStep`). */
+ * card). The transaction PIN a real send requires isn't entered inline
+ * here anymore — `SendPinDialog` (a modal on desktop, a bottom-sheet drawer
+ * on mobile, same pattern `ChangePinDialog` uses) opens once "Send" is
+ * tapped, keeping this screen a pure summary and "authorize this transfer"
+ * its own explicit step. There's no "resolve this identifier to a name"
+ * endpoint for a raw username/wallet entry, so unlike an earlier version of
+ * this screen, the "To" row shows the identifier as typed rather than a
+ * fabricated recipient name for those two methods — the real name/label
+ * (`recipientLabel`) only comes back once the transfer actually completes
+ * (see `TransferSuccessStep`). A phone-search or name-search match (see
+ * `SendMoneyFormStep`) already resolved a real name before reaching here,
+ * so `values.recipientName` (set to `phone`'s value in that case, or
+ * whoever a name search resolved to) takes over when present. */
 function ReviewTransferStep({ values, onContinue }: ReviewTransferStepProps) {
-	const [pin, setPin] = useState("");
-	const pinComplete = pin.length === PIN_LENGTH;
+	const [pinDialogOpen, setPinDialogOpen] = useState(false);
 	const methodLabel =
 		TRANSFER_METHODS.find((method) => method.value === values.method)?.label ??
 		values.method;
-
-	function handleSubmit() {
-		if (!pinComplete) return;
-		onContinue(pin);
-	}
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -70,7 +68,7 @@ function ReviewTransferStep({ values, onContinue }: ReviewTransferStepProps) {
 					</span>
 					<div className="flex min-w-0 flex-col">
 						<span className="truncate text-b3 font-semibold text-foreground sm:text-b2">
-							{values.recipient}
+							{values.recipientName ?? values.recipient}
 						</span>
 						<span className="text-c1 text-muted-foreground sm:text-b3">{methodLabel}</span>
 					</div>
@@ -85,22 +83,15 @@ function ReviewTransferStep({ values, onContinue }: ReviewTransferStepProps) {
 				<DetailRow label="Total" value={`${formatUsdc(values.amount)} USDC`} />
 			</div>
 
-			<div className="flex flex-col gap-3">
-				<span className="text-c1 text-muted-foreground sm:text-b3">
-					Enter your PIN to confirm
-				</span>
-				<OtpInput value={pin} onChange={setPin} length={PIN_LENGTH} />
-			</div>
-
-			<Button
-				type="button"
-				size="large"
-				className="w-full"
-				disabled={!pinComplete}
-				onClick={handleSubmit}
-			>
+			<Button type="button" size="large" className="w-full" onClick={() => setPinDialogOpen(true)}>
 				Send
 			</Button>
+
+			<SendPinDialog
+				open={pinDialogOpen}
+				onOpenChange={setPinDialogOpen}
+				onConfirm={onContinue}
+			/>
 		</div>
 	);
 }
