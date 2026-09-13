@@ -31,6 +31,15 @@ export interface TransactionsQuery {
  * and `/payments` (merchant-only, `direction: "incoming"` baked into the
  * query the caller passes) — the endpoint's own filters already draw that
  * line, so there's no need for two separate hooks.
+ *
+ * `staleTime: 0` + a 30s `refetchInterval` — this backs the merchant
+ * Overview's own "Recent Payments" alongside the full Transactions/Payments
+ * history pages, and a transaction landing here can originate entirely
+ * outside this app (a customer paying with their own wallet), so there's no
+ * in-app mutation to invalidate this cache on success. Reported live as
+ * stale figures on the merchant Overview specifically ("along side other
+ * affected stats") — this is one of those other stats. Same 30s cadence
+ * `useNotifications` already polls at.
  */
 function useTransactions(query: TransactionsQuery, page: number, limit: number) {
 	const axiosAuth = useAxiosAuth();
@@ -43,6 +52,8 @@ function useTransactions(query: TransactionsQuery, page: number, limit: number) 
 			>(apiRoutes.transactions.LIST, { params: { ...query, page, limit } });
 			return { transactions: data.data, meta: data.meta };
 		},
+		staleTime: 0,
+		refetchInterval: 30_000,
 	});
 }
 

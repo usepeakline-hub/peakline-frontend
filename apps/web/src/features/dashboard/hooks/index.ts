@@ -64,6 +64,11 @@ function useWalletBalance() {
 			);
 			return data.data;
 		},
+		// Same reasoning as `useMyWallet`'s own note — money arriving from
+		// outside this app has no in-app mutation to invalidate this on
+		// success, so it only ever catches up by asking again.
+		staleTime: 0,
+		refetchInterval: 30_000,
 	});
 
 	if (isLoadingWallet || isLoadingLedger) return { data: undefined, isLoading: true };
@@ -88,7 +93,11 @@ function useWalletBalance() {
  * `GET /transactions` `TransactionHistoryList` uses, just the first page at
  * a small page size and no filters. Scoped server-side by account type
  * already (individual's own personal history vs. a merchant's consolidated
- * feed), so this needs no branching of its own. */
+ * feed), so this needs no branching of its own.
+ *
+ * Same `staleTime: 0` + 30s `refetchInterval` as `useTransactions`/
+ * `useMyWallet` — a transaction can land here from entirely outside this
+ * app, so nothing of ours ever invalidates this cache on its own. */
 function useRecentTransactions(limit = 4) {
 	const axiosAuth = useAxiosAuth();
 
@@ -101,6 +110,8 @@ function useRecentTransactions(limit = 4) {
 			);
 			return data.data;
 		},
+		staleTime: 0,
+		refetchInterval: 30_000,
 	});
 }
 

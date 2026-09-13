@@ -31,7 +31,18 @@ function humanizeChangeLabel(label: string) {
  * period (the other three fields don't vary by period) while
  * `useReceivedTrend` passes through whatever the chart's own selector
  * chose. Same query key when both happen to want "month" lets React Query
- * dedupe the two into one request. */
+ * dedupe the two into one request.
+ *
+ * `staleTime: 0` + a 30s `refetchInterval` — reported live: these figures
+ * kept showing stale numbers after money actually arrived. The app's own
+ * `ReactQueryProvider` default (`staleTime: 60_000`, no polling) is fine
+ * for most data, but wrong here specifically: nothing about this money
+ * arriving happens *through* this app (a customer paying with their own
+ * wallet, an external Stellar send, etc.), so there's no mutation of ours
+ * to invalidate this cache on success — the only way these numbers ever
+ * catch up is by asking again, whether or not the merchant happens to
+ * leave and come back to this page. Same 30s cadence `useNotifications`
+ * already polls at. */
 function useMerchantDashboardStats(period: ReceivedTrendPeriod) {
 	const axiosAuth = useAxiosAuth();
 
@@ -44,6 +55,8 @@ function useMerchantDashboardStats(period: ReceivedTrendPeriod) {
 			);
 			return data.data;
 		},
+		staleTime: 0,
+		refetchInterval: 30_000,
 	});
 }
 

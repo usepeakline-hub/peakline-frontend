@@ -64,6 +64,18 @@ function PersonPaymentCard({ isLoading, notFound, name, address, onPay }: Person
 	const roleLabel = name ? "Peakline User" : "Wallet Address";
 
 	function handlePay() {
+		// Dismiss the on-screen keyboard before anything else — reported live
+		// as "typed the amount fine, Pay still did nothing". This card is the
+		// only one in this "centered card" family that has a text input in
+		// it, and `justify-center` inside `min-h-full` (below) has now also
+		// been dropped for that same reason: a still-open keyboard shrinking
+		// the visible viewport could put this button below the fold with no
+		// way to scroll to it (a plain top-aligned layout never has that
+		// problem), and even a reachable tap right after a keyboard closes
+		// can be too soon for a *new* dialog to reliably take focus on some
+		// mobile browsers. Blurring first sidesteps both.
+		(document.activeElement as HTMLElement | null)?.blur();
+
 		if (!amountValid) {
 			setError("Enter an amount greater than 0");
 			return;
@@ -77,7 +89,7 @@ function PersonPaymentCard({ isLoading, notFound, name, address, onPay }: Person
 	}
 
 	return (
-		<div className="flex min-h-full flex-col items-center justify-center gap-4 rounded-2xl border border-secondary-300 bg-secondary-100 p-6 text-center sm:p-8">
+		<div className="flex min-h-full flex-col items-center gap-4 rounded-2xl border border-secondary-300 bg-secondary-100 p-6 text-center sm:p-8">
 			<MerchantAvatar name={displayName} />
 			<div className="flex flex-col gap-0.5">
 				<span className="truncate text-b2 font-semibold text-foreground sm:text-b1">

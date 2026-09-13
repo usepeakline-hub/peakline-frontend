@@ -22,6 +22,16 @@ const MY_WALLET_KEY = ["wallet", "mine"];
  * request — no wallet listing for now. Returns `null` (not an error) for
  * "no wallet yet" (shouldn't normally happen — sign-up's own `SetPinForm`
  * already creates it for every account type — but the type allows it).
+ *
+ * `staleTime: 0` + a 30s `refetchInterval` — this carries `balances`
+ * (`useWalletBalance`'s own wallet-side half of its "higher of two
+ * sources" figure, see that hook's own note), and money arriving from
+ * outside this app (a customer's own wallet, an external Stellar send)
+ * has no in-app mutation to invalidate this cache on success. Reported
+ * live as stale balances on the merchant Overview specifically, but this
+ * hook backs every wallet-address/QR/balance display for both account
+ * types, so the fix belongs here rather than duplicated per screen. Same
+ * 30s cadence `useNotifications` already polls at.
  */
 function useMyWallet() {
 	const axiosAuth = useAxiosAuth();
@@ -39,6 +49,8 @@ function useMyWallet() {
 				throw error;
 			}
 		},
+		staleTime: 0,
+		refetchInterval: 30_000,
 	});
 }
 

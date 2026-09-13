@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "@repo/ui/sonner";
 import { MobileStepHeader } from "@/features/wallet/components/MobileStepHeader";
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { PaymentCodeCard } from "@/features/pay/components/PaymentCodeCard";
@@ -131,14 +132,28 @@ function PayPageContent() {
 
 	function handlePersonPay(amount: number) {
 		const address = personLookup?.publicKey ?? personRecipient?.address;
-		if (!address) return;
+		// Shouldn't happen — `PersonPaymentCard` only ever shows its "Pay"
+		// button once a real address has resolved — but a silent no-op here
+		// would look exactly like "the Pay button does nothing" (reported
+		// live) with zero clue why, so surface it rather than swallow it.
+		if (!address) {
+			toast.error("Couldn't find this recipient's wallet address — try looking it up again");
+			return;
+		}
 		setPendingAmount(amount);
 		setPinDialogOpen(true);
 	}
 
 	function handlePinConfirm(pin: string) {
 		const address = personLookup?.publicKey ?? personRecipient?.address;
-		if (!address || pendingAmount === null || !personRecipient) return;
+		if (!address || pendingAmount === null || !personRecipient) {
+			// Same "shouldn't happen, but never fail silently" reasoning as
+			// `handlePersonPay` — this dialog only ever opens once both are
+			// already set.
+			toast.error("Something went wrong — please try again");
+			setPinDialogOpen(false);
+			return;
+		}
 
 		sendMoney.mutate(
 			{ values: { method: "wallet", recipient: address, amount: pendingAmount }, pin },
