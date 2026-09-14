@@ -8,7 +8,7 @@ import { formatUsdc } from "@/lib/currency";
 
 function StatCardSkeleton() {
 	return (
-		<div className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-5 sm:p-6">
+		<div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-background p-5 sm:p-6">
 			<Skeleton className="h-4 w-28" />
 			<Skeleton className="h-8 w-32" />
 			<Skeleton className="h-4 w-24" />
@@ -31,9 +31,21 @@ function ChangeIndicator({ pct, label }: { pct: number | null; label: string }) 
 	const isDown = pct < 0;
 	const Icon = isDown ? TrendingDown : TrendingUp;
 	return (
-		<span className={cn("flex items-center gap-1 text-c1", isDown ? "text-destructive" : "text-success")}>
-			<Icon className="size-3.5" aria-hidden="true" />
-			{Math.abs(pct)}% {label}
+		// `flex-wrap` — reported live as distorting on narrow cards: "58.6%
+		// vs previous month" has no reason to force itself onto one line,
+		// and CSS Grid would otherwise let it push the card wider than its
+		// column. Wrapping it costs nothing (the row above already reserves
+		// two lines' worth of height whenever the amount itself wraps).
+		<span
+			className={cn(
+				"flex flex-wrap items-center gap-x-1 gap-y-0.5 text-c1",
+				isDown ? "text-destructive" : "text-success",
+			)}
+		>
+			<Icon className="size-3.5 shrink-0" aria-hidden="true" />
+			<span>
+				{Math.abs(pct)}% {label}
+			</span>
 		</span>
 	);
 }
@@ -52,9 +64,24 @@ function StatCard({
 	changeLabel: string;
 }) {
 	return (
-		<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
-			<span className="text-b3 text-muted-foreground">{label}</span>
-			<span className="text-h4 text-foreground">
+		// `min-w-0` is the actual fix, not decoration — Tailwind's `grid-cols-*`
+		// already caps each column at its track width (`minmax(0, 1fr)`), but
+		// a grid ITEM's own default `min-width: auto` still sizes it to fit
+		// its content's min-content width. A long unbroken number (a comma
+		// isn't a line-break opportunity) has nowhere to wrap without this,
+		// so it overflows straight past the card's border into whatever sits
+		// next to it — reported live as the cards "distorting" once a larger
+		// amount landed in one, on both small and large screens (a 5-across
+		// desktop row leaves just as little width per card as a 2-across
+		// mobile row does). `wrap-break-word` on the amount is the second half:
+		// once the item can actually shrink, this lets the number itself
+		// wrap (or, as a last resort for a truly huge one, break mid-digit)
+		// instead of hitting that same wall one level down.
+		<div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
+			<span className="truncate text-b3 text-muted-foreground" title={label}>
+				{label}
+			</span>
+			<span className="wrap-break-word text-h5 text-foreground sm:text-h4">
 				{formatUsdc(amount)} {currency}
 			</span>
 			<ChangeIndicator pct={pct} label={changeLabel} />
@@ -82,7 +109,7 @@ function MerchantStatsCards() {
 
 	if (!data) {
 		return (
-			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
 				<StatCardSkeleton />
 				<StatCardSkeleton />
 				<StatCardSkeleton />
@@ -93,7 +120,7 @@ function MerchantStatsCards() {
 	}
 
 	return (
-		<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+		<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
 			<StatCard
 				label="Total Received"
 				amount={data.totalReceived}
@@ -123,9 +150,9 @@ function MerchantStatsCards() {
 				changeLabel={data.todaySentChangeLabel}
 			/>
 
-			<div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
+			<div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-border bg-background p-5 sm:p-6">
 				<span className="text-b3 text-muted-foreground">Pending</span>
-				<span className="text-h4 text-destructive">
+				<span className="wrap-break-word text-h5 text-destructive sm:text-h4">
 					{formatUsdc(data.pending)} {data.currency}
 				</span>
 				<span className="text-c1 text-muted-foreground">
