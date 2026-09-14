@@ -29,10 +29,12 @@ interface NavItem {
 /** Grouped by domain, matching the backend's own tag groups 1:1 (Users,
  * Businesses, Wallets, Transactions, Ledger, Payment Links, Config, Staff,
  * Audit Log) — Analytics folds into "Overview" as the dashboard home rather
- * than getting its own nav item. Routes beyond Overview aren't built yet
- * (Phase 1+ per the build plan) — linked here already so the nav shape is
- * settled once, not re-argued every phase; each renders `EmptyState`
- * ("Coming soon") until its own phase lands.
+ * than getting its own nav item. Every route is built as of Phase 4
+ * (Payment Links/Config/Staff, the last group still stubbed) — the full
+ * shape was linked here from Phase 0 on, before any of it existed, so the
+ * nav never needed re-arguing per phase; see `ComingSoonPage` for the
+ * placeholder every not-yet-built route rendered until its own phase
+ * landed.
  */
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 	{

@@ -432,3 +432,124 @@ export interface AdminReasonOptionalPayload {
  * genuinely unknown shape, typed `unknown` end to end on purpose.
  */
 export type UnknownRecord = Record<string, unknown>;
+
+// ---------------------------------------------------------------------
+// Phase 4 — Payment Links, Config, Staff
+// ---------------------------------------------------------------------
+
+/** `GET /admin/payment-links`, `.../{id}` — the real spec's response
+ * schema for the list is another of this project's documentation bugs
+ * (resolves to `AdminListPaymentLinksQueryDto`, the *query params'* own
+ * DTO; `{id}` resolves to a bare `nullable: true`). Modeled on apps/web's
+ * own confirmed `PaymentLinkData`, plus the nested `business` every admin
+ * list needs (unlike apps/web's own scoped-to-"my business" version) —
+ * unverified against a real response, same caveat as Phase 1/2/3's own
+ * documentation-bug fields. */
+export interface AdminPaymentLinkData {
+	id: string;
+	title: string;
+	amount: string;
+	currency: "USDC";
+	description?: string | null;
+	customerReference?: string | null;
+	expiresAt: string;
+	cancelledAt?: string | null;
+	status: "active" | "expired" | "cancelled";
+	publicCode: string;
+	url: string;
+	business: { id: string; name: string };
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface AdminPaymentLinksQuery {
+	q?: string;
+	businessId?: string;
+	ownerId?: string;
+	status?: AdminPaymentLinkData["status"];
+	from?: string;
+	to?: string;
+}
+
+/** `PATCH /admin/payment-links/{id}/cancel` body — `reason` is a real field
+ * on `AdminCancelPaymentLinkDto` but, confirmed live, not in its `required`
+ * array — same "optional despite being the whole point of the dialog"
+ * shape Phase 2/3 already found on verify/reactivate/reverse. */
+export interface AdminCancelPaymentLinkPayload {
+	reason?: string;
+}
+
+/** `GET /admin/config` — confirmed live (`AdminConfigKeyDto`). Lists every
+ * key WITHOUT its value — the value is only ever fetched one key at a time,
+ * on demand, via `AdminConfigValueData` below (see that type's own note on
+ * why). `updatedBy` is untyped on the real DTO (`type: "object"` with no
+ * further shape given) — likely a user id or a nested actor object, but not
+ * confirmed either way, so kept as `unknown` rather than guessed. */
+export interface AdminConfigKeyData {
+	key: string;
+	updatedBy?: unknown;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/** `GET /admin/config/{key}` — confirmed live (`AdminConfigValueDto`),
+ * super_admin only. Config values are stored encrypted; this endpoint
+ * decrypts on the fly, so the UI treats fetching one as a deliberate
+ * "reveal" action per key (a button, not something that loads with the
+ * list) rather than something to prefetch for every row. */
+export interface AdminConfigValueData extends AdminConfigKeyData {
+	value: string;
+}
+
+/** `PUT /admin/config/{key}` body — confirmed live, super_admin only.
+ * Also used to CREATE a key that doesn't exist yet — the same endpoint
+ * doubles as create-or-update per its own summary ("Create or update a
+ * config key"), so there's no separate "new key" form, just this typed
+ * with whatever key string the admin enters. */
+export interface AdminSetConfigPayload {
+	value: string;
+}
+
+/** `GET /admin/staff` reuses the same `AdminUserDto` Phase 1's Users
+ * screen already types as `AdminUserData` — confirmed live — just
+ * pre-filtered server-side to `role: "staff"` accounts. No `q` free-text
+ * search on this endpoint (unlike Users), only the `staffRole` filter. */
+export interface AdminStaffQuery {
+	staffRole?: StaffRole;
+}
+
+/** `POST /admin/staff/invite` body — confirmed live. No documented example
+ * on this DTO's own `phoneNumber`/`countryCode` fields, but the closest
+ * real sibling that creates an account from scratch (`RegisterDto`, the
+ * customer sign-up) documents E.164 phone ("+233241234567") + ISO
+ * 3166-1 alpha-2 `countryCode` ("GH") — assumed here too rather than
+ * guessed from nothing, same "model on a confirmed sibling" approach
+ * Phase 1-3's own documentation gaps used. */
+export interface AdminInviteStaffPayload {
+	email: string;
+	firstName: string;
+	lastName: string;
+	phoneNumber: string;
+	countryCode: string;
+	staffRole: StaffRole;
+}
+
+/** `POST /admin/staff/invite` response — confirmed live. Carries a
+ * server-generated `temporaryPassword` in plaintext, once, in this one
+ * response — never shown again after this dialog closes (nothing re-fetches
+ * or persists it client-side), same "shown once, on your own head to save
+ * it" pattern as e.g. 2FA recovery codes. */
+export interface AdminInviteStaffResponseData {
+	id: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+	staffRole: StaffRole;
+	temporaryPassword: string;
+	createdAt: string;
+}
+
+/** `PATCH /admin/staff/{id}/role` body — confirmed live. */
+export interface AdminChangeStaffRolePayload {
+	staffRole: StaffRole;
+}

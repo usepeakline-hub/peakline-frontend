@@ -35,6 +35,9 @@ importers:
       js-cookie:
         specifier: ^3.0.8
         version: 3.0.8
+      libphonenumber-js:
+        specifier: ^1.13.12
+        version: 1.13.12
       lucide-react:
         specifier: ^0.545.0
         version: 0.545.0(react@19.2.8)
