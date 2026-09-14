@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import { Building2, Link2, ShieldAlert } from "lucide-react";
 import { Skeleton } from "@repo/ui/skeleton";
 import { Badge } from "@repo/ui/badge";
 import { cn } from "@repo/ui/lib/utils";
@@ -11,7 +12,8 @@ import { PaymentLinksFilters } from "@/features/payment-links/components/Payment
 import { useAdminPaymentLinks } from "@/features/payment-links/hooks";
 import { formatDateTime } from "@/lib/format";
 import { formatUsdc } from "@/lib/currency";
-import type { AdminPaymentLinkData, AdminPaymentLinksQuery } from "@/lib/api/types";
+import { derivePaymentLinkStatus } from "@/lib/api/types";
+import type { AdminPaymentLinkData, AdminPaymentLinkStatus, AdminPaymentLinksQuery } from "@/lib/api/types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -27,9 +29,10 @@ function ListSkeleton() {
 // Same dot+pill convention as apps/web's own `PaymentLinksTable` — ported
 // rather than shared (no cross-app import between admin and web), but kept
 // visually identical so a link looks the same status regardless of which
-// app someone's viewing it from.
+// app someone's viewing it from. Status itself is derived, not a field the
+// real response carries — see `derivePaymentLinkStatus`'s own note.
 const STATUS_BADGE: Record<
-	AdminPaymentLinkData["status"],
+	AdminPaymentLinkStatus,
 	{ variant: "completed" | "failed" | "cancelled"; dot: string; label: string }
 > = {
 	active: { variant: "completed", dot: "bg-success-600", label: "Active" },
@@ -37,7 +40,7 @@ const STATUS_BADGE: Record<
 	cancelled: { variant: "cancelled", dot: "bg-neutral-400", label: "Cancelled" },
 };
 
-function StatusPill({ status }: { status: AdminPaymentLinkData["status"] }) {
+function StatusPill({ status }: { status: AdminPaymentLinkStatus }) {
 	const badge = STATUS_BADGE[status];
 	return (
 		<Badge variant={badge.variant}>
@@ -47,15 +50,49 @@ function StatusPill({ status }: { status: AdminPaymentLinkData["status"] }) {
 	);
 }
 
+/** The list response only ever carries a raw `businessId`, never a name
+ * (only the `{id}` detail endpoint adds `businessName` — see
+ * `AdminPaymentLinkData`'s own note) — resolving a name here for every row
+ * would mean one extra request per row. Links to that business's own
+ * detail page instead, same "truncated id, not a fetched name" treatment
+ * `WalletsList` already gives wallet addresses. */
+function BusinessLink({ businessId }: { businessId: string }) {
+	return (
+		<Link
+			href={`/businesses/${businessId}`}
+			className="inline-flex items-center gap-1.5 font-mono text-c1 text-primary-600 hover:underline"
+		>
+			<Building2 className="size-3.5 shrink-0" aria-hidden="true" />
+			{businessId.slice(0, 8)}…
+		</Link>
+	);
+}
+
 const COLUMNS: Column<AdminPaymentLinkData>[] = [
-	{ key: "title", label: "Title", render: (link) => link.title },
-	{ key: "business", label: "Business", render: (link) => link.business.name },
+	{
+		key: "title",
+		label: "Title",
+		render: (link) => (
+			<span className="block max-w-56 truncate" title={link.title}>
+				{link.title}
+			</span>
+		),
+	},
+	{ key: "business", label: "Business", render: (link) => <BusinessLink businessId={link.businessId} /> },
 	{
 		key: "amount",
 		label: "Amount",
-		render: (link) => `${formatUsdc(link.amount)} ${link.currency}`,
+		render: (link) => (
+			<span className="font-semibold text-foreground tabular-nums">
+				{formatUsdc(link.amount)} {link.currency}
+			</span>
+		),
 	},
-	{ key: "status", label: "Status", render: (link) => <StatusPill status={link.status} /> },
+	{
+		key: "status",
+		label: "Status",
+		render: (link) => <StatusPill status={derivePaymentLinkStatus(link)} />,
+	},
 	{ key: "expiresAt", label: "Expires", render: (link) => formatDateTime(link.expiresAt) },
 	{ key: "createdAt", label: "Created", render: (link) => formatDateTime(link.createdAt) },
 ];

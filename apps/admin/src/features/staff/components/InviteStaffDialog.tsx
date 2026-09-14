@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Copy, Check } from "lucide-react";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { PhoneInput } from "@repo/ui/phone-input";
@@ -19,6 +18,7 @@ import {
 	DialogFooter,
 	DialogClose,
 } from "@repo/ui/dialog";
+import { CopyButton } from "@/components/data/CopyButton";
 import { useInviteStaff } from "@/features/staff/hooks";
 import { inviteStaffSchema, type InviteStaffValues } from "@/lib/validations/staffValidations";
 import { splitPhoneForApi } from "@/lib/phone";
@@ -44,7 +44,6 @@ interface InviteStaffDialogProps {
  */
 function InviteStaffDialog({ open, onOpenChange }: InviteStaffDialogProps) {
 	const [result, setResult] = useState<AdminInviteStaffResponseData | null>(null);
-	const [copied, setCopied] = useState(false);
 	const invite = useInviteStaff();
 	const form = useForm<InviteStaffValues>({
 		resolver: zodResolver(inviteStaffSchema),
@@ -55,7 +54,6 @@ function InviteStaffDialog({ open, onOpenChange }: InviteStaffDialogProps) {
 		if (!next) {
 			form.reset();
 			setResult(null);
-			setCopied(false);
 		}
 		onOpenChange(next);
 	}
@@ -82,14 +80,6 @@ function InviteStaffDialog({ open, onOpenChange }: InviteStaffDialogProps) {
 		);
 	}
 
-	function handleCopy() {
-		if (!result) return;
-		navigator.clipboard.writeText(result.temporaryPassword).then(() => {
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		});
-	}
-
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent>
@@ -103,16 +93,9 @@ function InviteStaffDialog({ open, onOpenChange }: InviteStaffDialogProps) {
 							</DialogDescription>
 						</DialogHeader>
 
-						<div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted p-4">
+						<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted p-4">
 							<code className="text-b2 font-mono text-foreground">{result.temporaryPassword}</code>
-							<Button type="button" variant="outline" size="small" onClick={handleCopy}>
-								{copied ? (
-									<Check className="size-4" aria-hidden="true" />
-								) : (
-									<Copy className="size-4" aria-hidden="true" />
-								)}
-								{copied ? "Copied" : "Copy"}
-							</Button>
+							<CopyButton value={result.temporaryPassword} />
 						</div>
 
 						<DialogFooter className="sm:flex-row sm:justify-end">

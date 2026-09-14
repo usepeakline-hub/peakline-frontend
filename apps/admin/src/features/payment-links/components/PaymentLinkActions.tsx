@@ -7,17 +7,19 @@ import { toast } from "@repo/ui/sonner";
 import { ConfirmActionDialog } from "@/components/data/ConfirmActionDialog";
 import { useCancelAdminPaymentLink } from "@/features/payment-links/hooks";
 import { getApiErrorMessage } from "@/lib/api/errorMessage";
+import { derivePaymentLinkStatus } from "@/lib/api/types";
 import type { AdminPaymentLinkData } from "@/lib/api/types";
 
 /** Only offered on a still-active link — an expired or already-cancelled
  * one has nothing left to force-cancel, matching Phase 3's own "reverse
  * only offered on completed transactions" precedent for not showing an
- * action the endpoint would just reject. */
+ * action the endpoint would just reject. Status is derived, not a real
+ * field (see `derivePaymentLinkStatus`'s own note). */
 function PaymentLinkActions({ link }: { link: AdminPaymentLinkData }) {
 	const [open, setOpen] = useState(false);
 	const cancel = useCancelAdminPaymentLink(link.id);
 
-	if (link.status !== "active") return null;
+	if (derivePaymentLinkStatus(link) !== "active") return null;
 
 	return (
 		<>

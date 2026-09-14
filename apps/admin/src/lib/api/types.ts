@@ -437,36 +437,55 @@ export type UnknownRecord = Record<string, unknown>;
 // Phase 4 — Payment Links, Config, Staff
 // ---------------------------------------------------------------------
 
-/** `GET /admin/payment-links`, `.../{id}` — the real spec's response
- * schema for the list is another of this project's documentation bugs
- * (resolves to `AdminListPaymentLinksQueryDto`, the *query params'* own
- * DTO; `{id}` resolves to a bare `nullable: true`). Modeled on apps/web's
- * own confirmed `PaymentLinkData`, plus the nested `business` every admin
- * list needs (unlike apps/web's own scoped-to-"my business" version) —
- * unverified against a real response, same caveat as Phase 1/2/3's own
- * documentation-bug fields. */
+/** `GET /admin/payment-links`, `.../{id}` — confirmed live, and it turned
+ * out genuinely different from the shape this was first (wrongly) modeled
+ * on apps/web's own customer-facing `PaymentLinkData`: no `status`, no
+ * `url`, and `business` is not a nested object — it's a raw `businessId`
+ * on both endpoints, plus a flat `businessName` string but ONLY on the
+ * `{id}` detail response, not the list. There's no server-computed status
+ * at all — derive it client-side from `cancelledAt`/`expiresAt` (see
+ * `derivePaymentLinkStatus`) rather than expect a field that was never
+ * actually there; the original doc-bug caveat (list resolves to the wrong,
+ * query-param DTO) turned out to under-sell it — even the customer-facing
+ * sibling was the wrong model to copy from, not just an unconfirmed one. */
 export interface AdminPaymentLinkData {
 	id: string;
+	ownerId: string;
+	businessId: string;
+	/** Only present on `GET /admin/payment-links/{id}` — `undefined` on
+	 * list rows, which have no business name at all, just the id. */
+	businessName?: string;
 	title: string;
 	amount: string;
 	currency: "USDC";
 	description?: string | null;
 	customerReference?: string | null;
+	publicCode: string;
 	expiresAt: string;
 	cancelledAt?: string | null;
-	status: "active" | "expired" | "cancelled";
-	publicCode: string;
-	url: string;
-	business: { id: string; name: string };
 	createdAt: string;
 	updatedAt: string;
+}
+
+export type AdminPaymentLinkStatus = "active" | "expired" | "cancelled";
+
+/** No server-computed status field exists on either payment-links response
+ * (confirmed live) — a link's real status is always a function of exactly
+ * these two timestamps, the same rule apps/web's own backend presumably
+ * applies before it ever hands a customer a `status` string. */
+export function derivePaymentLinkStatus(link: {
+	cancelledAt?: string | null;
+	expiresAt: string;
+}): AdminPaymentLinkStatus {
+	if (link.cancelledAt) return "cancelled";
+	return new Date(link.expiresAt).getTime() < Date.now() ? "expired" : "active";
 }
 
 export interface AdminPaymentLinksQuery {
 	q?: string;
 	businessId?: string;
 	ownerId?: string;
-	status?: AdminPaymentLinkData["status"];
+	status?: AdminPaymentLinkStatus;
 	from?: string;
 	to?: string;
 }
